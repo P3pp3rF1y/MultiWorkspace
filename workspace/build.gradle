@@ -20,9 +20,6 @@ apply plugin: 'maven-publish'
 
 repositories {
     maven { url 'https://www.dogforce-games.com/maven/' }
-    maven { // JEI
-        url "https://dvs1.progwml6.com/files/maven"
-    }
     maven { // Patchouli
         url "https://maven.blamejared.com"
     }
@@ -178,23 +175,11 @@ dependencies {
 
     compileOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}:api")
     runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
-//    runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:3784732")
-//    runtimeOnly fg.deobf("curse.maven:mantle-74924:3784500")
     runtimeOnly fg.deobf("curse.maven:autoreglib-250363:3642382")
     runtimeOnly fg.deobf("curse.maven:quark-243121:3800462")
-//    runtimeOnly fg.deobf("curse.maven:silentlib-242998:3708359")
-//    runtimeOnly fg.deobf("curse.maven:silentgear-297039:3811128")
     runtimeOnly fg.deobf("curse.maven:mekanism-268560:3833669")
-    runtimeOnly fg.deobf("curse.maven:corailtombstone-243707:4034714")
-//    runtimeOnly fg.deobf("curse.maven:carryon-274259:3674344")
-    runtimeOnly fg.deobf("curse.maven:storagedrawers-223852:3807626")
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:3712882")
     runtimeOnly fg.deobf("curse.maven:simplestoragenetwork-268495:3868680")
-    runtimeOnly fg.deobf("curse.maven:shetiphiancore-71738:3832652")
-    runtimeOnly fg.deobf("curse.maven:endertanks-59613:3832663")
-    runtimeOnly fg.deobf("curse.maven:frameddrawers-376351:3808242")
-    runtimeOnly fg.deobf("curse.maven:twilightforest-227639:4337390")
-    runtimeOnly fg.deobf("curse.maven:compressium-342929:4034865")
 
     implementation project(':SophisticatedBackpacks')
     implementation project(':SophisticatedStorage')
