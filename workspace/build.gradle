@@ -185,9 +185,9 @@ dependencies {
     implementation project(':SophisticatedStorage')
     implementation project(':SophisticatedCore')
 
+/*
     runtimeOnly fg.deobf("curse.maven:ctm-267602:4393695")
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
-/*
     runtimeOnly fg.deobf("curse.maven:chipped-456956:4463479")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:4477753")
 */
