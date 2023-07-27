@@ -186,6 +186,8 @@ dependencies {
     implementation project(':SophisticatedCore')
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
+    runtimeOnly fg.deobf("curse.maven:rubidium-574856:4573226")
+
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
