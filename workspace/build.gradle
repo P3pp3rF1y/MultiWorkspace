@@ -189,6 +189,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
     runtimeOnly fg.deobf("curse.maven:placebo-283644:4629583")
     runtimeOnly fg.deobf("curse.maven:fastworkbench-288885:4579504")
+    runtimeOnly fg.deobf("curse.maven:spark-361579:4029757")
 /*
     runtimeOnly fg.deobf("curse.maven:chipped-456956:4463479")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:4477753")
