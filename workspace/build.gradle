@@ -180,6 +180,9 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:mekanism-268560:3833669")
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:3712882")
     runtimeOnly fg.deobf("curse.maven:simplestoragenetwork-268495:3868680")
+    runtimeOnly fg.deobf("curse.maven:spark-361579:4505375")
+    runtimeOnly fg.deobf("curse.maven:chipped-456956:4293291")
+    runtimeOnly fg.deobf("curse.maven:ctm-267602:3933537")
 
     implementation project(':SophisticatedBackpacks')
     implementation project(':SophisticatedStorage')
