@@ -183,18 +183,17 @@ dependencies {
 */
 
 //    compileOnly fg.deobf("mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
-//    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
 
     implementation project(':SophisticatedBackpacks')
     implementation project(':SophisticatedStorage')
     implementation project(':SophisticatedCore')
 
+    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
     runtimeOnly fg.deobf("curse.maven:ctm-267602:4393695")
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
     runtimeOnly fg.deobf("curse.maven:placebo-283644:4629583")
     runtimeOnly fg.deobf("curse.maven:fastworkbench-288885:4579504")
     runtimeOnly fg.deobf("curse.maven:spark-361579:4029757")
-    runtimeOnly fg.deobf("dev.emi:emi-forge:1.0.19+1.19.2")
     runtimeOnly fg.deobf("curse.maven:chipped-456956:4558849")
     runtimeOnly fg.deobf("curse.maven:ctm-267602:4393695")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:4477753")
