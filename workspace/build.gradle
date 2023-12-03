@@ -173,13 +173,14 @@ dependencies {
     implementation project(':SophisticatedStorage')
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
-    runtimeOnly fg.deobf("curse.maven:rubidium-574856:4573226")
+    runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
     runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:chipped-456956:4634856")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:4851864")
     runtimeOnly fg.deobf("curse.maven:athena-841890:4764357")
+    runtimeOnly fg.deobf("curse.maven:create-328085:4835191")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
