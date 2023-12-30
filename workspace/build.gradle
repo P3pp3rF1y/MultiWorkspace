@@ -182,6 +182,12 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:athena-841890:4764357")
     runtimeOnly fg.deobf("curse.maven:create-328085:4835191")
 
+    runtimeOnly fg.deobf("curse.maven:cyclopscore-232758:4905983")
+    runtimeOnly fg.deobf("curse.maven:integratedterminals-295910:4925609")
+    runtimeOnly fg.deobf("curse.maven:integratedynamics-236307:4925678")
+    runtimeOnly fg.deobf("curse.maven:commoncapabilities-247007:4620480")
+    runtimeOnly fg.deobf("curse.maven:integratedtunnels-251389:4782861")
+
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
     runtimeOnly fg.deobf("curse.maven:placebo-283644:4629583")
