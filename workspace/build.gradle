@@ -199,6 +199,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:4477753")
     runtimeOnly fg.deobf("curse.maven:mutil-351914:3941314") //tetra lib
     runtimeOnly fg.deobf("curse.maven:tetra-289712:4746630")
+    runtimeOnly fg.deobf("curse.maven:immersiveengineering-231951:4780537")
 
 /*
     runtimeOnly fg.deobf("curse.maven:chipped-456956:4463479")
