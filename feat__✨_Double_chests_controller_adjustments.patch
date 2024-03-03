@@ -1,0 +1,205 @@
+Subject: [PATCH] feat: ✨ Double chests controller adjustments
+---
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlock.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlock.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlock.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlock.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlock.java	(date 1709153318029)
+@@ -20,6 +20,7 @@
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.LevelReader;
+ import net.minecraft.world.level.block.*;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.BlockEntityTicker;
+@@ -387,10 +388,28 @@
+ 		return state.getValue(FACING);
+ 	}
+ 
+-	//TODO add break override that properly handles copying stacks and settings over to the other part and handling overflowed stacks by dropping them on the ground
+-
+ 	@Override
+ 	public boolean canChangeDisplaySide(BlockState state) {
+ 		return state.getValue(TYPE) != ChestType.SINGLE;
+ 	}
++
++	@Override
++	public BlockPos getNeighborPos(BlockState state, BlockPos origin, Direction facing) {
++		if (state.getValue(TYPE) == ChestType.SINGLE) {
++			return origin.relative(facing);
++		} else {
++			if (getConnectedDirection(state) == facing) {
++				return origin.relative(facing).relative(facing);
++			}
++			return origin.relative(facing);
++		}
++	}
++
++	@Override
++	public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
++		if (state.getValue(TYPE) != ChestType.SINGLE && pos.relative(getConnectedDirection(state)).equals(neighbor)) {
++			return;
++		}
++		super.onNeighborChange(state, level, pos, neighbor);
++	}
+ }
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/upgrades/hopper/HopperUpgradeWrapper.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/upgrades/hopper/HopperUpgradeWrapper.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/upgrades/hopper/HopperUpgradeWrapper.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/upgrades/hopper/HopperUpgradeWrapper.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/upgrades/hopper/HopperUpgradeWrapper.java	(date 1709151839814)
+@@ -156,7 +156,8 @@
+ 	}
+ 
+ 	private Optional<WorldlyContainer> getWorldlyContainer(Level level, BlockPos pos, Direction direction) {
+-		BlockPos offsetPos = pos.relative(direction);
++		BlockState storageState = level.getBlockState(pos);
++		BlockPos offsetPos = storageState.getBlock() instanceof StorageBlockBase storageBlock ? storageBlock.getNeighborPos(storageState, pos, direction) : pos.relative(direction);
+ 		BlockState state = level.getBlockState(offsetPos);
+ 		if (state.getBlock() instanceof WorldlyContainerHolder worldlyContainerHolder) {
+ 			return Optional.of(worldlyContainerHolder.getContainer(state, level, offsetPos));
+@@ -197,7 +198,9 @@
+ 	}
+ 
+ 	public void updateCacheOnSide(Level level, BlockPos pos, Direction direction) {
+-		WorldHelper.getLoadedBlockEntity(level, pos.relative(direction)).ifPresentOrElse(blockEntity -> {
++		BlockState storageState = level.getBlockState(pos);
++		BlockPos offsetPos = storageState.getBlock() instanceof StorageBlockBase storageBlock ? storageBlock.getNeighborPos(storageState, pos, direction) : pos.relative(direction);
++		WorldHelper.getLoadedBlockEntity(level, offsetPos).ifPresentOrElse(blockEntity -> {
+ 			LazyOptional<IItemHandler> lazyOptional = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite());
+ 			if (lazyOptional.isPresent()) {
+ 				handlerCache.put(direction, lazyOptional);
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlockEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlockEntity.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlockEntity.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlockEntity.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/ChestBlockEntity.java	(date 1709159393975)
+@@ -23,6 +23,7 @@
+ import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
+ import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
+ import net.p3pp3rf1y.sophisticatedstorage.item.ChestBlockItem;
++import net.p3pp3rf1y.sophisticatedstorage.upgrades.INeighborChangeListenerUpgrade;
+ import org.jetbrains.annotations.NotNull;
+ 
+ import javax.annotation.Nullable;
+@@ -32,7 +33,6 @@
+ 	public static final String STORAGE_TYPE = "chest";
+ 	public static final String DOUBLE_CHEST_MAIN_POS_TAG = "doubleMainPos";
+ 	private final ChestLidController chestLidController = new ChestLidController();
+-	//TODO add persistence and synchronization to client
+ 	@Nullable
+ 	private BlockPos doubleMainPos = null;
+ 
+@@ -80,6 +80,7 @@
+ 		removeFromController();
+ 		setNotLinked();
+ 		tryToAddToController();
++		mainBE.getStorageWrapper().getUpgradeHandler().refreshUpgradeWrappers();
+ 	}
+ 
+ 	public void setMainPos(BlockPos doubleMainPos) {
+@@ -159,6 +160,15 @@
+ 		super.dropContents();
+ 	}
+ 
++	@Override
++	public void onNeighborChange(BlockPos neighborPos) {
++		Direction direction = getNeighborDirection(neighborPos);
++		if (direction == null) {
++			return;
++		}
++		getMainStorageWrapper().getUpgradeHandler().getWrappersThatImplement(INeighborChangeListenerUpgrade.class).forEach(upgrade -> upgrade.onNeighborChange(level, worldPosition, direction));
++	}
++
+ 	private void moveOtherPartStacksToIt() {
+ 		runOnTheOtherPart(level, getBlockPos(), getBlockState(), (be, pos) -> {
+ 			be.removeDoubleMainPos();
+@@ -173,13 +183,15 @@
+ 			copySettings(this, be, firstIndex, -firstIndex);
+ 			be.removeControllerPos();
+ 			be.tryToAddToController();
++			be.getStorageWrapper().getUpgradeHandler().refreshUpgradeWrappers();
+ 			WorldHelper.notifyBlockUpdate(be);
+ 		});
+ 	}
+ 
+ 	private void moveMyStacksFromMain() {
+ 		level.getBlockEntity(doubleMainPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).ifPresent(mainBE -> {
+-			InventoryHandler mainInventoryHandler = mainBE.getStorageWrapper().getInventoryHandler();
++			StorageWrapper mainStorageWrapper = mainBE.getStorageWrapper();
++			InventoryHandler mainInventoryHandler = mainStorageWrapper.getInventoryHandler();
+ 			int firstIndex = mainInventoryHandler.getSlots() / 2;
+ 
+ 			for (int slot = firstIndex; slot < mainInventoryHandler.getSlots(); slot++) {
+@@ -190,7 +202,8 @@
+ 
+ 			mainBE.changeStorageSize(inventorySlotDiff, 0);
+ 			deleteSettingsFromSlot(mainBE, firstIndex);
+-			mainBE.getStorageWrapper().getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class).setDisplaySide(DisplaySide.FRONT);
++			mainStorageWrapper.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class).setDisplaySide(DisplaySide.FRONT);
++			mainStorageWrapper.getUpgradeHandler().refreshUpgradeWrappers();
+ 			WorldHelper.notifyBlockUpdate(mainBE);
+ 		});
+ 	}
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/item/ChestBlockItem.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/item/ChestBlockItem.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/item/ChestBlockItem.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/item/ChestBlockItem.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/item/ChestBlockItem.java	(date 1709159902286)
+@@ -41,9 +41,4 @@
+ 	public static void setDoubleChest(ItemStack stack, boolean doubleChest) {
+ 		stack.getOrCreateTag().putBoolean(DOUBLE_CHEST_TAG, doubleChest);
+ 	}
+-
+-	@Override
+-	protected boolean placeBlock(BlockPlaceContext pContext, BlockState pState) {
+-		return super.placeBlock(pContext, pState);
+-	}
+ }
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java	(date 1709152358805)
+@@ -595,7 +595,7 @@
+ 	}
+ 
+ 	@Nullable
+-	private Direction getNeighborDirection(BlockPos neighborPos) {
++	protected Direction getNeighborDirection(BlockPos neighborPos) {
+ 		Direction direction = null;
+ 		int normalX = Integer.signum(neighborPos.getX() - worldPosition.getX());
+ 		int normalY = Integer.signum(neighborPos.getY() - worldPosition.getY());
+Index: src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockBase.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockBase.java b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockBase.java
+--- a/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockBase.java	(revision 2c4233e18c6bb641067aa950e263f21cacdf4aa6)
++++ b/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockBase.java	(date 1709150272879)
+@@ -261,4 +261,8 @@
+ 			return result;
+ 		}).orElse(false);
+ 	}
++
++	public BlockPos getNeighborPos(BlockState state, BlockPos origin, Direction facing) {
++		return origin.relative(facing);
++	}
+ }
