@@ -1,12 +1,20 @@
 plugins {
+    id 'java-library'
     id 'idea'
-    id "org.sonarqube" version "3.3"
-    id "maven-publish"
-    id 'net.neoforged.gradle' version '[6.0.18,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.101'
+    id "org.sonarqube" version "5.0.0.4638"
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
 }
 
 repositories {
+    maven { url "https://maven.theillusivec4.top/" }
     maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
@@ -27,210 +35,83 @@ repositories {
 
 version = '1.0'
 group = 'com.yourname.modid' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'modid'
+base {
+    archivesName = 'modid'
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-minecraft {
-    mappings channel: 'parchment' , version: "$parchment_version"
-//    accessTransformer = file('workspace/accesstransformer.cfg')
+runs {
+    configureEach {
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'forge.logging.console.level', 'debug'
+        systemProperty 'mixin.env.disableRefMap', 'true'
 
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
-    runs {
-        client {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
+        modSource project(':SophisticatedCore').sourceSets.main
+        modSource project(':SophisticatedBackpacks').sourceSets.main
+        modSource project(':SophisticatedStorage').sourceSets.main
+    }
 
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+    client {
+    }
 
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
+    client2 {
+        configure ("client")
 
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-            }
-        }
+        programArguments.addAll '--username', 'Dev2'
+    }
 
-        client2 {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
+    server {
+        programArgument '--nogui'
+    }
 
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-            }
-        }
-
-        server {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-            }
-        }
+    data {
+        programArguments.addAll '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', sourceSets.main.resources.srcDirs[0].absolutePath
     }
 }
 
-jar {
-  duplicatesStrategy = DuplicatesStrategy.INCLUDE
-}
-
 dependencies {
-    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
-    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
-    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
-    minecraft "net.neoforged:forge:${minecraft_version}-${neo_version}"
+    implementation "net.neoforged:neoforge:${neo_version}"
 
 /*
     if (findProject(':TheOneProbe') != null) {
         implementation project(':TheOneProbe')
     } else {
-        implementation fg.deobf(project.dependencies.create("mcjty.theoneprobe:theoneprobe:${top_version}") {
+        implementation project.dependencies.create("mcjty.theoneprobe:theoneprobe:${top_version}") {
             transitive = false
         })
     }
 */
 
-//    compileOnly fg.deobf("mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
-//    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
+//    compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
+//    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}")
 
     implementation project(':SophisticatedCore')
     implementation project(':SophisticatedBackpacks')
     implementation project(':SophisticatedStorage')
 
-    runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
-    runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
-    runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:chipped-456956:5077656")
-    runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:5070629")
-    runtimeOnly fg.deobf("curse.maven:athena-841890:4764357")
-    runtimeOnly fg.deobf("curse.maven:create-328085:4835191")
+    runtimeOnly "curse.maven:jade-324717:5109393"
+    runtimeOnly "curse.maven:embeddium-908741:5213210"
+    //runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
+    //runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
+    //runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
+    runtimeOnly "curse.maven:chipped-456956:5081543"
+    runtimeOnly "curse.maven:resourcefullib-570073:5180841"
+    runtimeOnly "curse.maven:athena-841890:5176890"
+    //runtimeOnly "curse.maven:create-328085:4835191"
 
-    runtimeOnly fg.deobf("curse.maven:cyclopscore-232758:4905983")
-    runtimeOnly fg.deobf("curse.maven:integratedterminals-295910:4925609")
-    runtimeOnly fg.deobf("curse.maven:integratedynamics-236307:4925678")
-    runtimeOnly fg.deobf("curse.maven:commoncapabilities-247007:4620480")
-    runtimeOnly fg.deobf("curse.maven:integratedtunnels-251389:4782861")
-    runtimeOnly fg.deobf("curse.maven:mekanism-268560:5125665")
+    //runtimeOnly "curse.maven:cyclopscore-232758:4905983"
+    //runtimeOnly "curse.maven:integratedterminals-295910:4925609"
+    //runtimeOnly "curse.maven:integratedynamics-236307:4925678"
+    //runtimeOnly "curse.maven:commoncapabilities-247007:4620480"
+    //runtimeOnly "curse.maven:integratedtunnels-251389:4782861"
+    runtimeOnly "curse.maven:mekanism-268560:5239585"
 
 /*
-    runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
-    runtimeOnly fg.deobf("curse.maven:placebo-283644:4629583")
-    runtimeOnly fg.deobf("curse.maven:fastworkbench-288885:4579504")
-    runtimeOnly fg.deobf("curse.maven:spark-361579:4029757")
-    runtimeOnly fg.deobf("dev.emi:emi-forge:1.0.19+1.19.2")
+    runtimeOnly "curse.maven:refinedstorage-243076:4465872")
+    runtimeOnly "curse.maven:placebo-283644:4629583")
+    runtimeOnly "curse.maven:fastworkbench-288885:4579504")
+    runtimeOnly "curse.maven:spark-361579:4029757")
+    runtimeOnly "dev.emi:emi-forge:1.0.19+1.19.2")
 */
-}
-
-// Example for how to get properties into the manifest for reading by the runtime..
-jar {
-    manifest {
-        attributes([
-            "Specification-Title": "examplemod",
-            "Specification-Vendor": "examplemodsareus",
-            "Specification-Version": "1", // We are version 1 of ourselves
-            "Implementation-Title": project.name,
-            "Implementation-Version": "${version}",
-            "Implementation-Vendor" :"examplemodsareus",
-            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-}
-
-// Example configuration to allow publishing using the maven-publish task
-// we define a custom artifact that is sourced from the reobfJar output task
-// and then declare that to be published
-// Note you'll need to add a repository here
-def reobfFile = file("$buildDir/reobfJar/output.jar")
-def reobfArtifact = artifacts.add('default', reobfFile) {
-    type 'jar'
-    builtBy 'reobfJar'
-}
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact reobfArtifact
-        }
-    }
-    repositories {
-        maven {
-            url "file:///${project.projectDir}/mcmodsrepo"
-        }
-    }
 }
