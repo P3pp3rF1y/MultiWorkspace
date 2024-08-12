@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.142'
+    id 'net.neoforged.moddev' version '1.0.14'
     id "org.sonarqube" version "5.0.0.4638"
 }
 
@@ -14,7 +14,6 @@ idea {
 }
 
 repositories {
-    maven { url "https://maven.theillusivec4.top/" }
     maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
@@ -31,6 +30,12 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+    maven {
+        url = "https://maven.octo-studios.com/#/releases"
+        content {
+            includeGroup 'top.theillusivec4.curios'
+        }
+    }
 }
 
 version = '1.0'
@@ -41,37 +46,55 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-runs {
-    configureEach {
-        systemProperty 'forge.logging.markers', 'REGISTRIES'
-        systemProperty 'forge.logging.console.level', 'debug'
-        systemProperty 'mixin.env.disableRefMap', 'true'
+neoForge {
+    version = project.neo_version
 
-        modSource project(':SophisticatedCore').sourceSets.main
-        modSource project(':SophisticatedBackpacks').sourceSets.main
-        modSource project(':SophisticatedStorage').sourceSets.main
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
     }
 
-    client {
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            systemProperty 'mixin.env.disableRefMap', 'true'
+        }
+
+        client {
+            client()
+        }
+
+        client2 {
+            client()
+
+            programArguments.addAll '--username', 'Dev2'
+        }
+
+        server {
+            server()
+        }
+
+        data {
+            data()
+            programArguments.addAll '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', sourceSets.main.resources.srcDirs[0].absolutePath
+        }
     }
 
-    client2 {
-        configure ("client")
-
-        programArguments.addAll '--username', 'Dev2'
-    }
-
-    server {
-        programArgument '--nogui'
-    }
-
-    data {
-        programArguments.addAll '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', sourceSets.main.resources.srcDirs[0].absolutePath
+    mods {
+        "sophisticatedcore" {
+            sourceSet(project(':SophisticatedCore').sourceSets.main)
+        }
+        "sophisticatedbackpacks" {
+            sourceSet(project(':SophisticatedBackpacks').sourceSets.main)
+        }
+        "sophisticatedstorage" {
+            sourceSet(project(':SophisticatedStorage').sourceSets.main)
+        }
     }
 }
 
 dependencies {
-    implementation "net.neoforged:neoforge:${neo_version}"
 
 /*
     if (findProject(':TheOneProbe') != null) {
@@ -84,20 +107,19 @@ dependencies {
 */
 
 //    compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
-//    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}")
 
-    implementation project(':SophisticatedCore')
-    implementation project(':SophisticatedBackpacks')
-    implementation project(':SophisticatedStorage')
-
-    runtimeOnly "curse.maven:jade-324717:5109393"
-    runtimeOnly "curse.maven:embeddium-908741:5213210"
-    //runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
-    //runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
-    //runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
-    runtimeOnly "curse.maven:chipped-456956:5081543"
-    runtimeOnly "curse.maven:resourcefullib-570073:5180841"
-    runtimeOnly "curse.maven:athena-841890:5176890"
+    //runtimeOnly "curse.maven:jade-324717:5109393"
+    //runtimeOnly "curse.maven:embeddium-908741:5213210"
+    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
+    runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
+    runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
+    runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
+    runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
+    runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
+    runtimeOnly "curse.maven:curios-1037991:${curios_cf_file_id}"
+    runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
+    runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
     //runtimeOnly "curse.maven:create-328085:4835191"
 
     //runtimeOnly "curse.maven:cyclopscore-232758:4905983"
@@ -105,7 +127,7 @@ dependencies {
     //runtimeOnly "curse.maven:integratedynamics-236307:4925678"
     //runtimeOnly "curse.maven:commoncapabilities-247007:4620480"
     //runtimeOnly "curse.maven:integratedtunnels-251389:4782861"
-    runtimeOnly "curse.maven:mekanism-268560:5239585"
+    runtimeOnly "curse.maven:mekanism-268560:5574951"
 
 /*
     runtimeOnly "curse.maven:refinedstorage-243076:4465872")
