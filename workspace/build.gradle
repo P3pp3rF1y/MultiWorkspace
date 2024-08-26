@@ -120,6 +120,10 @@ dependencies {
     runtimeOnly "curse.maven:curios-1037991:${curios_cf_file_id}"
     runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
     runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
+    runtimeOnly "curse.maven:ironsspellsnspellbooks-855414:${ironsspellsnspellbooks_cf_file_id}"
+    runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
+    runtimeOnly "curse.maven:caelus-388172:${geckolib_cf_file_id}"
+    runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
     //runtimeOnly "curse.maven:create-328085:4835191"
 
     //runtimeOnly "curse.maven:cyclopscore-232758:4905983"
