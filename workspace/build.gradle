@@ -7,6 +7,12 @@ plugins {
 }
 
 repositories {
+    maven {
+        url "https://maven.theillusivec4.top/"
+        content {
+            includeGroup "top.theillusivec4"
+        }
+    }
     maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
