@@ -5,6 +5,7 @@ plugins {
     id 'net.neoforged.moddev' version '1.0.14'
     id "org.sonarqube" version "5.0.0.4638"
     id "net.darkhax.curseforgegradle" version "1.1.15"
+    id "com.modrinth.minotaur" version "2.+"
 }
 
 idea {
@@ -119,7 +120,7 @@ dependencies {
         implementation project(':SophisticatedStorage')
     }
 
-    //runtimeOnly "curse.maven:jade-324717:5109393"
+    runtimeOnly "curse.maven:jade-324717:5591256"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
     runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
@@ -136,6 +137,10 @@ dependencies {
     runtimeOnly "curse.maven:caelus-388172:${geckolib_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
     runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
+    runtimeOnly "curse.maven:mekanism-268560:5574951"
+    runtimeOnly "curse.maven:arsnouveau-401955:5843653"
+    runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
+
     //runtimeOnly "curse.maven:create-328085:4835191"
 
     //runtimeOnly "curse.maven:cyclopscore-232758:4905983"
@@ -143,7 +148,6 @@ dependencies {
     //runtimeOnly "curse.maven:integratedynamics-236307:4925678"
     //runtimeOnly "curse.maven:commoncapabilities-247007:4620480"
     //runtimeOnly "curse.maven:integratedtunnels-251389:4782861"
-    runtimeOnly "curse.maven:mekanism-268560:5574951"
 
 /*
     runtimeOnly "curse.maven:refinedstorage-243076:4465872")
