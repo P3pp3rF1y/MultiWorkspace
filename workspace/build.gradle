@@ -68,6 +68,9 @@ minecraft {
                 SophisticatedStorage {
                     source project(':SophisticatedStorage').sourceSets.main
                 }
+                SophisticatedStorageInMotion {
+                    source project(':SophisticatedStorageInMotion').sourceSets.main
+                }
             }
         }
 
@@ -96,6 +99,9 @@ minecraft {
                 SophisticatedStorage {
                     source project(':SophisticatedStorage').sourceSets.main
                 }
+                SophisticatedStorageInMotion {
+                    source project(':SophisticatedStorageInMotion').sourceSets.main
+                }
             }
         }
 
@@ -123,6 +129,9 @@ minecraft {
                 SophisticatedStorage {
                     source project(':SophisticatedStorage').sourceSets.main
                 }
+                SophisticatedStorageInMotion {
+                    source project(':SophisticatedStorageInMotion').sourceSets.main
+                }
             }
         }
 
@@ -146,6 +155,9 @@ minecraft {
                 }
                 SophisticatedStorage {
                     source project(':SophisticatedStorage').sourceSets.main
+                }
+                SophisticatedStorageInMotion {
+                    source project(':SophisticatedStorageInMotion').sourceSets.main
                 }
             }
         }
@@ -198,9 +210,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4844585")
     runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
     runtimeOnly fg.deobf("curse.maven:geckolib-388172:5188427")
-    runtimeOnly fg.deobf("curse.maven:ex-pattern-provider-892005:5318206")
     runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
-    runtimeOnly fg.deobf("curse.maven:applied-energistics-2-223794:5253401")
     runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
     runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
     runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")

@@ -10,3 +10,6 @@
 	path = SophisticatedCore
 	url = https://github.com/P3pp3rF1y/SophisticatedCore.git
 	branch = 1.19.x-dev
+[submodule "SophisticatedStorageInMotion"]
+	path = SophisticatedStorageInMotion
+	url = https://github.com/P3pp3rF1y/SophisticatedStorageInMotion.git

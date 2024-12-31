@@ -17,5 +17,6 @@ rootProject.name = '1.20'
 include 'SophisticatedCore'
 include 'SophisticatedBackpacks'
 include 'SophisticatedStorage'
+include 'SophisticatedStorageInMotion'
 
 include 'workspace'
