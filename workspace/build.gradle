@@ -190,10 +190,11 @@ dependencies {
     implementation project(':SophisticatedCore')
     implementation project(':SophisticatedBackpacks')
     implementation project(':SophisticatedStorage')
+    implementation project(':SophisticatedStorageInMotion')
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
     runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
-    runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
+    //runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:chipped-456956:5077656")
