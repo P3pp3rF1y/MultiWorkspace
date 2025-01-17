@@ -193,7 +193,7 @@ dependencies {
     implementation project(':SophisticatedStorageInMotion')
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
-    runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
+    //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
     //runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
@@ -215,6 +215,8 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
     runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
     runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
+    runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
+    runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
