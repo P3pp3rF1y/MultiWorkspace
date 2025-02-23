@@ -70,6 +70,7 @@ neoForge {
         client2 {
             client()
 
+            gameDirectory = file('runs/client2')
             programArguments.addAll '--username', 'Dev2'
         }
 
@@ -126,7 +127,7 @@ dependencies {
         implementation project(':SophisticatedStorageInMotion')
     }
 
-    runtimeOnly "curse.maven:jade-324717:5591256"
+    runtimeOnly "curse.maven:jade-324717:6011258"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
     runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
@@ -135,7 +136,7 @@ dependencies {
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
-    runtimeOnly "curse.maven:curios-1037991:${curios_cf_file_id}"
+    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
     runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
     runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
@@ -143,8 +144,14 @@ dependencies {
     runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
     runtimeOnly "curse.maven:mekanism-268560:5574951"
     runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
-    runtimeOnly "curse.maven:etf-568563:5921308"
-    runtimeOnly "curse.maven:emf-844662:5722727"
+    runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
+    runtimeOnly "curse.maven:titanium-287342:5897690"
+    runtimeOnly "curse.maven:functionalstorage-556861:6023174"
+    runtimeOnly "curse.maven:productivebees-377897:6029033"
+    runtimeOnly "curse.maven:caelus-308989:5694215"
+    runtimeOnly "curse.maven:curioselytra-317716:5778461"
+    //runtimeOnly "curse.maven:etf-568563:5921308"
+    //runtimeOnly "curse.maven:emf-844662:5722727"
 
     //runtimeOnly "curse.maven:create-328085:4835191"
 
