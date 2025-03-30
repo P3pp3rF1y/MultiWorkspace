@@ -16,6 +16,12 @@ idea {
 }
 
 repositories {
+    maven {
+        url = "https://mvn.devos.one/snapshots"
+        content {
+            includeGroupByRegex "com.tterrag.*"
+        }
+    }
     maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
@@ -36,6 +42,14 @@ repositories {
         url = "https://maven.octo-studios.com/#/releases"
         content {
             includeGroup 'top.theillusivec4.curios'
+        }
+    }
+    maven {
+        url = "https://maven.createmod.net"
+        content {
+            includeGroupByRegex "com.simibubi.*"
+            includeGroupByRegex "net.createmod.*"
+            includeGroupByRegex "dev.engine-room.*"
         }
     }
 }
@@ -60,7 +74,6 @@ neoForge {
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
-            systemProperty 'mixin.env.disableRefMap', 'true'
         }
 
         client {
@@ -97,6 +110,9 @@ neoForge {
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
+        "sophisticatedstoragecreatecompat" {
+            sourceSet(project(':SophisticatedStorageCreateCompat').sourceSets.main)
+        }
     }
 }
 
@@ -126,10 +142,23 @@ dependencies {
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
     }
+    if (findProject(':SophisticatedStorageCreateCompat') != null) {
+        implementation project(':SophisticatedStorageCreateCompat')
+    }
 
     runtimeOnly "curse.maven:jade-324717:6011258"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
+        transitive = false
+    }
+    runtimeOnly ("net.createmod.ponder:Ponder-NeoForge-${create_mc_version}:${ponder_version}") {
+        transitive = false
+    }
+    runtimeOnly ("dev.engine-room.flywheel:flywheel-neoforge-${create_mc_version}:${flywheel_version}"){
+        transitive = false
+    }
+    runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
     runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
     runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
     runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
