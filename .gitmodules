@@ -14,6 +14,6 @@
 	path = SophisticatedStorageInMotion
 	url = https://github.com/P3pp3rF1y/SophisticatedStorageInMotion.git
 	branch = 1.21.x
-[submodule "SophisticatedStorageCreateCompat"]
-	path = SophisticatedStorageCreateCompat
-	url = https://github.com/P3pp3rF1y/SophisticatedStorageCreateCompat.git
+[submodule "SophisticatedStorageCreateIntegration"]
+	path = SophisticatedStorageCreateIntegration
+	url = https://github.com/P3pp3rF1y/SophisticatedStorageCreateIntegration.git

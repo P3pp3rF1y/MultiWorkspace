@@ -110,8 +110,8 @@ neoForge {
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
-        "sophisticatedstoragecreatecompat" {
-            sourceSet(project(':SophisticatedStorageCreateCompat').sourceSets.main)
+        "sophisticatedstoragecreateintegration" {
+            sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
         }
     }
 }
@@ -142,8 +142,8 @@ dependencies {
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
     }
-    if (findProject(':SophisticatedStorageCreateCompat') != null) {
-        implementation project(':SophisticatedStorageCreateCompat')
+    if (findProject(':SophisticatedStorageCreateIntegration') != null) {
+        implementation project(':SophisticatedStorageCreateIntegration')
     }
 
     runtimeOnly "curse.maven:jade-324717:6011258"
