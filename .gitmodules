@@ -13,3 +13,6 @@
 [submodule "SophisticatedStorageInMotion"]
 	path = SophisticatedStorageInMotion
 	url = https://github.com/P3pp3rF1y/SophisticatedStorageInMotion.git
+[submodule "SophisticatedStorageCreateIntegration"]
+	path = SophisticatedStorageCreateIntegration
+	url = https://github.com/P3pp3rF1y/SophisticatedStorageCreateIntegration.git

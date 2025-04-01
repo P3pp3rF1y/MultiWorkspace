@@ -18,5 +18,6 @@ include 'SophisticatedCore'
 include 'SophisticatedBackpacks'
 include 'SophisticatedStorage'
 include 'SophisticatedStorageInMotion'
+include 'SophisticatedStorageCreateIntegration'
 
 include 'workspace'

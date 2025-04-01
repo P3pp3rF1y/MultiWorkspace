@@ -7,6 +7,7 @@ plugins {
 }
 
 repositories {
+    maven { url "https://maven.tterrag.com/" }
     maven {
         url "https://maven.theillusivec4.top/"
         content {
@@ -22,6 +23,14 @@ repositories {
     }
     maven { // TOP
         url "https://maven.k-4u.nl"
+    }
+    maven {
+        url = "https://maven.createmod.net"
+        content {
+            includeGroup "com.simibubi.create"
+            includeGroupByRegex "net.createmod.*"
+            includeGroupByRegex "dev.engine-room.*"
+        }
     }
     maven {
         url "https://www.cursemaven.com"
@@ -44,122 +53,52 @@ minecraft {
     // Default run configurations.
     // These can be tweaked, removed, or duplicated as needed.
     runs {
-        client {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
+        configureEach {
+            workingDirectory project.file("run/${it.name}")
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
 
             mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
+                if (findProject(':SophisticatedCore') != null) {
+                    SophisticatedCore {
+                        source project(':SophisticatedCore').sourceSets.main
+                    }
                 }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
+                if (findProject(':SophisticatedBackpacks') != null) {
+                    SophisticatedBackpacks {
+                        source project(':SophisticatedBackpacks').sourceSets.main
+                    }
                 }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
+                if (findProject(':SophisticatedStorage') != null) {
+                    SophisticatedStorage {
+                        source project(':SophisticatedStorage').sourceSets.main
+                    }
                 }
-                SophisticatedStorageInMotion {
-                    source project(':SophisticatedStorageInMotion').sourceSets.main
+                if (findProject(':SophisticatedStorageInMotion') != null) {
+                    SophisticatedStorageInMotion {
+                        source project(':SophisticatedStorageInMotion').sourceSets.main
+                    }
+                }
+                if (findProject(':SophisticatedStorageCreateIntegration') != null) {
+                    SophisticatedStorageCreateIntegration {
+                        source project(':SophisticatedStorageCreateIntegration').sourceSets.main
+                    }
                 }
             }
+        }
+        client {
         }
 
         client2 {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             args '--username', 'Dev2'
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-                SophisticatedStorageInMotion {
-                    source project(':SophisticatedStorageInMotion').sourceSets.main
-                }
-            }
         }
 
         server {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            jvmArg '-XX:+AllowEnhancedClassRedefinition'
-            jvmArg '-XX:HotswapAgent=fatjar'
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-                SophisticatedStorageInMotion {
-                    source project(':SophisticatedStorageInMotion').sourceSets.main
-                }
-            }
         }
 
         data {
-            workingDirectory project.file('run')
-//            properties 'mixin.env.disableRefMap': 'true'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-
-            // Recommended logging data for a userdev environment
-            // property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            // property 'forge.logging.console.level', 'debug'
-            mods {
-                SophisticatedCore {
-                    source project(':SophisticatedCore').sourceSets.main
-                }
-                SophisticatedBackpacks {
-                    source project(':SophisticatedBackpacks').sourceSets.main
-                }
-                SophisticatedStorage {
-                    source project(':SophisticatedStorage').sourceSets.main
-                }
-                SophisticatedStorageInMotion {
-                    source project(':SophisticatedStorageInMotion').sourceSets.main
-                }
-            }
         }
     }
 }
@@ -187,10 +126,21 @@ dependencies {
 //    compileOnly fg.deobf("mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
 //    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
 
-    implementation project(':SophisticatedCore')
-    implementation project(':SophisticatedBackpacks')
-    implementation project(':SophisticatedStorage')
-    implementation project(':SophisticatedStorageInMotion')
+    if (findProject(':SophisticatedCore') != null) {
+        implementation project(':SophisticatedCore')
+    }
+    if (findProject(':SophisticatedBackpacks') != null) {
+        implementation project(':SophisticatedBackpacks')
+    }
+    if (findProject(':SophisticatedStorage') != null) {
+        implementation project(':SophisticatedStorage')
+    }
+    if (findProject(':SophisticatedStorageInMotion') != null) {
+        implementation project(':SophisticatedStorageInMotion')
+    }
+    if (findProject(':SophisticatedStorageCreateIntegration') != null) {
+        implementation project(':SophisticatedStorageCreateIntegration')
+    }
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
     //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
@@ -200,7 +150,18 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:chipped-456956:5077656")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:5070629")
     runtimeOnly fg.deobf("curse.maven:athena-841890:4764357")
-    runtimeOnly fg.deobf("curse.maven:create-328085:4835191")
+    runtimeOnly fg.deobf("com.simibubi.create:create-${create_mc_version}:${create_version}:all") {
+        transitive = false
+    }
+/*
+    runtimeOnly fg.deobf("net.createmod.ponder:Ponder-Forge-${create_mc_version}:${ponder_version}") {
+        transitive = false
+    }
+    runtimeOnly fg.deobf("dev.engine-room.flywheel:flywheel-forge-${create_mc_version}:${flywheel_version}"){
+        transitive = false
+    }
+*/
+    //runtimeOnly fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
 
     runtimeOnly fg.deobf("curse.maven:cyclopscore-232758:4905983")
     runtimeOnly fg.deobf("curse.maven:integratedterminals-295910:4925609")
@@ -215,7 +176,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
     runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
     runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
-    runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
+    //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
     runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
 
 /*
