@@ -1,7 +1,8 @@
 # List of repos with their paths and optional wait time after push (in seconds)
 $repos = @(
-    @{ Name = "SophisticatedCore"; Path = "SophisticatedCore"; WaitAfterPush = 120 },
+    @{ Name = "SophisticatedCore"; Path = "SophisticatedCore"; WaitAfterPush = 150 },
     @{ Name = "SophisticatedBackpacks"; Path = "SophisticatedBackpacks"; WaitAfterPush = 120 },
+    @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitAfterPush = 0 },
     @{ Name = "SophisticatedStorage"; Path = "SophisticatedStorage"; WaitAfterPush = 120 },
     @{ Name = "SophisticatedStorageInMotion"; Path = "SophisticatedStorageInMotion"; WaitAfterPush = 0 },
     @{ Name = "SophisticatedStorageCreateIntegration"; Path = "SophisticatedStorageCreateIntegration"; WaitAfterPush = 0 }  # no wait needed

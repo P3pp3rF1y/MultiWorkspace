@@ -38,6 +38,12 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+    maven {
+        url = "https://maven.twelveiterations.com/repository/maven-public/"
+        content {
+            includeGroup "net.blay09.mods"
+        }
+    }
 }
 
 version = '1.0'
@@ -69,6 +75,11 @@ minecraft {
                 if (findProject(':SophisticatedBackpacks') != null) {
                     SophisticatedBackpacks {
                         source project(':SophisticatedBackpacks').sourceSets.main
+                    }
+                }
+                if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
+                    SophisticatedBackpacksCreateIntegration {
+                        source project(':SophisticatedBackpacksCreateIntegration').sourceSets.main
                     }
                 }
                 if (findProject(':SophisticatedStorage') != null) {
@@ -132,6 +143,9 @@ dependencies {
     if (findProject(':SophisticatedBackpacks') != null) {
         implementation project(':SophisticatedBackpacks')
     }
+    if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
+        implementation project(':SophisticatedBackpacksCreateIntegration')
+    }
     if (findProject(':SophisticatedStorage') != null) {
         implementation project(':SophisticatedStorage')
     }
@@ -178,6 +192,8 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
     //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
     runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
+    runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
+    runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
