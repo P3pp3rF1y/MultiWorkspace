@@ -4,6 +4,7 @@ plugins {
     id "maven-publish"
     id 'net.neoforged.gradle' version '[6.0.18,6.2)'
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
 repositories {
@@ -65,6 +66,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            args "--mixin", "sophisticatedstorageinmotion.mixins.json"
 
             mods {
                 if (findProject(':SophisticatedCore') != null) {
@@ -124,18 +126,7 @@ dependencies {
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft "net.neoforged:forge:${minecraft_version}-${neo_version}"
 
-/*
-    if (findProject(':TheOneProbe') != null) {
-        implementation project(':TheOneProbe')
-    } else {
-        implementation fg.deobf(project.dependencies.create("mcjty.theoneprobe:theoneprobe:${top_version}") {
-            transitive = false
-        })
-    }
-*/
-
-//    compileOnly fg.deobf("mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
-//    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
+    annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
 
     if (findProject(':SophisticatedCore') != null) {
         implementation project(':SophisticatedCore')
