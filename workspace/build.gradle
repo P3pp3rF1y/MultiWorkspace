@@ -45,6 +45,21 @@ repositories {
             includeGroup "net.blay09.mods"
         }
     }
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "dev.emi"
+        }
+    }
+    maven {
+        url = "https://maven.shedaniel.me/"
+        content {
+            includeGroup "dev.architectury"
+            includeGroup "me.shedaniel"
+            includeGroup "me.shedaniel.cloth"
+        }
+    }
 }
 
 version = '1.0'
@@ -185,6 +200,11 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
     runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
+    runtimeOnly fg.deobf("curse.maven:reliquary-241319:${reliquary_cf_file_id}")
+//    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
+    runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+    runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
+    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
