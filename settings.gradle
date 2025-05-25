@@ -13,6 +13,7 @@ plugins {
 rootProject.name = '1.21'
 include 'SophisticatedCore'
 include 'SophisticatedBackpacks'
+include 'SophisticatedBackpacksCreateIntegration'
 include 'SophisticatedStorage'
 include 'SophisticatedStorageCreateIntegration'
 include 'SophisticatedStorageInMotion'

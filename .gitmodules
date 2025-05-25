@@ -17,3 +17,6 @@
 [submodule "SophisticatedStorageCreateIntegration"]
 	path = SophisticatedStorageCreateIntegration
 	url = https://github.com/P3pp3rF1y/SophisticatedStorageCreateIntegration.git
+[submodule "SophisticatedBackpacksCreateIntegration"]
+	path = SophisticatedBackpacksCreateIntegration
+	url = https://github.com/P3pp3rF1y/SophisticatedBackpacksCreateIntegration.git

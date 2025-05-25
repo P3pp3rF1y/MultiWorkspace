@@ -52,6 +52,27 @@ repositories {
             includeGroupByRegex "dev.engine-room.*"
         }
     }
+    maven {
+        url = "https://maven.twelveiterations.com/repository/maven-public/"
+        content {
+            includeGroup "net.blay09.mods"
+        }
+    }
+    maven {
+        url = "https://maven.shedaniel.me/"
+        content {
+            includeGroup "dev.architectury"
+            includeGroup "me.shedaniel"
+            includeGroup "me.shedaniel.cloth"
+        }
+    }
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "dev.emi"
+        }
+    }
 }
 
 version = '1.0'
@@ -104,6 +125,9 @@ neoForge {
         "sophisticatedbackpacks" {
             sourceSet(project(':SophisticatedBackpacks').sourceSets.main)
         }
+        "sophisticatedbackpackscreateintegration" {
+            sourceSet(project(':SophisticatedBackpacksCreateIntegration').sourceSets.main)
+        }
         "sophisticatedstorage" {
             sourceSet(project(':SophisticatedStorage').sourceSets.main)
         }
@@ -135,6 +159,9 @@ dependencies {
     }
     if (findProject(':SophisticatedBackpacks') != null) {
         implementation project(':SophisticatedBackpacks')
+    }
+    if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
+        implementation project(':SophisticatedBackpacksCreateIntegration')
     }
     if (findProject(':SophisticatedStorage') != null) {
         implementation project(':SophisticatedStorage')
@@ -181,6 +208,28 @@ dependencies {
     runtimeOnly "curse.maven:curioselytra-317716:5778461"
     runtimeOnly "curse.maven:moonlightlib-499980:${moonlightlib_cf_file_id}"
     runtimeOnly "curse.maven:sawmill-964817:${sawmill_cf_file_id}"
+    runtimeOnly "curse.maven:justdirethings-1002348:6369120"
+    runtimeOnly "curse.maven:inventorytweaks-976858:6407807"
+    runtimeOnly "curse.maven:inventoryessentials-368825:6179258"
+    runtimeOnly "curse.maven:twilightforest-227639:6472889"
+
+    runtimeOnly "curse.maven:guideme-1173950:6396436"
+    runtimeOnly "curse.maven:AE2-223794:6399563"
+
+    runtimeOnly "curse.maven:spark-361579:5759671"
+
+    runtimeOnly "curse.maven:craftingstation-318551:5569165"
+
+    runtimeOnly "curse.maven:mousetweaks-60089:5637846"
+
+    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "curse.maven:reliquary-241319:${reliquary_cf_file_id}"
+/*
+    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+*/
+//    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
