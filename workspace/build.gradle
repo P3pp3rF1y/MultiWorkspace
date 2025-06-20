@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '1.0.14'
+    id 'net.neoforged.moddev' version '2.0.63-beta'
     id "org.sonarqube" version "5.0.0.4638"
     id "net.darkhax.curseforgegradle" version "1.1.15"
     id "com.modrinth.minotaur" version "2.+"
@@ -112,8 +112,8 @@ neoForge {
             server()
         }
 
-        data {
-            data()
+        clientData {
+            clientData()
             programArguments.addAll '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', sourceSets.main.resources.srcDirs[0].absolutePath
         }
     }
@@ -125,18 +125,22 @@ neoForge {
         "sophisticatedbackpacks" {
             sourceSet(project(':SophisticatedBackpacks').sourceSets.main)
         }
+/*
         "sophisticatedbackpackscreateintegration" {
             sourceSet(project(':SophisticatedBackpacksCreateIntegration').sourceSets.main)
         }
+*/
         "sophisticatedstorage" {
             sourceSet(project(':SophisticatedStorage').sourceSets.main)
         }
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
+/*
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
         }
+*/
     }
 }
 
@@ -160,22 +164,27 @@ dependencies {
     if (findProject(':SophisticatedBackpacks') != null) {
         implementation project(':SophisticatedBackpacks')
     }
+/*
     if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
         implementation project(':SophisticatedBackpacksCreateIntegration')
     }
+*/
     if (findProject(':SophisticatedStorage') != null) {
         implementation project(':SophisticatedStorage')
     }
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
     }
+/*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
     }
+*/
 
-    runtimeOnly "curse.maven:jade-324717:6011258"
+    runtimeOnly "curse.maven:jade-324717:6170888"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+/*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
     }
@@ -186,15 +195,19 @@ dependencies {
         transitive = false
     }
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
+*/
     runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
     runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
     runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
+/*
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
+*/
     runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
     runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
     runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
+/*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
     runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
@@ -215,16 +228,19 @@ dependencies {
 
     runtimeOnly "curse.maven:guideme-1173950:6396436"
     runtimeOnly "curse.maven:AE2-223794:6399563"
+*/
 
-    runtimeOnly "curse.maven:spark-361579:5759671"
+    runtimeOnly "curse.maven:spark-361579:5971514"
 
+/*
     runtimeOnly "curse.maven:craftingstation-318551:5569165"
 
     runtimeOnly "curse.maven:mousetweaks-60089:5637846"
 
+*/
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
-    runtimeOnly "curse.maven:reliquary-241319:${reliquary_cf_file_id}"
 /*
+    runtimeOnly "curse.maven:reliquary-241319:${reliquary_cf_file_id}"
     runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
