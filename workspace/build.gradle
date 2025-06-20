@@ -8,7 +8,6 @@ plugins {
 }
 
 repositories {
-    maven { url "https://maven.tterrag.com/" }
     maven {
         url "https://maven.theillusivec4.top/"
         content {
@@ -199,6 +198,8 @@ dependencies {
     //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
     runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
     runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
+    runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
+    runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:reliquary-241319:${reliquary_cf_file_id}")
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
