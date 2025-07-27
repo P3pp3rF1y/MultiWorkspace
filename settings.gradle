@@ -11,6 +11,7 @@ plugins {
 }
 
 rootProject.name = '1.21'
+include 'Reliquary'
 include 'SophisticatedCore'
 include 'SophisticatedBackpacks'
 include 'SophisticatedBackpacksCreateIntegration'
