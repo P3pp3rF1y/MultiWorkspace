@@ -160,6 +160,9 @@ dependencies {
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
     }
+    if (findProject(':Reliquary') != null) {
+        implementation project(':Reliquary')
+    }
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
     //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
@@ -200,8 +203,9 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
     runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
     runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
+    runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:6635554")
+    runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:reliquary-241319:${reliquary_cf_file_id}")
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
     runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
     runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
