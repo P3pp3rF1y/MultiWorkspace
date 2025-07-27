@@ -119,6 +119,9 @@ neoForge {
     }
 
     mods {
+        "reliquary" {
+            sourceSet(project(':Reliquary').sourceSets.main)
+        }
         "sophisticatedcore" {
             sourceSet(project(':SophisticatedCore').sourceSets.main)
         }
@@ -180,6 +183,9 @@ dependencies {
         implementation project(':SophisticatedStorageCreateIntegration')
     }
 */
+    if (findProject(':Reliquary') != null) {
+        implementation project(':Reliquary')
+    }
 
     runtimeOnly "curse.maven:jade-324717:6170888"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
@@ -240,7 +246,6 @@ dependencies {
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
 /*
-    runtimeOnly "curse.maven:reliquary-241319:${reliquary_cf_file_id}"
     runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
