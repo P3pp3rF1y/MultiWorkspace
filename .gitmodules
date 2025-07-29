@@ -20,3 +20,6 @@
 [submodule "SophisticatedBackpacksCreateIntegration"]
 	path = SophisticatedBackpacksCreateIntegration
 	url = https://github.com/P3pp3rF1y/SophisticatedBackpacksCreateIntegration.git
+[submodule "Reliquary"]
+	path = Reliquary
+	url = https://github.com/P3pp3rF1y/Reliquary.git

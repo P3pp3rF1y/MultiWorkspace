@@ -141,6 +141,9 @@ neoForge {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
         }
 */
+        "reliquary" {
+            sourceSet(project(':Reliquary').sourceSets.main)
+        }
     }
 }
 
@@ -242,7 +245,6 @@ dependencies {
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
 /*
-    runtimeOnly "curse.maven:reliquary-241319:${reliquary_cf_file_id}"
     runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
