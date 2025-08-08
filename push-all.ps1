@@ -7,7 +7,7 @@ $repos = @(
     @{ Name = "SophisticatedStorageInMotion"; Path = "SophisticatedStorageInMotion"; WaitAfterPush = 0 },
     @{ Name = "SophisticatedStorageCreateIntegration"; Path = "SophisticatedStorageCreateIntegration"; WaitAfterPush = 0 }  # no wait needed
 )
-$branch="1.21.5"
+$branch="1.21.8"
 
 foreach ($repo in $repos) {
     Write-Host "`n=== Processing $($repo.Name) ==="
