@@ -83,6 +83,13 @@ minecraft {
             args "--mixin", "sophisticatedstorageinmotion.mixins.json"
 
             mods {
+/*
+                if (findProject(':Reliquary') != null) {
+                    Reliquary {
+                        source project(':Reliquary').sourceSets.main
+                    }
+                }
+*/
                 if (findProject(':SophisticatedCore') != null) {
                     SophisticatedCore {
                         source project(':SophisticatedCore').sourceSets.main
@@ -142,6 +149,11 @@ dependencies {
 
     annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
 
+/*
+    if (findProject(':Reliquary') != null) {
+        implementation project(':Reliquary')
+    }
+*/
     if (findProject(':SophisticatedCore') != null) {
         implementation project(':SophisticatedCore')
     }
@@ -159,9 +171,6 @@ dependencies {
     }
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
-    }
-    if (findProject(':Reliquary') != null) {
-        implementation project(':Reliquary')
     }
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
@@ -206,10 +215,11 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:6635554")
     runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
+    runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
-    runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
-    runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
-    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    //runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+    //runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
+    //runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
