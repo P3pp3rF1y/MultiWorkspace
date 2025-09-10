@@ -83,13 +83,11 @@ minecraft {
             args "--mixin", "sophisticatedstorageinmotion.mixins.json"
 
             mods {
-/*
                 if (findProject(':Reliquary') != null) {
                     Reliquary {
                         source project(':Reliquary').sourceSets.main
                     }
                 }
-*/
                 if (findProject(':SophisticatedCore') != null) {
                     SophisticatedCore {
                         source project(':SophisticatedCore').sourceSets.main
@@ -149,11 +147,9 @@ dependencies {
 
     annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
 
-/*
     if (findProject(':Reliquary') != null) {
         implementation project(':Reliquary')
     }
-*/
     if (findProject(':SophisticatedCore') != null) {
         implementation project(':SophisticatedCore')
     }
@@ -216,6 +212,9 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
+    runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")
+    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
+
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
     //runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
     //runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
