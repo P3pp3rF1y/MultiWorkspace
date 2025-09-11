@@ -203,7 +203,7 @@ dependencies {
     runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
-    runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
+//    runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
     runtimeOnly "curse.maven:mekanism-268560:5574951"
     runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
     runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
@@ -231,6 +231,7 @@ dependencies {
 
     runtimeOnly "curse.maven:mousetweaks-60089:5637846"
     runtimeOnly "curse.maven:flatcoloredblocks-238590:6293435"
+    runtimeOnly "curse.maven:thirstwastaken-679270:6759289"
 
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
 //    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
