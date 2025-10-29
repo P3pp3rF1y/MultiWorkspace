@@ -9,6 +9,12 @@ plugins {
 
 repositories {
     maven {
+        url "https://maven.ftb.dev/releases"
+        content {
+            includeGroup "dev.ftb.mods"
+        }
+    }
+    maven {
         url "https://maven.theillusivec4.top/"
         content {
             includeGroup "top.theillusivec4"
@@ -212,13 +218,20 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
+    runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
+    runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
     runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")
     runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
 
+    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
+    runtimeOnly fg.deobf("curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}")
+
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
-    //runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
-    //runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
-    //runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+    runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
 
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
