@@ -244,6 +244,13 @@ dependencies {
 
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
+    runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
+/*
+    runtimeOnly "curse.maven:accessorify-1169634:7306023"
+    runtimeOnly "curse.maven:fzzyconfig-1005914:7314236"
+    runtimeOnly "curse.maven:kotlinlangforge-1244682:7297263"
+*/
 /*
     runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
