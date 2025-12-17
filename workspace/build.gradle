@@ -57,6 +57,12 @@ repositories {
         content {
             includeGroup "net.blay09.mods"
         }
+        metadataSources {
+            mavenPom()
+            artifact()
+            ignoreGradleMetadataRedirection()
+            // IMPORTANT: do NOT use gradleMetadata()
+        }
     }
     maven {
         url = "https://maven.shedaniel.me/"
@@ -186,7 +192,7 @@ dependencies {
 
     runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    //runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
@@ -244,8 +250,8 @@ dependencies {
 
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
-    runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
-    runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
+    //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
+    //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*
     runtimeOnly "curse.maven:accessorify-1169634:7306023"
     runtimeOnly "curse.maven:fzzyconfig-1005914:7314236"
