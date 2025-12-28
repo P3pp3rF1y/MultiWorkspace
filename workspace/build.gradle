@@ -17,6 +17,12 @@ idea {
 
 repositories {
     maven {
+        url "https://maven.ftb.dev/releases"
+        content {
+            includeGroup "dev.ftb.mods"
+        }
+    }
+    maven {
         url = "https://mvn.devos.one/snapshots"
         content {
             includeGroupByRegex "com.tterrag.*"
@@ -198,13 +204,13 @@ dependencies {
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
-    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+//    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
     runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
     runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
-    runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
-//    runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
-    runtimeOnly "curse.maven:mekanism-268560:5574951"
+    runtimeOnly "curse.maven:mekanismgenerators-268566:7132171"
+    runtimeOnly "curse.maven:carryon-274259:5649344"
+    runtimeOnly "curse.maven:mekanism-268560:7132168"
     runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
     runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
     runtimeOnly "curse.maven:titanium-287342:5897690"
@@ -219,7 +225,6 @@ dependencies {
     runtimeOnly "curse.maven:inventoryessentials-368825:6179258"
     runtimeOnly "curse.maven:twilightforest-227639:6472889"
     runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
-    runtimeOnly "curse.maven:ftblibrary-404465:6711324"
     runtimeOnly "curse.maven:architectury-419699:5786327"
 
     runtimeOnly "curse.maven:guideme-1173950:6396436"
@@ -234,10 +239,18 @@ dependencies {
     runtimeOnly "curse.maven:thirstwastaken-679270:6759289"
 
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
+    runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
+    runtimeOnly "curse.maven:accessoriescurioscompat-1005683:6631484"
+    runtimeOnly "curse.maven:alltheores-405593:7027340"
+
+//    runtimeOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
+    runtimeOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
+//    runtimeOnly "curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}"
 //    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
 //    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
 //    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-//    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+    //runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
