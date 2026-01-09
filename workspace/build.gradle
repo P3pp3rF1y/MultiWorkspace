@@ -143,6 +143,9 @@ neoForge {
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
         }
+        "sophisticateditemactions" {
+            sourceSet(project(':SophisticatedItemActions').sourceSets.main)
+        }
         "reliquary" {
             sourceSet(project(':Reliquary').sourceSets.main)
         }
@@ -161,8 +164,6 @@ dependencies {
     }
 */
 
-//    compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}")
-
     if (findProject(':SophisticatedCore') != null) {
         implementation project(':SophisticatedCore')
     }
@@ -180,6 +181,9 @@ dependencies {
     }
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
+    }
+    if (findProject(':SophisticatedItemActions') != null) {
+        implementation project(':SophisticatedItemActions')
     }
     if (findProject(':Reliquary') != null) {
         implementation project(':Reliquary')
@@ -250,7 +254,7 @@ dependencies {
 //    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
 //    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
 //    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-    //runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+//    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
