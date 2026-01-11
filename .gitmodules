@@ -23,3 +23,6 @@
 [submodule "Reliquary"]
 	path = Reliquary
 	url = https://github.com/P3pp3rF1y/Reliquary.git
+[submodule "SophisticatedItemActions"]
+	path = SophisticatedItemActions
+	url = https://github.com/P3pp3rF1y/SophisticatedItemActions.git
