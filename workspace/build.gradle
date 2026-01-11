@@ -136,6 +136,9 @@ neoForge {
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
+        "sophisticateditemactions" {
+            sourceSet(project(':SophisticatedItemActions').sourceSets.main)
+        }
 /*
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
@@ -177,6 +180,9 @@ dependencies {
     }
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
+    }
+    if (findProject(':SophisticatedItemActions') != null) {
+        implementation project(':SophisticatedItemActions')
     }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
