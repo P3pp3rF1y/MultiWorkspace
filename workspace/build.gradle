@@ -136,6 +136,9 @@ neoForge {
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
+        "sophisticateditemactions" {
+            sourceSet(project(':SophisticatedItemActions').sourceSets.main)
+        }
 /*
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
@@ -178,6 +181,9 @@ dependencies {
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
     }
+    if (findProject(':SophisticatedItemActions') != null) {
+        implementation project(':SophisticatedItemActions')
+    }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
@@ -212,6 +218,8 @@ dependencies {
 //    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
     runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
     runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
+    runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
+    runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
