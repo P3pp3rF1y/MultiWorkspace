@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.110'
+    id 'net.neoforged.moddev' version '2.0.134'
     id "org.sonarqube" version "5.0.0.4638"
     id "net.darkhax.curseforgegradle" version "1.1.15"
     id "com.modrinth.minotaur" version "2.+"
@@ -142,6 +142,9 @@ neoForge {
         "sophisticatedstorageinmotion" {
             sourceSet(project(':SophisticatedStorageInMotion').sourceSets.main)
         }
+        "sophisticateditemactions" {
+            sourceSet(project(':SophisticatedItemActions').sourceSets.main)
+        }
 /*
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
@@ -184,6 +187,9 @@ dependencies {
     if (findProject(':SophisticatedStorageInMotion') != null) {
         implementation project(':SophisticatedStorageInMotion')
     }
+    if (findProject(':SophisticatedItemActions') != null) {
+        implementation project(':SophisticatedItemActions')
+    }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
@@ -192,7 +198,7 @@ dependencies {
 
     runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    //runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
