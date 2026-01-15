@@ -1,34 +1,169 @@
-# List of repos with their paths and optional wait time after push (in seconds)
+#requires -Version 7.0
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+# ---------------------------------------------------------------------
+# Push repos in dependency order.
+# For repos marked WaitForCI = $true, wait for GitHub Actions workflow
+# "Mod Build" (matching the pushed commit SHA) to complete before continuing.
+# Script is expected to live in MultiWorkspace root (repo folders are subdirs).
+# ---------------------------------------------------------------------
+
+# --- Config ------------------------------------------------------------
+
+$workspaceRoot = $PSScriptRoot
+
+$owner        = "P3pp3rF1y"
+$branch       = "1.21.x"
+$workflowName = "Mod Build"
+
+# Polling behavior
+$pollSeconds        = 10
+$runLookback        = 50
+$maxRunFindAttempts = 60   # 60 * 10s = ~10 minutes to find the run after push
+
+# Repos in dependency order
 $repos = @(
-    @{ Name = "SophisticatedCore"; Path = "SophisticatedCore"; WaitAfterPush = 120 },
-    @{ Name = "SophisticatedBackpacks"; Path = "SophisticatedBackpacks"; WaitAfterPush = 120 },
-    @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitAfterPush = 0 },
-    @{ Name = "SophisticatedStorage"; Path = "SophisticatedStorage"; WaitAfterPush = 120 },
-    @{ Name = "SophisticatedStorageCreateIntegration"; Path = "SophisticatedStorageCreateIntegration"; WaitAfterPush = 0 },  # no wait needed
-    @{ Name = "SophisticatedStorageInMotion"; Path = "SophisticatedStorageInMotion"; WaitAfterPush = 120 },
-    @{ Name = "SophisticatedItemActions"; Path = "SophisticatedItemActions"; WaitAfterPush = 0 }
+    @{ Name = "Reliquary";                               Path = "Reliquary";                               WaitForCI = $true  },
+    @{ Name = "SophisticatedCore";                       Path = "SophisticatedCore";                       WaitForCI = $true  },
+    @{ Name = "SophisticatedBackpacks";                  Path = "SophisticatedBackpacks";                  WaitForCI = $true  },
+    @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitForCI = $false },
+    @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
+    @{ Name = "SophisticatedStorageCreateIntegration";   Path = "SophisticatedStorageCreateIntegration";   WaitForCI = $false },
+    @{ Name = "SophisticatedStorageInMotion";            Path = "SophisticatedStorageInMotion";            WaitForCI = $true  },
+    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false }
 )
-$branch="1.21.x"
+
+# ---------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------
+
+function Require-Command([string]$cmd) {
+    if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+        throw "Missing required command '$cmd'."
+    }
+}
+
+function Get-WorkflowId([string]$repoFull) {
+    $id = gh workflow list -R $repoFull --json name,id --jq ".[] | select(.name==`"$workflowName`") | .id" 2>$null
+    if (-not $id) {
+        throw "Workflow '$workflowName' not found in $repoFull."
+    }
+    return [int]$id
+}
+
+function Test-HasChangesToPush([string]$branchName) {
+    git fetch origin $branchName *> $null
+    $aheadCount = (git rev-list --count "origin/$branchName..HEAD").Trim()
+    return ([int]$aheadCount -gt 0)
+}
+
+function Get-RunIdForSha([string]$repoFull, [int]$workflowId, [string]$sha) {
+    $json = gh run list `
+        -R $repoFull `
+        -b $branch `
+        -w $workflowId `
+        -L $runLookback `
+        --json databaseId,headSha `
+        2>$null
+
+    if (-not $json) { return "" }
+
+    $match = ($json | ConvertFrom-Json |
+        Where-Object { $_.headSha -eq $sha } |
+        Select-Object -First 1)
+
+    if ($null -eq $match) { return "" }
+    return [string]$match.databaseId
+}
+
+function Wait-RunCompletion([string]$repoFull, [string]$runId) {
+    while ($true) {
+        $view = gh run view $runId -R $repoFull --json status,conclusion 2>$null | ConvertFrom-Json
+
+        $status = $view.status
+        $conclusion = $view.conclusion
+
+        Write-Host ("  -> run {0} status={1} conclusion={2}" -f $runId, $status, ($conclusion ?? "null"))
+
+        if ($status -eq "completed") {
+            return
+        }
+
+        Start-Sleep -Seconds $pollSeconds
+    }
+}
+
+# ---------------------------------------------------------------------
+# Preconditions
+# ---------------------------------------------------------------------
+
+Require-Command git
+Require-Command gh
+
+# Ensure gh auth is set up
+gh auth status *> $null
+
+# ---------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------
 
 foreach ($repo in $repos) {
-    Write-Host "`n=== Processing $($repo.Name) ==="
-    Set-Location -Path $repo.Path
+    Write-Host "`n=== Processing $($repo.Name) ===" -ForegroundColor Cyan
 
-    # Check if anything needs to be pushed
-    $currentBranch = git rev-parse --abbrev-ref HEAD
-    $hasChangesToPush = git log origin/$currentBranch..HEAD
-
-    if (-not [string]::IsNullOrWhiteSpace($hasChangesToPush)) {
-        Write-Host "Pushing changes to $($repo.Name)..."
-        git push origin $currentBranch
-
-        $waitTime = $repo.WaitAfterPush
-        if ($waitTime -gt 0) {
-            Write-Host "Waiting $waitTime seconds for Maven/CI to process..."
-            Start-Sleep -Seconds $waitTime
-        }
-    } else {
-        Write-Host "No changes to push for $($repo.Name), skipping wait."
+    $repoPath = Join-Path $workspaceRoot $repo.Path
+    if (-not (Test-Path $repoPath)) {
+        throw "Repo path not found: $repoPath"
     }
-    Set-Location -Path ..
+
+    Push-Location $repoPath
+    try {
+        $currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
+        if ($currentBranch -ne $branch) {
+            Write-Host "On branch '$currentBranch' (expected '$branch'), skipping." -ForegroundColor Yellow
+            continue
+        }
+
+        if (-not (Test-HasChangesToPush $branch)) {
+            Write-Host "No changes to push, skipping."
+            continue
+        }
+
+        $repoFull = "$owner/$($repo.Name)"
+
+        # Resolve workflow id (once per repo; fast and robust vs file name)
+        $workflowId = Get-WorkflowId -repoFull $repoFull
+
+        $sha = (git rev-parse HEAD).Trim()
+        Write-Host "Pushing $($repo.Name) ($branch) sha=$sha"
+        git push origin $branch
+
+        if (-not $repo.WaitForCI) {
+            Write-Host "WaitForCI = false, continuing immediately."
+            continue
+        }
+
+        Write-Host "WaitForCI = true, waiting for workflow '$workflowName' (id=$workflowId) to complete..."
+
+        $runId = ""
+        for ($i = 0; $i -lt $maxRunFindAttempts; $i++) {
+            $runId = Get-RunIdForSha -repoFull $repoFull -workflowId $workflowId -sha $sha
+            if ($runId) { break }
+            Start-Sleep -Seconds $pollSeconds
+        }
+
+        if (-not $runId) {
+            Write-Host "Workflow run not found for sha=$sha; continuing (downstream may still race if publish is delayed)." -ForegroundColor Yellow
+            continue
+        }
+
+        Write-Host "Matched run_id=$runId, waiting for completion..."
+        Wait-RunCompletion -repoFull $repoFull -runId $runId
+        Write-Host "CI completed for $($repo.Name)."
+    }
+    finally {
+        Pop-Location
+    }
 }
+
+Write-Host "`n🎉 All repositories processed in dependency order." -ForegroundColor Green
