@@ -183,7 +183,7 @@ dependencies {
     }
     if (findProject(':SophisticatedItemActions') != null) {
         implementation project(':SophisticatedItemActions')
-    }`
+    }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
