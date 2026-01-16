@@ -78,13 +78,39 @@ function Get-RunIdForSha([string]$repoFull, [int]$workflowId, [string]$sha) {
 }
 
 function Wait-RunCompletion([string]$repoFull, [string]$runId) {
+    $consecutiveFailures = 0
+    $maxConsecutiveFailures = 12   # 12 * 10s = ~2 minutes
+
     while ($true) {
-        $view = gh run view $runId -R $repoFull --json status,conclusion 2>$null | ConvertFrom-Json
+        $status = gh run view $runId -R $repoFull --json status --jq ".status" 2>$null
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($status)) {
+            $consecutiveFailures++
+            Write-Host "  -> run $runId status=<unavailable> (gh run view transient failure $consecutiveFailures/$maxConsecutiveFailures)" -ForegroundColor Yellow
 
-        $status = $view.status
-        $conclusion = $view.conclusion
+            if ($consecutiveFailures -ge $maxConsecutiveFailures) {
+                # One more attempt with stderr visible to make the failure actionable
+                Write-Host "  -> Last attempt with stderr for diagnostics:" -ForegroundColor Yellow
+                gh run view $runId -R $repoFull --json status,conclusion
+                throw "gh run view repeatedly failed for $repoFull runId=$runId (status)."
+            }
 
-        Write-Host ("  -> run {0} status={1} conclusion={2}" -f $runId, $status, ($conclusion ?? "null"))
+            Start-Sleep -Seconds $pollSeconds
+            continue
+        }
+
+        $consecutiveFailures = 0
+        $status = $status.Trim()
+
+        $conclusion = gh run view $runId -R $repoFull --json conclusion --jq ".conclusion" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            $conclusion = ""
+        } elseif ($null -eq $conclusion) {
+            $conclusion = ""
+        } else {
+            $conclusion = $conclusion.Trim()
+        }
+
+        Write-Host ("  -> run {0} status={1} conclusion={2}" -f $runId, $status, ($conclusion -ne "" ? $conclusion : "null"))
 
         if ($status -eq "completed") {
             return
