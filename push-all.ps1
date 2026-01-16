@@ -4,8 +4,9 @@ $repos = @(
     @{ Name = "SophisticatedBackpacks"; Path = "SophisticatedBackpacks"; WaitAfterPush = 200 },
     @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitAfterPush = 0 },
     @{ Name = "SophisticatedStorage"; Path = "SophisticatedStorage"; WaitAfterPush = 200 },
-    @{ Name = "SophisticatedStorageInMotion"; Path = "SophisticatedStorageInMotion"; WaitAfterPush = 0 },
-    @{ Name = "SophisticatedStorageCreateIntegration"; Path = "SophisticatedStorageCreateIntegration"; WaitAfterPush = 0 }  # no wait needed
+    @{ Name = "SophisticatedStorageInMotion"; Path = "SophisticatedStorageInMotion"; WaitAfterPush = 200 },
+    @{ Name = "SophisticatedStorageCreateIntegration"; Path = "SophisticatedStorageCreateIntegration"; WaitAfterPush = 0 },
+    @{ Name = "SophisticatedItemActions"; Path = "SophisticatedItemActions"; WaitAfterPush = 0 }
 )
 $branch="1.21.x"
 

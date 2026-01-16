@@ -65,6 +65,7 @@ repositories {
             includeGroup "me.shedaniel.cloth"
         }
     }
+    maven { url 'https://maven.su5ed.dev/releases' }
 }
 
 version = '1.0'
@@ -87,6 +88,7 @@ minecraft {
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             args "--mixin", "sophisticatedstorageinmotion.mixins.json"
+            args "--mixin", "sophisticatedcore.mixins.json"
 
             mods {
                 if (findProject(':Reliquary') != null) {
@@ -122,6 +124,11 @@ minecraft {
                 if (findProject(':SophisticatedStorageCreateIntegration') != null) {
                     SophisticatedStorageCreateIntegration {
                         source project(':SophisticatedStorageCreateIntegration').sourceSets.main
+                    }
+                }
+                if (findProject(':SophisticatedItemActions') != null) {
+                    SophisticatedItemActions {
+                        source project(':SophisticatedItemActions').sourceSets.main
                     }
                 }
             }
@@ -174,6 +181,9 @@ dependencies {
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
     }
+    if (findProject(':SophisticatedItemActions') != null) {
+        implementation project(':SophisticatedItemActions')
+    }
 
     runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
     //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
@@ -205,34 +215,47 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4844585")
     runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
     runtimeOnly fg.deobf("curse.maven:geckolib-388172:5188427")
-    runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
+//    runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
     runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
     runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
-    runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
+//    runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
     //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
-    runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
-    runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
-    runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
-    runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
+//    runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
+//    runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
+//    runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
+//    runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
     runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:6635554")
     runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
-    runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
-    runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
+//    runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
+//    runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
     runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")
     runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
+    runtimeOnly fg.deobf("curse.maven:carryon-274259:4882500")
+    //runtimeOnly fg.deobf("curse.maven:forestry-1056828:7292943")
+    runtimeOnly fg.deobf("curse.maven:productivebees-377897:5566102")
 
     runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
     runtimeOnly fg.deobf("curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}")
+    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
 
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
+/*
     runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+*/
     runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
+    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-api-base:0.4.31+ef105b4977")
+    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-data-attachment-api-v1:1.0.0+30ef839e77")
+    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-entity-events-v1:1.6.0+6274ab9d77")
+    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-object-builder-api-v1:11.1.3+2174fc8477")
 
+    runtimeOnly fg.deobf("curse.maven:accessories-938917:${accessories_cf_file_id}") {
+        transitive = false
+    }
 /*
     runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:4465872")
     runtimeOnly fg.deobf("curse.maven:placebo-283644:4629583")
