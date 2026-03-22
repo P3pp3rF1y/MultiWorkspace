@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $workspaceRoot = $PSScriptRoot
 
 $owner        = "P3pp3rF1y"
-$branch       = "1.21.8"
+$branch       = "1.21.5"
 $workflowName = "Mod Build"
 
 # Polling behavior

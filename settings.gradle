@@ -19,5 +19,6 @@ include 'SophisticatedStorage'
 include 'SophisticatedStorageCreateIntegration'
 include 'SophisticatedStorageInMotion'
 include 'SophisticatedItemActions'
+include 'SophisticatedInventoryInteractions'
 
 include 'workspace'
