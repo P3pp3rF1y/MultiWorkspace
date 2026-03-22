@@ -21,6 +21,9 @@ include 'SophisticatedBackpacksCreateIntegration'
 include 'SophisticatedStorage'
 include 'SophisticatedStorageInMotion'
 include 'SophisticatedItemActions'
+include 'SophisticatedInventoryInteractions'
 include 'SophisticatedStorageCreateIntegration'
 
 include 'workspace'
+
+includeBuild('workspaceForge')

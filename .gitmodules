@@ -26,3 +26,7 @@
 	path = SophisticatedItemActions
 	url = https://github.com/P3pp3rF1y/SophisticatedItemActions.git
 	branch = 1.20.1
+[submodule "SophisticatedInventoryInteractions"]
+	path = SophisticatedInventoryInteractions
+	url = https://github.com/P3pp3rF1y/SophisticatedInventoryInteractions.git
+	branch = 1.20.x
