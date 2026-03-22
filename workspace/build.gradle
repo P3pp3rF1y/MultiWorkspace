@@ -28,16 +28,25 @@ repositories {
             includeGroupByRegex "com.tterrag.*"
         }
     }
-    maven { url 'https://www.dogforce-games.com/maven/' }
+    // maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
+        content {
+            includeGroup "mezz.jei"
+        }
     }
     maven { // Patchouli
         url "https://maven.blamejared.com"
+        content {
+            includeGroup "vazkii.patchouli"
+        }
     }
-    maven { // TOP
-        url "https://maven.k-4u.nl"
-    }
+    // maven { // TOP
+    //     url "https://maven.k-4u.nl"
+    //     content {
+    //         includeGroup "mcjty.theoneprobe"
+    //     }
+    // }
     maven {
         url "https://www.cursemaven.com"
         content {
@@ -146,6 +155,9 @@ neoForge {
         "sophisticateditemactions" {
             sourceSet(project(':SophisticatedItemActions').sourceSets.main)
         }
+        "sophisticatedinventoryinteractions" {
+            sourceSet(project(':SophisticatedInventoryInteractions').sourceSets.main)
+        }
         "reliquary" {
             sourceSet(project(':Reliquary').sourceSets.main)
         }
@@ -185,6 +197,9 @@ dependencies {
     if (findProject(':SophisticatedItemActions') != null) {
         implementation project(':SophisticatedItemActions')
     }
+    if (findProject(':SophisticatedInventoryInteractions') != null) {
+        implementation project(':SophisticatedInventoryInteractions')
+    }
     if (findProject(':Reliquary') != null) {
         implementation project(':Reliquary')
     }
@@ -206,6 +221,10 @@ dependencies {
     runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
     runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
+/*
+    runtimeOnly "curse.maven:quark-243121:${quark_cf_file_id}"
+    runtimeOnly "curse.maven:zeta-968868:${zeta_cf_file_id}"
+*/
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
     runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
@@ -225,7 +244,7 @@ dependencies {
     runtimeOnly "curse.maven:moonlightlib-499980:${moonlightlib_cf_file_id}"
     runtimeOnly "curse.maven:sawmill-964817:${sawmill_cf_file_id}"
     runtimeOnly "curse.maven:justdirethings-1002348:6369120"
-    runtimeOnly "curse.maven:inventorytweaks-976858:6407807"
+    //runtimeOnly "curse.maven:inventorytweaks-976858:6407807"
     runtimeOnly "curse.maven:inventoryessentials-368825:6179258"
     runtimeOnly "curse.maven:twilightforest-227639:6472889"
     runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
