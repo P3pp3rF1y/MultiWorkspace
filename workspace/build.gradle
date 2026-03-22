@@ -22,16 +22,26 @@ repositories {
             includeGroupByRegex "com.tterrag.*"
         }
     }
-    maven { url 'https://www.dogforce-games.com/maven/' }
+    // maven { url 'https://www.dogforce-games.com/maven/' }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
+        content {
+            includeGroup "mezz.jei"
+        }
     }
     maven { // Patchouli
         url "https://maven.blamejared.com"
+        content {
+            includeGroup "mezz.jei"
+            includeGroup "vazkii.patchouli"
+        }
     }
-    maven { // TOP
-        url "https://maven.k-4u.nl"
-    }
+    // maven { // TOP
+    //     url "https://maven.k-4u.nl"
+    //     content {
+    //         includeGroup "mcjty.theoneprobe"
+    //     }
+    // }
     maven {
         url "https://www.cursemaven.com"
         content {
@@ -139,6 +149,9 @@ neoForge {
         "sophisticateditemactions" {
             sourceSet(project(':SophisticatedItemActions').sourceSets.main)
         }
+        "sophisticatedinventoryinteractions" {
+            sourceSet(project(':SophisticatedInventoryInteractions').sourceSets.main)
+        }
 /*
         "sophisticatedstoragecreateintegration" {
             sourceSet(project(':SophisticatedStorageCreateIntegration').sourceSets.main)
@@ -183,6 +196,9 @@ dependencies {
     }
     if (findProject(':SophisticatedItemActions') != null) {
         implementation project(':SophisticatedItemActions')
+    }
+    if (findProject(':SophisticatedInventoryInteractions') != null) {
+        implementation project(':SophisticatedInventoryInteractions')
     }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
