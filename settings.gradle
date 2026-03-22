@@ -19,6 +19,7 @@ include 'SophisticatedBackpacksCreateIntegration'
 include 'SophisticatedStorage'
 include 'SophisticatedStorageCreateIntegration'
 include 'SophisticatedItemActions'
+include 'SophisticatedInventoryInteractions'
 include 'SophisticatedStorageInMotion'
 
 include 'workspace'
