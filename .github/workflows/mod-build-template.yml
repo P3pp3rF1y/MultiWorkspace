@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  JAVA_VERSION: "21"
+  JAVA_VERSION: "25"
 
 jobs:
   gate:
@@ -20,7 +20,7 @@ jobs:
           BRANCH_NAME="${GITHUB_REF##*/}"
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           
-          if [[ "$BRANCH_NAME" =~ ^[0-9]+\.[0-9]+\.([0-9]+|x)$ ]]; then
+          if [[ "$BRANCH_NAME" =~ ^[0-9]+\.[0-9]+(\.([0-9]+|x))?$ ]]; then
             echo "should_publish_cf_mr=true" >> $GITHUB_OUTPUT
           else
             echo "should_publish_cf_mr=false" >> $GITHUB_OUTPUT
@@ -151,8 +151,8 @@ jobs:
             const repo = context.repo.repo;
             const packageName = `net.p3pp3rf1y.${repo.toLowerCase()}`;
   
-            // Versions look like: 1.21.1-1.3.102.1379
-            const mcRegex = /^(\d+\.\d+\.(?:\d+|x))-/;
+            // Versions look like: 26.1-1.3.102.1379 or 26.1.1-1.3.102.1379
+            const mcRegex = /^(\d+\.\d+(?:\.(?:\d+|x))?)-/;
   
             async function listAllVersions() {
               const out = [];
