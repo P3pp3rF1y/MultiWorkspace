@@ -330,7 +330,7 @@ jobs:
         with:
           name: build-libs
           path: .
-      - run: ./gradlew -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }} sonar
+      - run: ./gradlew -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }} sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
