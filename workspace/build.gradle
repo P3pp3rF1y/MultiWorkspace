@@ -250,6 +250,7 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:balm-531761:${balm_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
+    runtimeOnly fg.deobf("curse.maven:pneumaticraft-281849:7307654")
 //    runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
 //    runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
     runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")

@@ -253,6 +253,8 @@ jobs:
     if: needs.gate.outputs.should_publish_cf_mr == 'true'
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 200
       - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
@@ -284,6 +286,8 @@ jobs:
     if: needs.gate.outputs.should_publish_cf_mr == 'true'
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 200
       - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}

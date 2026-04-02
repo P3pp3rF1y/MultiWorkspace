@@ -26,6 +26,7 @@ $maxRunFindAttempts = 60   # 60 * 10s = ~10 minutes to find the run after push
 $repos = @(
     @{ Name = "Reliquary";                               Path = "Reliquary";                               WaitForCI = $true  },
     @{ Name = "SophisticatedCore";                       Path = "SophisticatedCore";                       WaitForCI = $true  },
+    @{ Name = "SophisticatedInventoryInteractions";      Path = "SophisticatedInventoryInteractions";      WaitForCI = $false },
     @{ Name = "SophisticatedBackpacks";                  Path = "SophisticatedBackpacks";                  WaitForCI = $true  },
     @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitForCI = $false },
     @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
@@ -54,6 +55,10 @@ function Get-WorkflowId([string]$repoFull) {
 
 function Test-HasChangesToPush([string]$branchName) {
     git fetch origin $branchName *> $null
+    if ($LASTEXITCODE -ne 0) {
+        return $true
+    }
+
     $aheadCount = (git rev-list --count "origin/$branchName..HEAD").Trim()
     return ([int]$aheadCount -gt 0)
 }
@@ -162,7 +167,7 @@ foreach ($repo in $repos) {
 
         $sha = (git rev-parse HEAD).Trim()
         Write-Host "Pushing $($repo.Name) ($branch) sha=$sha"
-        git push origin $branch
+        git push -u origin $branch
 
         if (-not $repo.WaitForCI) {
             Write-Host "WaitForCI = false, continuing immediately."

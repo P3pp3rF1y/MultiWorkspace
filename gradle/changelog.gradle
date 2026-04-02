@@ -1,0 +1,103 @@
+project.ext.changelog = ""
+
+def runGitCommand = { List<String> command ->
+    def process = new ProcessBuilder(command)
+            .directory(project.projectDir)
+            .redirectErrorStream(true)
+            .start()
+    def output = process.inputStream.getText('UTF-8').trim()
+    def exitCode = process.waitFor()
+    if (exitCode != 0) {
+        throw new GradleException("Git command failed (${command.join(' ')}): ${output}")
+    }
+    return output
+}
+
+def removeHighUnicodeChars = { String text ->
+    text.codePoints()
+            .filter { codePoint -> codePoint <= 0x007F }
+            .collect { codePoint -> new String(Character.toChars(codePoint)) }
+            .join('')
+}
+
+def formatMultilineMessage = { String message ->
+    def lines = message.split('\n')
+    def formattedMessage = lines[0].trim()
+    if (lines.size() > 1) {
+        formattedMessage += "\n" + lines[1..-1].collect { line ->
+            def trimmedLine = line.trim()
+            if (trimmedLine.startsWith('-')) {
+                trimmedLine = trimmedLine.substring(1).trim()
+            }
+            "    - ${trimmedLine}"
+        }.join('\n')
+    }
+    return formattedMessage
+}
+
+def removeDevSection = { String message ->
+    def devIndex = message.indexOf('[DEV]')
+    if (devIndex != -1) {
+        return message.substring(0, devIndex).trim()
+    }
+    return message
+}
+
+def normalizeCommitMessage = { String commitMessage ->
+    def normalized = removeHighUnicodeChars(commitMessage)
+    normalized = removeDevSection(normalized)
+    normalized = normalized.replaceFirst(/^[-*]\s+/, '')
+    return normalized
+}
+
+def loadCommitMessages = {
+    def latestCommitHash = runGitCommand(['git', 'rev-parse', 'HEAD'])
+    def parentCommits = runGitCommand(['git', 'rev-list', '--parents', '-n', '1', latestCommitHash]).split('\s+')
+    logger.info("Parent commits: ${parentCommits}")
+
+    def commitMessages = []
+    if (parentCommits.size() > 2) {
+        def firstParent = parentCommits[1]
+        def secondParent = parentCommits[2]
+        commitMessages = runGitCommand(['git', 'log', '--pretty=format:%B', "${firstParent}..${secondParent}"]).split('\n\n')
+        logger.info("Merge commit changelog source: ${commitMessages}")
+    }
+
+    if (commitMessages.isEmpty()) {
+        commitMessages = runGitCommand(['git', 'log', '-1', '--pretty=%B']).split('\n\n')
+        logger.info("Fallback changelog source: ${commitMessages}")
+    }
+
+    return commitMessages
+}
+
+tasks.register('generateChangelog') {
+    doLast {
+        def changelog = new StringBuilder()
+        def features = []
+        def fixes = []
+
+        loadCommitMessages().each { commitMessage ->
+            def normalizedCommitMessage = normalizeCommitMessage(commitMessage)
+
+            if (normalizedCommitMessage.startsWith('feat: ')) {
+                features.add(normalizedCommitMessage.replaceFirst('feat: ', '').trim())
+            } else if (normalizedCommitMessage.startsWith('fix: ')) {
+                fixes.add(normalizedCommitMessage.replaceFirst('fix: ', '').trim())
+            }
+        }
+
+        if (features) {
+            changelog.append("### Features\n")
+            features.each { feature -> changelog.append("- ${formatMultilineMessage(feature)}\n") }
+        }
+
+        if (fixes) {
+            changelog.append("### Fixes\n")
+            fixes.each { fix -> changelog.append("- ${formatMultilineMessage(fix)}\n") }
+        }
+
+        logger.info("Compiled changelog: ${changelog}")
+        project.ext.changelog = changelog.toString()
+    }
+}
