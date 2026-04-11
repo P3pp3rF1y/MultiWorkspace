@@ -93,6 +93,7 @@ repositories {
 
 version = '1.0'
 group = 'com.yourname.modid' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+def isClientDataRun = gradle.startParameter.taskNames.any { it.toLowerCase().contains('clientdata') }
 base {
     archivesName = 'modid'
 }
@@ -164,6 +165,12 @@ neoForge {
     }
 }
 
+if (isClientDataRun) {
+    tasks.named('runClientData').configure {
+        enabled = false
+    }
+}
+
 dependencies {
 
 /*
@@ -209,6 +216,11 @@ dependencies {
 
     //runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
+    runtimeOnly "curse.maven:easyvillagers-400514:7856418"
+//    runtimeOnly "curse.maven:blurplus-393563:7830008"
+//    runtimeOnly "curse.maven:midnightlib-488090:7811718"
+    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
+    runtimeOnly "curse.maven:colossalchests-237875:7891282"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
@@ -286,7 +298,6 @@ dependencies {
 
     //runtimeOnly "curse.maven:create-328085:4835191"
 
-    //runtimeOnly "curse.maven:cyclopscore-232758:4905983"
     //runtimeOnly "curse.maven:integratedterminals-295910:4925609"
     //runtimeOnly "curse.maven:integratedynamics-236307:4925678"
     //runtimeOnly "curse.maven:commoncapabilities-247007:4620480"
