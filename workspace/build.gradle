@@ -89,6 +89,13 @@ repositories {
             includeGroup "dev.emi"
         }
     }
+    maven {
+        name = "RefinedStorage"
+        url = "https://maven.creeperhost.net"
+        content {
+            includeGroup "com.refinedmods.refinedstorage"
+        }
+    }
 }
 
 version = '1.0'
@@ -279,6 +286,7 @@ dependencies {
 
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*
