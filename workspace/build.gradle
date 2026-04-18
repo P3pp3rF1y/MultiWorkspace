@@ -64,6 +64,12 @@ repositories {
         }
     }
     maven {
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+    maven {
         name = "TerraformersMC"
         url = "https://maven.terraformersmc.com/"
         content {
@@ -264,6 +270,8 @@ dependencies {
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
     runtimeOnly fg.deobf("curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}")
     runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
+    runtimeOnly fg.deobf("maven.modrinth:guideme:${guideme_version}")
+    runtimeOnly fg.deobf("maven.modrinth:ae2:${ae2_version}")
     //runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:${rs_cf_file_id}")
 
 //    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
