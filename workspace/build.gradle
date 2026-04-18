@@ -16,6 +16,7 @@ idea {
 }
 
 repositories {
+    mavenCentral()
     maven {
         url = "https://mvn.devos.one/snapshots"
         content {
@@ -215,6 +216,10 @@ dependencies {
     if (findProject(':SophisticatedInventoryInteractions') != null) {
         implementation project(':SophisticatedInventoryInteractions')
     }
+
+    // Drop extra test mods into workspace/local-mods to load them in dev runs.
+    runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
+
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
@@ -286,6 +291,7 @@ dependencies {
 
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
     runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
