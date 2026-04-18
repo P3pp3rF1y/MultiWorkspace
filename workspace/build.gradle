@@ -16,6 +16,7 @@ idea {
 }
 
 repositories {
+    mavenCentral()
     maven {
         url "https://maven.ftb.dev/releases"
         content {
@@ -38,6 +39,7 @@ repositories {
     maven { // Patchouli
         url "https://maven.blamejared.com"
         content {
+            includeGroup "mezz.jei"
             includeGroup "vazkii.patchouli"
         }
     }
@@ -86,6 +88,13 @@ repositories {
         url = "https://maven.terraformersmc.com/"
         content {
             includeGroup "dev.emi"
+        }
+    }
+    maven {
+        name = "RefinedStorage"
+        url = "https://maven.creeperhost.net"
+        content {
+            includeGroup "com.refinedmods.refinedstorage"
         }
     }
 }
@@ -206,25 +215,24 @@ dependencies {
 
     runtimeOnly "curse.maven:jade-324717:6011258"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    //runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
     }
-    runtimeOnly ("net.createmod.ponder:Ponder-NeoForge-${create_mc_version}:${ponder_version}") {
+    runtimeOnly ("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${create_mc_version}") {
         transitive = false
     }
     runtimeOnly ("dev.engine-room.flywheel:flywheel-neoforge-${create_mc_version}:${flywheel_version}"){
         transitive = false
     }
+    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
     runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
     runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
     runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
-/*
     runtimeOnly "curse.maven:quark-243121:${quark_cf_file_id}"
     runtimeOnly "curse.maven:zeta-968868:${zeta_cf_file_id}"
-*/
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
     runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
@@ -250,8 +258,7 @@ dependencies {
     runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
     runtimeOnly "curse.maven:architectury-419699:5786327"
 
-    runtimeOnly "curse.maven:guideme-1173950:6396436"
-    runtimeOnly "curse.maven:AE2-223794:6399563"
+    runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
 
     runtimeOnly "curse.maven:spark-361579:5759671"
 
@@ -272,6 +279,7 @@ dependencies {
     runtimeOnly "curse.maven:cyclopscore-232758:7637998"
     runtimeOnly "curse.maven:integratedtunnels-251389:7638035"
     runtimeOnly "curse.maven:commoncapabilities-247007:7630086"
+    runtimeOnly "curse.maven:blurplus-393563:7655029"
 
 //    runtimeOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
     runtimeOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
@@ -279,7 +287,7 @@ dependencies {
 //    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
 //    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
 //    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-//    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
