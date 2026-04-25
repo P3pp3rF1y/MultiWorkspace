@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 project.ext.changelog = ""
 
 def runGitCommand = { List<String> command ->
@@ -50,7 +52,52 @@ def normalizeCommitMessage = { String commitMessage ->
     return normalized
 }
 
+def splitCommitMessages = { String output ->
+    output.split('\u001e')
+            .collect { it.trim() }
+            .findAll { !it.isEmpty() }
+}
+
+def loadCommitMessagesFromRange = { String range, String source ->
+    if (range == null || range.trim().isEmpty()) {
+        return []
+    }
+
+    def commitMessages = splitCommitMessages(runGitCommand(['git', 'log', '--pretty=format:%B%x1e', range.trim()]))
+    logger.info("${source} changelog source (${range}): ${commitMessages}")
+    return commitMessages
+}
+
+def loadCommitMessagesFromGitHubPushEvent = {
+    def eventPath = System.getenv('GITHUB_EVENT_PATH')
+    if (eventPath == null || eventPath.trim().isEmpty()) {
+        return []
+    }
+
+    def eventFile = new File(eventPath)
+    if (!eventFile.exists()) {
+        return []
+    }
+
+    def event = new JsonSlurper().parse(eventFile)
+    if (event.before == null || event.after == null || event.before ==~ /^0+$/) {
+        return []
+    }
+
+    return loadCommitMessagesFromRange("${event.before}..${event.after}", 'GitHub push event')
+}
+
 def loadCommitMessages = {
+    def explicitRangeMessages = loadCommitMessagesFromRange(System.getenv('CHANGELOG_COMMIT_RANGE'), 'Explicit range')
+    if (!explicitRangeMessages.isEmpty()) {
+        return explicitRangeMessages
+    }
+
+    def pushedCommitMessages = loadCommitMessagesFromGitHubPushEvent()
+    if (!pushedCommitMessages.isEmpty()) {
+        return pushedCommitMessages
+    }
+
     def latestCommitHash = runGitCommand(['git', 'rev-parse', 'HEAD'])
     def parentCommits = runGitCommand(['git', 'rev-list', '--parents', '-n', '1', latestCommitHash]).split('\s+')
     logger.info("Parent commits: ${parentCommits}")
@@ -59,12 +106,12 @@ def loadCommitMessages = {
     if (parentCommits.size() > 2) {
         def firstParent = parentCommits[1]
         def secondParent = parentCommits[2]
-        commitMessages = runGitCommand(['git', 'log', '--pretty=format:%B', "${firstParent}..${secondParent}"]).split('\n\n')
+        commitMessages = splitCommitMessages(runGitCommand(['git', 'log', '--pretty=format:%B%x1e', "${firstParent}..${secondParent}"]))
         logger.info("Merge commit changelog source: ${commitMessages}")
     }
 
     if (commitMessages.isEmpty()) {
-        commitMessages = runGitCommand(['git', 'log', '-1', '--pretty=%B']).split('\n\n')
+        commitMessages = splitCommitMessages(runGitCommand(['git', 'log', '-1', '--pretty=format:%B%x1e']))
         logger.info("Fallback changelog source: ${commitMessages}")
     }
 
