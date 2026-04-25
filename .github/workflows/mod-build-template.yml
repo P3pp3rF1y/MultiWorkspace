@@ -101,10 +101,17 @@ jobs:
             core.setOutput('EMBED_AUTHOR_NAME', gh.event.sender.login);
             core.setOutput('EMBED_AUTHOR_ICON_URL', gh.event.sender.avatar_url);
 
-            const commits = ${{ toJSON(github.event.commits) }};
+            const commits = ${{ toJSON(github.event.commits) }} || [];
             let description = commits.map(c =>
               `[${c.id.slice(0,7)}](${c.url}) ${c.message} - ${c.author.username}`
             ).join("\n");
+
+            if (!description) {
+              const changelogRange = ${{ toJSON(inputs.changelog_range) }};
+              description = changelogRange
+                ? `Manual run using changelog range ${changelogRange}`
+                : `Manual run on ${gh.ref_name}`;
+            }
 
             core.setOutput('EMBED_DESCRIPTION', description);
 
