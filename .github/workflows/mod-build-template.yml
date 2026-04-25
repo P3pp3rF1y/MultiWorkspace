@@ -2,6 +2,11 @@ name: Mod Build (Reusable)
 
 on:
   workflow_call:
+    inputs:
+      changelog_range:
+        required: false
+        type: string
+        default: ""
 
 env:
   JAVA_VERSION: "17"
@@ -274,6 +279,7 @@ jobs:
           path: .
       - run: ./gradlew curseforge
         env:
+          CHANGELOG_COMMIT_RANGE: ${{ inputs.changelog_range }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
 
   publish_modrinth:
@@ -307,6 +313,7 @@ jobs:
           path: .
       - run: ./gradlew modrinth
         env:
+          CHANGELOG_COMMIT_RANGE: ${{ inputs.changelog_range }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
 
