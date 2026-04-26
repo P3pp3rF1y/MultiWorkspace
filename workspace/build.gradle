@@ -6,12 +6,34 @@ plugins {
     id "org.sonarqube" version "7.0.1.6134"
     id "net.darkhax.curseforgegradle" version "1.1.15"
     id "com.modrinth.minotaur" version "2.+"
+    id "com.diffplug.spotless" version "7.0.4"
 }
 
 idea {
     module {
         downloadJavadoc = true
         downloadSources = true
+    }
+}
+
+spotless {
+    enforceCheck = false
+    def spotlessFiles = findProperty("spotlessFiles")
+
+    java {
+        target spotlessFiles == null ? "src/*/java/**/*.java" : spotlessFiles.toString().split(/\s*,\s*/).findAll { it.endsWith(".java") }
+
+        eclipse().configFile "$projectDir/codeformat/eclipse-java-format.xml"
+        importOrder "", "javax", "java"
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    groovyGradle {
+        target spotlessFiles == null ? "*.gradle" : spotlessFiles.toString().split(/\s*,\s*/).findAll { it.endsWith(".gradle") }
+        trimTrailingWhitespace()
+        endWithNewline()
     }
 }
 
@@ -226,13 +248,15 @@ dependencies {
     }
 */
 
-    //runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
+    runtimeOnly "curse.maven:enderio-64578:7958101"
+
+    runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
     runtimeOnly "curse.maven:easyvillagers-400514:7856418"
 //    runtimeOnly "curse.maven:blurplus-393563:7830008"
 //    runtimeOnly "curse.maven:midnightlib-488090:7811718"
-    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
-    runtimeOnly "curse.maven:colossalchests-237875:7891282"
+//    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
+//    runtimeOnly "curse.maven:colossalchests-237875:7891282"
     runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
@@ -257,8 +281,10 @@ dependencies {
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
     runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+/*
     runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
     runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
+*/
 /*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
@@ -290,9 +316,8 @@ dependencies {
     runtimeOnly "curse.maven:mousetweaks-60089:5637846"
 
 */
-    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
-    runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
-    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
+//    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+//    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*
