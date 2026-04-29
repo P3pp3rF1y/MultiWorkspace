@@ -58,6 +58,19 @@ def splitCommitMessages = { String output ->
             .findAll { !it.isEmpty() }
 }
 
+def gitRevisionExists = { String revision ->
+    if (revision == null || revision.trim().isEmpty()) {
+        return false
+    }
+
+    def process = new ProcessBuilder(['git', 'rev-parse', '--verify', revision.trim() + '^{commit}'])
+            .directory(project.projectDir)
+            .redirectErrorStream(true)
+            .start()
+    process.inputStream.getText('UTF-8')
+    return process.waitFor() == 0
+}
+
 def loadCommitMessagesFromRange = { String range, String source ->
     if (range == null || range.trim().isEmpty()) {
         return []
@@ -81,6 +94,11 @@ def loadCommitMessagesFromGitHubPushEvent = {
 
     def event = new JsonSlurper().parse(eventFile)
     if (event.before == null || event.after == null || event.before ==~ /^0+$/) {
+        return []
+    }
+
+    if (!gitRevisionExists(event.before) || !gitRevisionExists(event.after)) {
+        logger.lifecycle("Skipping GitHub push event changelog range because one of its revisions is not available locally: ${event.before}..${event.after}")
         return []
     }
 
