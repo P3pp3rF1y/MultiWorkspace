@@ -1,0 +1,123 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '1.0.14'
+    id "org.sonarqube" version "5.0.0.4638"
+    id "net.darkhax.curseforgegradle" version "1.1.15"
+    id "com.modrinth.minotaur" version "2.+"
+    id "com.diffplug.spotless" version "7.0.4"
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+spotless {
+    enforceCheck = false
+    def spotlessFiles = findProperty("spotlessFiles")
+
+    java {
+        target spotlessFiles == null ? "src/*/java/**/*.java" : spotlessFiles.toString().split(/\s*,\s*/).findAll { it.endsWith(".java") }
+
+        eclipse().configFile "$projectDir/../SophisticatedCore/codeformat/eclipse-java-format.xml"
+        importOrder "", "javax", "java"
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    groovyGradle {
+        target spotlessFiles == null ? "*.gradle" : spotlessFiles.toString().split(/\s*,\s*/).findAll { it.endsWith(".gradle") }
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+version = project.mod_version
+group = project.mod_group_id
+
+repositories {
+    maven { // JEI
+        url "https://dvs1.progwml6.com/files/maven"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
+    maven {
+        url = "https://maven.blamejared.com"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
+    maven {
+        url = "https://maven.shedaniel.me/"
+        content {
+            includeGroup "dev.architectury"
+            includeGroup "me.shedaniel"
+            includeGroup "me.shedaniel.cloth"
+        }
+    }
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "dev.emi"
+        }
+    }
+}
+
+base {
+    archivesName = project.mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            neo_version: neo_version, neo_version_range: neo_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description
+    ]
+    inputs.properties replaceProperties
+
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+dependencies {
+    compileOnly project(':SophisticatedCore')
+    compileOnly "dev.emi:emi-neoforge:${emi_version}"
+    compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}"
+    compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+}
