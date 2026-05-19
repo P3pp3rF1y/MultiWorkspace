@@ -1,0 +1,2320 @@
+{
+  "name": "sophisticatedstorage",
+  "fixtures": {
+    "redBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "acaciaBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "flatAcaciaBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia",
+          "sophisticatedstorage:flat_top": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "acaciaCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "flatAcaciaCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia",
+          "sophisticatedstorage:flat_top": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "acaciaIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      }
+    },
+    "acaciaGoldBarrel": {
+      "item": "sophisticatedstorage:gold_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      }
+    },
+    "acaciaChest": {
+      "item": "sophisticatedstorage:chest",
+      "encoded": {
+        "id": "sophisticatedstorage:chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      }
+    },
+    "acaciaCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      }
+    },
+    "redLimitedCopperBarrel2": {
+      "item": "sophisticatedstorage:limited_copper_barrel_2",
+      "encoded": {
+        "id": "sophisticatedstorage:limited_copper_barrel_2",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackLimitedCopperBarrel2": {
+      "item": "sophisticatedstorage:limited_copper_barrel_2",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redLimitedCopperBarrel1": {
+      "item": "sophisticatedstorage:limited_copper_barrel_1",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "spruceLimitedCopperBarrel2": {
+      "item": "sophisticatedstorage:limited_copper_barrel_2",
+      "encoded": {
+        "id": "sophisticatedstorage:limited_copper_barrel_2",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakLimitedCopperBarrel2": {
+      "item": "sophisticatedstorage:limited_copper_barrel_2",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceLimitedCopperBarrel1": {
+      "item": "sophisticatedstorage:limited_copper_barrel_1",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "spruceCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "doubleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "singleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "doubleCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "doubleIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "singleIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "doubleGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "singleGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "doubleDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "singleDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "doubleNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "singleNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "redDoubleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066,
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066,
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "blackDoubleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215,
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "redSingleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "spruceDoubleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce",
+          "sophisticatedstorage:double_chest": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce",
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "oakDoubleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "spruceSingleCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:double_chest": true
+      }
+    },
+    "spruceIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceGoldBarrel": {
+      "item": "sophisticatedstorage:gold_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakGoldBarrel": {
+      "item": "sophisticatedstorage:gold_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceDiamondBarrel": {
+      "item": "sophisticatedstorage:diamond_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakDiamondBarrel": {
+      "item": "sophisticatedstorage:diamond_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceNetheriteBarrel": {
+      "item": "sophisticatedstorage:netherite_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakNetheriteBarrel": {
+      "item": "sophisticatedstorage:netherite_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "spruceNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      }
+    },
+    "oakNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
+      }
+    },
+    "redCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackCopperChest": {
+      "item": "sophisticatedstorage:copper_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redChest": {
+      "item": "sophisticatedstorage:chest",
+      "encoded": {
+        "id": "sophisticatedstorage:chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackChest": {
+      "item": "sophisticatedstorage:chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redShulkerBox": {
+      "item": "sophisticatedstorage:shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redCopperShulkerBox": {
+      "item": "sophisticatedstorage:copper_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackCopperShulkerBox": {
+      "item": "sophisticatedstorage:copper_shulker_box",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redGoldBarrel": {
+      "item": "sophisticatedstorage:gold_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackGoldBarrel": {
+      "item": "sophisticatedstorage:gold_barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redDiamondBarrel": {
+      "item": "sophisticatedstorage:diamond_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackDiamondBarrel": {
+      "item": "sophisticatedstorage:diamond_barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redNetheriteBarrel": {
+      "item": "sophisticatedstorage:netherite_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackNetheriteBarrel": {
+      "item": "sophisticatedstorage:netherite_barrel",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackNetheriteChest": {
+      "item": "sophisticatedstorage:netherite_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackDiamondChest": {
+      "item": "sophisticatedstorage:diamond_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackGoldChest": {
+      "item": "sophisticatedstorage:gold_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redIronShulkerBox": {
+      "item": "sophisticatedstorage:iron_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackIronShulkerBox": {
+      "item": "sophisticatedstorage:iron_shulker_box",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redGoldShulkerBox": {
+      "item": "sophisticatedstorage:gold_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:gold_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackGoldShulkerBox": {
+      "item": "sophisticatedstorage:gold_shulker_box",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redDiamondShulkerBox": {
+      "item": "sophisticatedstorage:diamond_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:diamond_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackDiamondShulkerBox": {
+      "item": "sophisticatedstorage:diamond_shulker_box",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    },
+    "redNetheriteShulkerBox": {
+      "item": "sophisticatedstorage:netherite_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:netherite_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "blackNetheriteShulkerBox": {
+      "item": "sophisticatedstorage:netherite_shulker_box",
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -14869215,
+        "encoded.components.sophisticatedcore:accent_color": -14869215
+      }
+    }
+  },
+  "tests": [
+    {
+      "name": "wood barrel shows its crafting recipe",
+      "type": "recipe",
+      "focus": "acaciaBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:lever" },
+          { "itemPattern": "^minecraft:.*_planks$" },
+          { "itemPattern": "^minecraft:.*_slab$" }
+        ],
+        "outputs": [
+          {
+            "item": "sophisticatedstorage:barrel",
+            "componentsPattern": "wood_type"
+          }
+        ]
+      }
+    },
+    {
+      "name": "wood chest shows its crafting recipe",
+      "type": "recipe",
+      "focus": "acaciaChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:lever" },
+          { "itemPattern": "^minecraft:.*_planks$" }
+        ],
+        "outputs": [
+          {
+            "item": "sophisticatedstorage:chest",
+            "componentsPattern": "wood_type"
+          }
+        ]
+      }
+    },
+    {
+      "name": "copper chest recipe upgrades player-crafted wood chest once",
+      "type": "recipe",
+      "focus": "acaciaCopperChest",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaChest" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaCopperChest" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "acacia barrel flatten recipe produces flat top barrel",
+      "type": "recipe",
+      "focus": "flatAcaciaBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "acaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "acaciaBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "flat acacia barrel use shows tier upgrade preserving flat top",
+      "type": "use",
+      "focus": "flatAcaciaBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "flatAcaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "flat acacia barrel use shows unflatten recipe",
+      "type": "use",
+      "focus": "flatAcaciaBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "flatAcaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "flatAcaciaBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "copper barrel recipe upgrades base barrel",
+      "type": "recipe",
+      "focus": "acaciaCopperBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaCopperBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "iron barrel recipe upgrades copper barrel",
+      "type": "recipe",
+      "focus": "acaciaIronBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "gold barrel recipe upgrades player-crafted iron barrel once",
+      "type": "recipe",
+      "focus": "acaciaGoldBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaIronBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaGoldBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "netherite barrel has tier upgrade recipe",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:netherite_barrel" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:netherite_barrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "base barrel use upgrades to copper barrel once",
+      "type": "use",
+      "focus": "acaciaBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedstorage:barrel" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "player-crafted wood chest use upgrades to copper chest once",
+      "type": "use",
+      "focus": "acaciaChest",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaChest" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaCopperChest" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "copper barrel use upgrades to iron barrel once",
+      "type": "use",
+      "focus": "acaciaCopperBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "player-crafted iron barrel use upgrades to gold barrel once",
+      "type": "use",
+      "focus": "acaciaIronBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaIronBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaGoldBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red iron barrel dye recipe narrows result",
+      "type": "recipe",
+      "focus": "redIronBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "sameAs": "redIronBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronBarrel" },
+          { "sameAs": "redIronChest" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red iron chest dye recipe narrows result",
+      "type": "recipe",
+      "focus": "redIronChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "sameAs": "redIronChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronChest" },
+          { "sameAs": "redIronBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red iron shulker box dye recipe narrows result",
+      "type": "recipe",
+      "focus": "redIronShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "sameAs": "redIronShulkerBox" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronShulkerBox" },
+          { "sameAs": "redIronChest" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red copper barrel tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redCopperBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redCopperBarrel" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackCopperBarrel" },
+          { "sameAs": "redCopperChest" }
+        ]
+      }
+    },
+    {
+      "name": "red iron barrel tier recipes preserve focused result",
+      "type": "recipe",
+      "focus": "redIronBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redIronBarrel" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronBarrel" },
+          { "sameAs": "redIronChest" }
+        ]
+      }
+    },
+    {
+      "name": "red gold barrel tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redGoldBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redGoldBarrel" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackGoldBarrel" },
+          { "sameAs": "redGoldChest" }
+        ]
+      }
+    },
+    {
+      "name": "red diamond barrel tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redDiamondBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redDiamondBarrel" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackDiamondBarrel" },
+          { "sameAs": "redDiamondChest" }
+        ]
+      }
+    },
+    {
+      "name": "red netherite barrel tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redNetheriteBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redNetheriteBarrel" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackNetheriteBarrel" },
+          { "sameAs": "redNetheriteChest" }
+        ]
+      }
+    },
+    {
+      "name": "red copper chest tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redCopperChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackCopperChest" },
+          { "sameAs": "redCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red iron chest tier recipes preserve focused result",
+      "type": "recipe",
+      "focus": "redIronChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redIronChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronChest" },
+          { "sameAs": "redIronBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red gold chest tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redGoldChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redGoldChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackGoldChest" },
+          { "sameAs": "redGoldBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red diamond chest tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redDiamondChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redDiamondChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackDiamondChest" },
+          { "sameAs": "redDiamondBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red netherite chest tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redNetheriteChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redNetheriteChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackNetheriteChest" },
+          { "sameAs": "redNetheriteBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red copper shulker box tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redCopperShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redCopperShulkerBox" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackCopperShulkerBox" },
+          { "sameAs": "redCopperChest" }
+        ]
+      }
+    },
+    {
+      "name": "red iron shulker box tier recipes preserve focused result",
+      "type": "recipe",
+      "focus": "redIronShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redIronShulkerBox" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronShulkerBox" },
+          { "sameAs": "redIronChest" }
+        ]
+      }
+    },
+    {
+      "name": "red gold shulker box tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redGoldShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redGoldShulkerBox" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackGoldShulkerBox" },
+          { "sameAs": "redGoldChest" }
+        ]
+      }
+    },
+    {
+      "name": "red diamond shulker box tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redDiamondShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redDiamondShulkerBox" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackDiamondShulkerBox" },
+          { "sameAs": "redDiamondChest" }
+        ]
+      }
+    },
+    {
+      "name": "red netherite shulker box tier recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redNetheriteShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redNetheriteShulkerBox" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackNetheriteShulkerBox" },
+          { "sameAs": "redNetheriteChest" }
+        ]
+      }
+    },
+    {
+      "name": "plain copper shulker box chest conversion rotates wood types",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:copper_shulker_box" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "spruceCopperChest" },
+          { "sameAs": "oakCopperChest" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:copper_shulker_box" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redCopperShulkerBox" },
+          { "sameAs": "blackCopperShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "shulker shell usage groups tinted copper chest conversions",
+      "type": "use",
+      "focus": { "item": "minecraft:shulker_shell" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:shulker_shell" },
+          { "sameAs": "redCopperChest" },
+          { "sameAs": "blackCopperChest" }
+        ],
+        "outputs": [
+          { "sameAs": "redCopperShulkerBox" },
+          { "sameAs": "blackCopperShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red copper shulker box chest conversion narrows tint",
+      "type": "recipe",
+      "focus": "redCopperShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redCopperChest" }
+        ],
+        "outputs": [
+          { "sameAs": "redCopperShulkerBox" }
+        ],
+        "notInputs": [
+          { "sameAs": "blackCopperChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackCopperShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "spruce copper barrel tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceCopperBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceCopperBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakCopperBarrel" },
+          { "sameAs": "spruceCopperChest" }
+        ]
+      }
+    },
+    {
+      "name": "oak copper barrel tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "oakCopperBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "oakCopperBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "spruceCopperBarrel" },
+          { "sameAs": "oakCopperChest" }
+        ]
+      }
+    },
+    {
+      "name": "spruce iron barrel tier recipes preserve wood type",
+      "type": "recipe",
+      "focus": "spruceIronBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceIronBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakIronBarrel" },
+          { "sameAs": "spruceIronChest" }
+        ]
+      }
+    },
+    {
+      "name": "spruce gold barrel tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceGoldBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceGoldBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakGoldBarrel" },
+          { "sameAs": "spruceGoldChest" }
+        ]
+      }
+    },
+    {
+      "name": "spruce diamond barrel tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceDiamondBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceDiamondBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakDiamondBarrel" },
+          { "sameAs": "spruceDiamondChest" }
+        ]
+      }
+    },
+    {
+      "name": "spruce netherite barrel tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceNetheriteBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceNetheriteBarrel" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakNetheriteBarrel" },
+          { "sameAs": "spruceNetheriteChest" }
+        ]
+      }
+    },
+    {
+      "name": "spruce copper chest tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceCopperChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakCopperChest" },
+          { "sameAs": "spruceCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "oak copper chest tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "oakCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "oakCopperChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "spruceCopperChest" },
+          { "sameAs": "oakCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce iron chest tier recipes preserve wood type",
+      "type": "recipe",
+      "focus": "spruceIronChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceIronChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakIronChest" },
+          { "sameAs": "spruceIronBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce gold chest tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceGoldChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceGoldChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakGoldChest" },
+          { "sameAs": "spruceGoldBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce diamond chest tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceDiamondChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceDiamondChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakDiamondChest" },
+          { "sameAs": "spruceDiamondBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce netherite chest tier recipe preserves wood type",
+      "type": "recipe",
+      "focus": "spruceNetheriteChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceNetheriteChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakNetheriteChest" },
+          { "sameAs": "spruceNetheriteBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited copper barrel 1 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_copper_barrel_1" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_1" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_2" },
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited copper barrel 2 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_copper_barrel_2" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_2" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_1" },
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited copper barrel 3 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_copper_barrel_3" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_3" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_2" },
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited copper barrel 4 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_copper_barrel_4" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_4" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_copper_barrel_2" },
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited iron barrel 1 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_iron_barrel_1" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_1" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_2" },
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited iron barrel 2 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_iron_barrel_2" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_2" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_1" },
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited iron barrel 3 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_iron_barrel_3" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_3" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_2" },
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited iron barrel 4 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_iron_barrel_4" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_4" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_iron_barrel_2" },
+          { "item": "sophisticatedstorage:iron_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited gold barrel 1 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_gold_barrel_1" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_1" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_2" },
+          { "item": "sophisticatedstorage:gold_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited gold barrel 2 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_gold_barrel_2" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_2" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_1" },
+          { "item": "sophisticatedstorage:gold_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited gold barrel 3 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_gold_barrel_3" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_3" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_2" },
+          { "item": "sophisticatedstorage:gold_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited gold barrel 4 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_gold_barrel_4" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_4" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_gold_barrel_2" },
+          { "item": "sophisticatedstorage:gold_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited diamond barrel 1 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_diamond_barrel_1" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_1" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_2" },
+          { "item": "sophisticatedstorage:diamond_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited diamond barrel 2 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_diamond_barrel_2" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_2" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_1" },
+          { "item": "sophisticatedstorage:diamond_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited diamond barrel 3 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_diamond_barrel_3" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_3" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_2" },
+          { "item": "sophisticatedstorage:diamond_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited diamond barrel 4 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_diamond_barrel_4" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_4" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_diamond_barrel_2" },
+          { "item": "sophisticatedstorage:diamond_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited netherite barrel 1 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_netherite_barrel_1" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_1" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_2" },
+          { "item": "sophisticatedstorage:netherite_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited netherite barrel 2 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_netherite_barrel_2" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_2" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_1" },
+          { "item": "sophisticatedstorage:netherite_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited netherite barrel 3 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_netherite_barrel_3" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_3" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_2" },
+          { "item": "sophisticatedstorage:netherite_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "limited netherite barrel 4 tier recipe preserves partition count",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorage:limited_netherite_barrel_4" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_4" }
+        ],
+        "notOutputs": [
+          { "item": "sophisticatedstorage:limited_netherite_barrel_2" },
+          { "item": "sophisticatedstorage:netherite_barrel" }
+        ]
+      }
+    },
+    {
+      "name": "red limited copper barrel 2 tier recipe preserves tint and partition count",
+      "type": "recipe",
+      "focus": "redLimitedCopperBarrel2",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redLimitedCopperBarrel2" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackLimitedCopperBarrel2" },
+          { "sameAs": "redLimitedCopperBarrel1" },
+          { "sameAs": "redCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce limited copper barrel 2 tier recipe preserves wood type and partition count",
+      "type": "recipe",
+      "focus": "spruceLimitedCopperBarrel2",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceLimitedCopperBarrel2" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakLimitedCopperBarrel2" },
+          { "sameAs": "spruceLimitedCopperBarrel1" },
+          { "sameAs": "spruceCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "double copper chest tier recipe preserves double chest metadata",
+      "type": "recipe",
+      "focus": "doubleCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "doubleCopperChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "singleCopperChest" },
+          { "sameAs": "doubleCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "double iron chest tier recipes preserve double chest metadata",
+      "type": "recipe",
+      "focus": "doubleIronChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "doubleIronChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "singleIronChest" },
+          { "sameAs": "redIronBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "double gold chest tier recipe preserves double chest metadata",
+      "type": "recipe",
+      "focus": "doubleGoldChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "doubleGoldChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "singleGoldChest" },
+          { "sameAs": "redGoldBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "double diamond chest tier recipe preserves double chest metadata",
+      "type": "recipe",
+      "focus": "doubleDiamondChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "doubleDiamondChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "singleDiamondChest" },
+          { "sameAs": "redDiamondBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "double netherite chest tier recipe preserves double chest metadata",
+      "type": "recipe",
+      "focus": "doubleNetheriteChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "doubleNetheriteChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "singleNetheriteChest" },
+          { "sameAs": "redNetheriteBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "red double copper chest tier recipe preserves tint and double chest metadata",
+      "type": "recipe",
+      "focus": "redDoubleCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "redDoubleCopperChest" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackDoubleCopperChest" },
+          { "sameAs": "redSingleCopperChest" },
+          { "sameAs": "redCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "spruce double copper chest tier recipe preserves wood type and double chest metadata",
+      "type": "recipe",
+      "focus": "spruceDoubleCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "sameAs": "spruceDoubleCopperChest" }
+        ],
+        "notOutputs": [
+          { "sameAs": "oakDoubleCopperChest" },
+          { "sameAs": "spruceSingleCopperChest" },
+          { "sameAs": "spruceCopperBarrel" }
+        ]
+      }
+    },
+    {
+      "name": "visible untinted base barrel use upgrades to copper barrel once",
+      "type": "use",
+      "focus": "acaciaBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedstorage:barrel" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:copper_barrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted base barrel use shows red tint recipe once",
+      "type": "use",
+      "focus": "acaciaBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaBarrel" },
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "sameAs": "redBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible red barrel recipe shows tint recipe once",
+      "type": "recipe",
+      "focus": "redBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedstorage:barrel" },
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedstorage:barrel", "componentsPattern": "main_color|accent_color" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted copper barrel recipe upgrades base barrel once",
+      "type": "recipe",
+      "focus": "acaciaCopperBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaCopperBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted copper barrel use upgrades to iron barrel once",
+      "type": "use",
+      "focus": "acaciaCopperBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaCopperBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaIronBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted iron barrel recipe shows base source once",
+      "type": "recipe",
+      "focus": "acaciaIronBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaIronBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted iron barrel recipe shows copper source once",
+      "type": "recipe",
+      "focus": "acaciaIronBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "sameAs": "acaciaCopperBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "acaciaIronBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    }
+  ]
+}

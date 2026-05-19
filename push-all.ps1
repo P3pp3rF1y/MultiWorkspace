@@ -32,7 +32,8 @@ $repos = @(
     @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
     @{ Name = "SophisticatedStorageCreateIntegration";   Path = "SophisticatedStorageCreateIntegration";   WaitForCI = $false },
     @{ Name = "SophisticatedStorageInMotion";            Path = "SophisticatedStorageInMotion";            WaitForCI = $true  },
-    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false }
+    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false },
+    @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false }
 )
 
 # ---------------------------------------------------------------------
@@ -162,9 +163,6 @@ foreach ($repo in $repos) {
 
         $repoFull = "$owner/$($repo.Name)"
 
-        # Resolve workflow id (once per repo; fast and robust vs file name)
-        $workflowId = Get-WorkflowId -repoFull $repoFull
-
         $sha = (git rev-parse HEAD).Trim()
         Write-Host "Pushing $($repo.Name) ($branch) sha=$sha"
         git push -u origin $branch
@@ -173,6 +171,9 @@ foreach ($repo in $repos) {
             Write-Host "WaitForCI = false, continuing immediately."
             continue
         }
+
+        # Resolve workflow id only for repos that must wait on CI.
+        $workflowId = Get-WorkflowId -repoFull $repoFull
 
         Write-Host "WaitForCI = true, waiting for workflow '$workflowName' (id=$workflowId) to complete..."
 

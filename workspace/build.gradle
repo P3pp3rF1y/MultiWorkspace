@@ -31,6 +31,9 @@ spotless {
 
 repositories {
     maven {
+        url = file("${gradle.gradleUserHomeDir}/caches/forge_gradle/deobf_dependencies")
+    }
+    maven {
         url "https://maven.ftb.dev/releases"
         content {
             includeGroup "dev.ftb.mods"
@@ -113,6 +116,16 @@ version = '1.0'
 group = 'com.yourname.modid' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'modid'
 
+def recipeViewer = (findProperty("recipe_viewer") ?: "rei").toString()
+def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+def generatingIdeRuns = gradle.startParameter.taskNames.any { it.toLowerCase().contains("genintellijruns") }
+
+configurations.configureEach {
+    if (recipeViewer != "jei" && name == "runtimeClasspathCopy") {
+        exclude group: "mezz.jei"
+    }
+}
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
@@ -130,51 +143,59 @@ minecraft {
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             args "--mixin", "sophisticatedstorageinmotion.mixins.json"
             args "--mixin", "sophisticatedcore.mixins.json"
+            args "--mixin", "sophisticatedcore.create.mixins.json"
 
-            mods {
-                if (findProject(':Reliquary') != null) {
-                    Reliquary {
-                        source project(':Reliquary').sourceSets.main
+            if (generatingIdeRuns) {
+                mods {
+                    if (findProject(':Reliquary') != null) {
+                        Reliquary {
+                            source project(':Reliquary').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedCore') != null) {
-                    SophisticatedCore {
-                        source project(':SophisticatedCore').sourceSets.main
+                    if (findProject(':SophisticatedCore') != null) {
+                        SophisticatedCore {
+                            source project(':SophisticatedCore').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedBackpacks') != null) {
-                    SophisticatedBackpacks {
-                        source project(':SophisticatedBackpacks').sourceSets.main
+                    if (findProject(':SophisticatedBackpacks') != null) {
+                        SophisticatedBackpacks {
+                            source project(':SophisticatedBackpacks').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
-                    SophisticatedBackpacksCreateIntegration {
-                        source project(':SophisticatedBackpacksCreateIntegration').sourceSets.main
+                    if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
+                        SophisticatedBackpacksCreateIntegration {
+                            source project(':SophisticatedBackpacksCreateIntegration').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedStorage') != null) {
-                    SophisticatedStorage {
-                        source project(':SophisticatedStorage').sourceSets.main
+                    if (findProject(':SophisticatedStorage') != null) {
+                        SophisticatedStorage {
+                            source project(':SophisticatedStorage').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedStorageInMotion') != null) {
-                    SophisticatedStorageInMotion {
-                        source project(':SophisticatedStorageInMotion').sourceSets.main
+                    if (findProject(':SophisticatedStorageInMotion') != null) {
+                        SophisticatedStorageInMotion {
+                            source project(':SophisticatedStorageInMotion').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedStorageCreateIntegration') != null) {
-                    SophisticatedStorageCreateIntegration {
-                        source project(':SophisticatedStorageCreateIntegration').sourceSets.main
+                    if (findProject(':SophisticatedStorageCreateIntegration') != null) {
+                        SophisticatedStorageCreateIntegration {
+                            source project(':SophisticatedStorageCreateIntegration').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedItemActions') != null) {
-                    SophisticatedItemActions {
-                        source project(':SophisticatedItemActions').sourceSets.main
+                    if (findProject(':SophisticatedItemActions') != null) {
+                        SophisticatedItemActions {
+                            source project(':SophisticatedItemActions').sourceSets.main
+                        }
                     }
-                }
-                if (findProject(':SophisticatedInventoryInteractions') != null) {
-                    SophisticatedInventoryInteractions {
-                        source project(':SophisticatedInventoryInteractions').sourceSets.main
+                    if (findProject(':SophisticatedInventoryInteractions') != null) {
+                        SophisticatedInventoryInteractions {
+                            source project(':SophisticatedInventoryInteractions').sourceSets.main
+                        }
+                    }
+                    if (findProject(':DevClientAutomation') != null) {
+                        devclientautomation {
+                            source project(':DevClientAutomation').sourceSets.main
+                        }
                     }
                 }
             }
@@ -198,6 +219,24 @@ jar {
   duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+tasks.withType(net.minecraftforge.gradle.common.util.runs.MinecraftRunTask).configureEach {
+    doFirst {
+        file("$buildDir/resources/main").mkdirs()
+        file("$buildDir/classes/java/main").mkdirs()
+
+        if (minimalDevClientRuntime && name == "runClient") {
+            File fmlConfig = project.file("run/client/config/fml.toml")
+            fmlConfig.parentFile.mkdirs()
+            if (!fmlConfig.exists()) {
+                fmlConfig.text = "earlyWindowControl = false\n"
+            } else if (fmlConfig.text.contains("earlyWindowControl = true")) {
+                fmlConfig.text = fmlConfig.text.replace("earlyWindowControl = true", "earlyWindowControl = false")
+            }
+        }
+
+    }
+}
+
 dependencies {
     // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
     // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
@@ -207,38 +246,42 @@ dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
 
     if (findProject(':Reliquary') != null) {
-        implementation project(':Reliquary')
+        implementation(project(':Reliquary')) { transitive = false }
     }
     if (findProject(':SophisticatedCore') != null) {
-        implementation project(':SophisticatedCore')
+        implementation(project(':SophisticatedCore')) { transitive = false }
     }
     if (findProject(':SophisticatedBackpacks') != null) {
-        implementation project(':SophisticatedBackpacks')
+        implementation(project(':SophisticatedBackpacks')) { transitive = false }
     }
     if (findProject(':SophisticatedBackpacksCreateIntegration') != null) {
-        implementation project(':SophisticatedBackpacksCreateIntegration')
+        implementation(project(':SophisticatedBackpacksCreateIntegration')) { transitive = false }
     }
     if (findProject(':SophisticatedStorage') != null) {
-        implementation project(':SophisticatedStorage')
+        implementation(project(':SophisticatedStorage')) { transitive = false }
     }
     if (findProject(':SophisticatedStorageInMotion') != null) {
-        implementation project(':SophisticatedStorageInMotion')
+        implementation(project(':SophisticatedStorageInMotion')) { transitive = false }
     }
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
-        implementation project(':SophisticatedStorageCreateIntegration')
+        implementation(project(':SophisticatedStorageCreateIntegration')) { transitive = false }
     }
     if (findProject(':SophisticatedItemActions') != null) {
-        implementation project(':SophisticatedItemActions')
+        implementation(project(':SophisticatedItemActions')) { transitive = false }
     }
     if (findProject(':SophisticatedInventoryInteractions') != null) {
-        implementation project(':SophisticatedInventoryInteractions')
+        implementation(project(':SophisticatedInventoryInteractions')) { transitive = false }
     }
-
-    runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
-    //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
-    //runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
+    if (findProject(':DevClientAutomation') != null) {
+        implementation(project(':DevClientAutomation')) { transitive = false }
+    }
+    if (!minimalDevClientRuntime) {
+        runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
+        //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
+        //runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
+        runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
+        runtimeOnly fg.deobf("curse.maven:prism-638111:${prism_cf_file_id}")
+    }
     runtimeOnly fg.deobf("curse.maven:chipped-456956:5077656")
     runtimeOnly fg.deobf("curse.maven:resourcefullib-570073:5070629")
     runtimeOnly fg.deobf("curse.maven:athena-841890:4764357")
@@ -255,55 +298,72 @@ dependencies {
 */
     //runtimeOnly fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
 
-    runtimeOnly fg.deobf("curse.maven:cyclopscore-232758:4905983")
-    runtimeOnly fg.deobf("curse.maven:integratedterminals-295910:4925609")
-    runtimeOnly fg.deobf("curse.maven:integratedynamics-236307:4925678")
-    runtimeOnly fg.deobf("curse.maven:commoncapabilities-247007:4620480")
-    runtimeOnly fg.deobf("curse.maven:integratedtunnels-251389:4782861")
-    runtimeOnly fg.deobf("curse.maven:mekanism-268560:5125665")
-    runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
-    runtimeOnly fg.deobf("curse.maven:geckolib-388172:5188427")
-//    runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
-    runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
-    runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
-//    runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
-    //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
-//    runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
-//    runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
-//    runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
-//    runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
-    runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:6635554")
-    runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
-    runtimeOnly fg.deobf("curse.maven:balm-531761:${balm_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
-    runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
-    runtimeOnly fg.deobf("curse.maven:pneumaticraft-281849:7307654")
-    runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
-    runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
-    runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")
-    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
-    runtimeOnly fg.deobf("curse.maven:carryon-274259:4882500")
-    //runtimeOnly fg.deobf("curse.maven:forestry-1056828:7292943")
-    runtimeOnly fg.deobf("curse.maven:productivebees-377897:5566102")
+    if (!minimalDevClientRuntime) {
+        runtimeOnly fg.deobf("curse.maven:cyclopscore-232758:4905983")
+        runtimeOnly fg.deobf("curse.maven:integratedterminals-295910:4925609")
+        runtimeOnly fg.deobf("curse.maven:integratedynamics-236307:4925678")
+        runtimeOnly fg.deobf("curse.maven:commoncapabilities-247007:4620480")
+        runtimeOnly fg.deobf("curse.maven:integratedtunnels-251389:4782861")
+        runtimeOnly fg.deobf("curse.maven:mekanism-268560:5125665")
+        runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
+        runtimeOnly fg.deobf("curse.maven:geckolib-388172:5188427")
+//        runtimeOnly fg.deobf("curse.maven:glodium-957920:5226922")
+        runtimeOnly fg.deobf("curse.maven:projecte-226410:4901949")
+        runtimeOnly fg.deobf("curse.maven:mousetweaks-60089:5338457")
+//        runtimeOnly fg.deobf("curse.maven:buildinggadgets-298187:5144161")
+        //runtimeOnly fg.deobf("curse.maven:railcraft-901491:5898149")
+//        runtimeOnly fg.deobf("curse.maven:laserio-626839:5074767")
+//        runtimeOnly fg.deobf("curse.maven:ironfurnaces-237664:5159498")
+//        runtimeOnly fg.deobf("curse.maven:craftingstation-956084:5707266")
+//        runtimeOnly fg.deobf("curse.maven:chemlib-340666:5128632")
+        runtimeOnly fg.deobf("curse.maven:tinkersconstruct-74072:6635554")
+        runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
+        runtimeOnly fg.deobf("curse.maven:balm-531761:${balm_cf_file_id}")
+        runtimeOnly fg.deobf("curse.maven:trashslot-235577:${trashslot_cf_file_id}")
+        runtimeOnly fg.deobf("curse.maven:polymorph-388800:6450982")
+        runtimeOnly fg.deobf("curse.maven:pneumaticraft-281849:7307654")
+        runtimeOnly fg.deobf("curse.maven:quark-243121:6427817")
+        runtimeOnly fg.deobf("curse.maven:zeta-968868:6432578")
+        runtimeOnly fg.deobf("vazkii.botania:Botania:${botania_version}")
+        runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
+        if (project.neo_version.toString() != "47.1.5") {
+            runtimeOnly fg.deobf("curse.maven:carryon-274259:4882500")
+        }
+        //runtimeOnly fg.deobf("curse.maven:forestry-1056828:7292943")
+        runtimeOnly fg.deobf("curse.maven:productivebees-377897:5566102")
 
-    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
-    runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
-    runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
-    runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
-    runtimeOnly fg.deobf("curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
-    runtimeOnly fg.deobf("maven.modrinth:guideme:${guideme_version}")
-    runtimeOnly fg.deobf("maven.modrinth:ae2:${ae2_version}")
-    //runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:${rs_cf_file_id}")
+        runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+        if (project.neo_version.toString() != "47.1.5") {
+            runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
+            runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
+            runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
+        }
+        runtimeOnly fg.deobf("curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}")
+//        runtimeOnly fg.deobf("maven.modrinth:guideme:${guideme_version}")
+//        runtimeOnly fg.deobf("maven.modrinth:ae2:${ae2_version}")
+        //runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:${rs_cf_file_id}")
 
-//    runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
-/*
-    runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
-*/
-    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
+        runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
+    }
 
-/*    runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
-    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-api-base:0.4.31+ef105b4977")
+    switch (recipeViewer) {
+        case "emi":
+            runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
+            break
+        case "rei":
+            runtimeOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+            runtimeOnly fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
+            runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+            break
+        case "jei":
+            runtimeOnly fg.deobf("mezz.jei:jei-${jei_mc_version}:${jei_version}")
+            break
+        case "none":
+            break
+        default:
+            throw new GradleException("Unknown recipe_viewer '${recipeViewer}'. Expected emi, rei, jei, or none.")
+    }
+/*    runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-api-base:0.4.31+ef105b4977")
     runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-data-attachment-api-v1:1.0.0+30ef839e77")
     runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-entity-events-v1:1.6.0+6274ab9d77")
     runtimeOnly fg.deobf("dev.su5ed.sinytra.fabric-api:fabric-object-builder-api-v1:11.1.3+2174fc8477")
