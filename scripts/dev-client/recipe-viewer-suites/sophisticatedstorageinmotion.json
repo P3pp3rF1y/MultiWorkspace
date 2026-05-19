@@ -1,0 +1,841 @@
+{
+  "name": "sophisticatedstorageinmotion",
+  "fixtures": {
+    "redIronBarrel": {
+      "item": "sophisticatedstorage:iron_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "flatAcaciaBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia",
+          "sophisticatedstorage:flat_top": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "acaciaBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "flatAcaciaCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:copper_barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "acacia",
+          "sophisticatedstorage:flat_top": true
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "acaciaCopperBarrel": {
+      "item": "sophisticatedstorage:copper_barrel",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "redIronChest": {
+      "item": "sophisticatedstorage:iron_chest",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_chest",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redIronShulkerBox": {
+      "item": "sophisticatedstorage:iron_shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:iron_shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -5231066,
+          "sophisticatedcore:accent_color": -5231066
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redOakBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redBirchBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "birch",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "flatAcaciaBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedstorage:wood_type": "acacia",
+              "sophisticatedstorage:flat_top": true
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "regularAcaciaBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "flatAcaciaCopperBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:copper_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedstorage:wood_type": "acacia",
+              "sophisticatedstorage:flat_top": true
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:copper_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "regularAcaciaCopperBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:copper_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "redOakChestStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_chest",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_chest",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redOakShulkerStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_shulker_box",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_shulker_box",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redOakGoldBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redBirchGoldBarrelStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "birch",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redOakGoldChestStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_chest",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_chest",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redOakGoldShulkerStorageBoat": {
+      "item": "sophisticatedstorageinmotion:storage_boat",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_boat",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak",
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_shulker_box",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_shulker_box",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redChestStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_chest",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_chest",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "flatAcaciaBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedstorage:wood_type": "acacia",
+              "sophisticatedstorage:flat_top": true
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "regularAcaciaBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "flatAcaciaCopperBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:copper_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedstorage:wood_type": "acacia",
+              "sophisticatedstorage:flat_top": true
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:copper_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "regularAcaciaCopperBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:copper_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:wood_type": "acacia"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedstorage:flat_top": true
+      }
+    },
+    "redShulkerStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:iron_shulker_box",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:iron_shulker_box",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redGoldBarrelStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_barrel",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_barrel",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redGoldChestStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_chest",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_chest",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "redGoldShulkerStorageMinecart": {
+      "item": "sophisticatedstorageinmotion:storage_minecart",
+      "encoded": {
+        "id": "sophisticatedstorageinmotion:storage_minecart",
+        "count": 1,
+        "components": {
+          "sophisticatedstorageinmotion:storage_item": {
+            "id": "sophisticatedstorage:gold_shulker_box",
+            "count": 1,
+            "components": {
+              "sophisticatedcore:main_color": -5231066,
+              "sophisticatedcore:accent_color": -5231066
+            }
+          }
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorageinmotion:storage_item.id": "sophisticatedstorage:gold_shulker_box",
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedstorageinmotion:storage_item.components.sophisticatedcore:accent_color": -5231066
+      }
+    }
+  },
+  "tests": [
+    {
+      "name": "storage minecart can be crafted from minecart and storage",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorageinmotion:storage_minecart" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          { "item": "sophisticatedstorageinmotion:storage_minecart" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat can be crafted from oak boat and storage",
+      "type": "recipe",
+      "focus": { "item": "sophisticatedstorageinmotion:storage_boat" },
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [],
+        "outputs": [
+          {
+            "item": "sophisticatedstorageinmotion:storage_boat",
+            "componentsPattern": "wood_type"
+          }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat with red barrel preserves contained storage",
+      "type": "recipe",
+      "focus": "redOakBarrelStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:oak_boat" },
+          { "sameAs": "redIronBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redBirchBarrelStorageBoat" },
+          { "sameAs": "redOakChestStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat with red chest preserves contained storage",
+      "type": "recipe",
+      "focus": "redOakChestStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:oak_boat" },
+          { "sameAs": "redIronChest" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakChestStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat with red shulker preserves contained storage",
+      "type": "recipe",
+      "focus": "redOakShulkerStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:oak_boat" },
+          { "sameAs": "redIronShulkerBox" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakShulkerStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat with flat acacia barrel preserves flat top",
+      "type": "recipe",
+      "focus": "flatAcaciaBarrelStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:oak_boat" },
+          { "sameAs": "flatAcaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaBarrelStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "regularAcaciaBarrelStorageBoat" },
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart with red barrel preserves contained storage",
+      "type": "recipe",
+      "focus": "redBarrelStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "sameAs": "redIronBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "redBarrelStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redChestStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart with red chest preserves contained storage",
+      "type": "recipe",
+      "focus": "redChestStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "sameAs": "redIronChest" }
+        ],
+        "outputs": [
+          { "sameAs": "redChestStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redBarrelStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart with red shulker preserves contained storage",
+      "type": "recipe",
+      "focus": "redShulkerStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "sameAs": "redIronShulkerBox" }
+        ],
+        "outputs": [
+          { "sameAs": "redShulkerStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redBarrelStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart with flat acacia barrel preserves flat top",
+      "type": "recipe",
+      "focus": "flatAcaciaBarrelStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "sameAs": "flatAcaciaBarrel" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaBarrelStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "regularAcaciaBarrelStorageMinecart" },
+          { "sameAs": "redBarrelStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat upgrades red barrel while preserving boat type and tint",
+      "type": "recipe",
+      "focus": "redOakGoldBarrelStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakGoldBarrelStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redBirchGoldBarrelStorageBoat" },
+          { "sameAs": "redOakGoldChestStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat upgrades red chest while preserving boat type and tint",
+      "type": "recipe",
+      "focus": "redOakGoldChestStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redOakChestStorageBoat" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakGoldChestStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redOakGoldBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat upgrades red shulker while preserving boat type and tint",
+      "type": "recipe",
+      "focus": "redOakGoldShulkerStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redOakShulkerStorageBoat" }
+        ],
+        "outputs": [
+          { "sameAs": "redOakGoldShulkerStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redOakGoldBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart upgrades red barrel while preserving tint",
+      "type": "recipe",
+      "focus": "redGoldBarrelStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redBarrelStorageMinecart" }
+        ],
+        "outputs": [
+          { "sameAs": "redGoldBarrelStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redGoldChestStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart upgrades red chest while preserving tint",
+      "type": "recipe",
+      "focus": "redGoldChestStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redChestStorageMinecart" }
+        ],
+        "outputs": [
+          { "sameAs": "redGoldChestStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redGoldBarrelStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart upgrades red shulker while preserving tint",
+      "type": "recipe",
+      "focus": "redGoldShulkerStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redShulkerStorageMinecart" }
+        ],
+        "outputs": [
+          { "sameAs": "redGoldShulkerStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redGoldBarrelStorageMinecart" }
+        ]
+      }
+    },
+    {
+      "name": "oak storage boat upgrades flat acacia barrel while preserving flat top",
+      "type": "recipe",
+      "focus": "flatAcaciaCopperBarrelStorageBoat",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "flatAcaciaBarrelStorageBoat" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaCopperBarrelStorageBoat" }
+        ],
+        "notOutputs": [
+          { "sameAs": "regularAcaciaCopperBarrelStorageBoat" },
+          { "sameAs": "redOakGoldBarrelStorageBoat" }
+        ]
+      }
+    },
+    {
+      "name": "storage minecart upgrades flat acacia barrel while preserving flat top",
+      "type": "recipe",
+      "focus": "flatAcaciaCopperBarrelStorageMinecart",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "flatAcaciaBarrelStorageMinecart" }
+        ],
+        "outputs": [
+          { "sameAs": "flatAcaciaCopperBarrelStorageMinecart" }
+        ],
+        "notOutputs": [
+          { "sameAs": "regularAcaciaCopperBarrelStorageMinecart" },
+          { "sameAs": "redGoldBarrelStorageMinecart" }
+        ]
+      }
+    }
+  ]
+}
