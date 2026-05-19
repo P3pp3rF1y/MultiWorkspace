@@ -39,6 +39,17 @@ spotless {
 
 repositories {
     mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
     maven {
         url "https://maven.ftb.dev/releases"
         content {
@@ -106,6 +117,14 @@ repositories {
         }
     }
     maven {
+        url = "https://maven.blamejared.com/"
+        content {
+            includeGroup "foundry.veil"
+            includeGroup "gg.moonflower"
+            includeGroup "io.github.ocelot"
+        }
+    }
+    maven {
         name = "TerraformersMC"
         url = "https://maven.terraformersmc.com/"
         content {
@@ -119,6 +138,28 @@ repositories {
             includeGroup "com.refinedmods.refinedstorage"
         }
     }
+    maven {
+        url = "https://maven.ryanhcode.dev/releases"
+        content {
+            includeGroup "dev.ryanhcode.sable"
+            includeGroup "dev.ryanhcode.sable-companion"
+            includeGroup "dev.ryanhcode.offroad"
+            includeGroup "dev.eriksonn.aeronautics"
+            includeGroup "dev.simulated_team.simulated"
+        }
+    }
+    maven {
+        url = "https://maven.theillusivec4.top/"
+        content {
+            includeGroup "top.theillusivec4.curios"
+        }
+    }
+    maven {
+        url = "https://maven.squiddev.cc"
+        content {
+            includeGroup "cc.tweaked"
+        }
+    }
 }
 
 version = '1.0'
@@ -126,6 +167,9 @@ group = 'com.yourname.modid' // http://maven.apache.org/guides/mini/guide-naming
 base {
     archivesName = 'modid'
 }
+
+def recipeViewer = (findProperty("recipe_viewer") ?: "emi").toString()
+def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
@@ -145,10 +189,14 @@ neoForge {
 
         client {
             client()
+            systemProperty 'mixin.debug.export', 'true'
+            systemProperty 'mixin.debug.export.decompile', 'true'
         }
 
         client2 {
             client()
+            systemProperty 'mixin.debug.export', 'true'
+            systemProperty 'mixin.debug.export.decompile', 'true'
 
             gameDirectory = file('runs/client2')
             programArguments.addAll '--username', 'Dev2'
@@ -188,6 +236,9 @@ neoForge {
         }
         "sophisticatedinventoryinteractions" {
             sourceSet(project(':SophisticatedInventoryInteractions').sourceSets.main)
+        }
+        "devclientautomation" {
+            sourceSet(project(':DevClientAutomation').sourceSets.main)
         }
         "reliquary" {
             sourceSet(project(':Reliquary').sourceSets.main)
@@ -231,16 +282,13 @@ dependencies {
     if (findProject(':SophisticatedInventoryInteractions') != null) {
         implementation project(':SophisticatedInventoryInteractions')
     }
+    if (findProject(':DevClientAutomation') != null) {
+        implementation project(':DevClientAutomation')
+    }
     if (findProject(':Reliquary') != null) {
         implementation project(':Reliquary')
     }
 
-    // Drop extra test mods into workspace/local-mods to load them in dev runs.
-    runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
-
-    runtimeOnly "curse.maven:jade-324717:6011258"
-    //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    //runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
     }
@@ -250,69 +298,97 @@ dependencies {
     runtimeOnly ("dev.engine-room.flywheel:flywheel-neoforge-${create_mc_version}:${flywheel_version}"){
         transitive = false
     }
-    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
-    runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
-    runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
-    runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
-    runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
-    runtimeOnly "curse.maven:quark-243121:${quark_cf_file_id}"
-    runtimeOnly "curse.maven:zeta-968868:${zeta_cf_file_id}"
-    runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
-    runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
-    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
-    runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
-    runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
-    runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
-    runtimeOnly "curse.maven:mekanismgenerators-268566:7132171"
-    runtimeOnly "curse.maven:carryon-274259:5649344"
-    runtimeOnly "curse.maven:mekanism-268560:7132168"
-    runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
-    runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
-    runtimeOnly "curse.maven:titanium-287342:5897690"
-    runtimeOnly "curse.maven:functionalstorage-556861:6023174"
-    runtimeOnly "curse.maven:productivebees-377897:6029033"
-    runtimeOnly "curse.maven:caelus-308989:5694215"
-    runtimeOnly "curse.maven:curioselytra-317716:5778461"
-    runtimeOnly "curse.maven:moonlightlib-499980:${moonlightlib_cf_file_id}"
-    runtimeOnly "curse.maven:sawmill-964817:${sawmill_cf_file_id}"
-    runtimeOnly "curse.maven:justdirethings-1002348:6369120"
-    //runtimeOnly "curse.maven:inventorytweaks-976858:6407807"
-    runtimeOnly "curse.maven:inventoryessentials-368825:6179258"
-    runtimeOnly "curse.maven:twilightforest-227639:6472889"
-    runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
-    runtimeOnly "curse.maven:architectury-419699:5786327"
 
-    runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
+    if (!minimalDevClientRuntime) {
+        // Drop extra test mods into workspace/local-mods to load them in dev runs.
+        runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
 
-    runtimeOnly "curse.maven:spark-361579:5759671"
+        runtimeOnly "curse.maven:jade-324717:6011258"
+        //runtimeOnly "curse.maven:embeddium-908741:5213210"
+        runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
+        runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
+        runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
+        runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
+        runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
+        runtimeOnly "curse.maven:quark-243121:${quark_cf_file_id}"
+        runtimeOnly "curse.maven:zeta-968868:${zeta_cf_file_id}"
+        runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
+        runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
+        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
+        runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
+        runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
+        runtimeOnly "curse.maven:mekanismgenerators-268566:7132171"
+        runtimeOnly "curse.maven:carryon-274259:5649344"
+        runtimeOnly "curse.maven:mekanism-268560:7132168"
+        runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
+        runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
+        runtimeOnly "curse.maven:titanium-287342:5897690"
+        runtimeOnly "curse.maven:functionalstorage-556861:6023174"
+        runtimeOnly "curse.maven:productivebees-377897:6029033"
+        runtimeOnly "curse.maven:caelus-308989:5694215"
+        runtimeOnly "curse.maven:curioselytra-317716:5778461"
+        runtimeOnly "curse.maven:moonlightlib-499980:${moonlightlib_cf_file_id}"
+        runtimeOnly "curse.maven:sawmill-964817:${sawmill_cf_file_id}"
+        runtimeOnly "curse.maven:justdirethings-1002348:6369120"
+        //runtimeOnly "curse.maven:inventorytweaks-976858:6407807"
+        runtimeOnly "curse.maven:inventoryessentials-368825:6179258"
+        runtimeOnly "curse.maven:twilightforest-227639:6472889"
+        runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
+        runtimeOnly "curse.maven:architectury-419699:5786327"
 
-    runtimeOnly "curse.maven:craftingstation-318551:5569165"
+        runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
 
-    runtimeOnly "curse.maven:mousetweaks-60089:5637846"
-    runtimeOnly "curse.maven:flatcoloredblocks-238590:6293435"
-    runtimeOnly "curse.maven:thirstwastaken-679270:6759289"
+        runtimeOnly "curse.maven:spark-361579:5759671"
 
-    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
-    runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
-    runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
-    //runtimeOnly "curse.maven:accessoriescurioscompat-1005683:6631484"
-    runtimeOnly "curse.maven:alltheores-405593:7027340"
+        runtimeOnly "curse.maven:craftingstation-318551:5569165"
 
-    runtimeOnly "curse.maven:integrateddynamics-236307:7638007"
-    runtimeOnly "curse.maven:integratedterminals-295910:7638172"
-    runtimeOnly "curse.maven:cyclopscore-232758:7637998"
-    runtimeOnly "curse.maven:integratedtunnels-251389:7638035"
-    runtimeOnly "curse.maven:commoncapabilities-247007:7630086"
-    runtimeOnly "curse.maven:blurplus-393563:7655029"
+        runtimeOnly "curse.maven:mousetweaks-60089:5637846"
+        runtimeOnly "curse.maven:flatcoloredblocks-238590:6293435"
+        runtimeOnly "curse.maven:thirstwastaken-679270:6759289"
 
-//    runtimeOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
-    runtimeOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
-//    runtimeOnly "curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}"
-//    runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
-//    compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
-//    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+        runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+        runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
+        runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
+        //runtimeOnly "curse.maven:accessoriescurioscompat-1005683:6631484"
+        runtimeOnly "curse.maven:alltheores-405593:7027340"
+
+        runtimeOnly "curse.maven:integrateddynamics-236307:7638007"
+        runtimeOnly "curse.maven:integratedterminals-295910:7638172"
+        runtimeOnly "curse.maven:cyclopscore-232758:7637998"
+        runtimeOnly "curse.maven:integratedtunnels-251389:7638035"
+        runtimeOnly "curse.maven:commoncapabilities-247007:7630086"
+        runtimeOnly "curse.maven:blurplus-393563:7655029"
+
+        runtimeOnly "dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}"
+        runtimeOnly "dev.ryanhcode.sable-companion:sable-companion-common-${minecraft_version}:${sable_companion_version}"
+        runtimeOnly "dev.ryanhcode.offroad:offroad-neoforge-${minecraft_version}:${offroad_version}"
+        runtimeOnly "dev.simulated_team.simulated:simulated-neoforge-${minecraft_version}:${simulated_version}"
+        runtimeOnly "dev.eriksonn.aeronautics:aeronautics-neoforge-${minecraft_version}:${aeronautics_version}"
+
+//        runtimeOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
+        runtimeOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
+//        runtimeOnly "curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}"
+    }
+
+    switch (recipeViewer) {
+        case "emi":
+            runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+            break
+        case "rei":
+            runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+            runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+            runtimeOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+            break
+        case "jei":
+            runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+            break
+        case "none":
+            break
+        default:
+            throw new GradleException("Unknown recipe_viewer '${recipeViewer}'. Expected emi, rei, jei, or none.")
+    }
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
