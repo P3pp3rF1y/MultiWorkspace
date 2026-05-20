@@ -2,6 +2,7 @@
 /.source-cache/
 /.gradle/
 /.idea/
+/DevClientAutomation/build/
 /workspace/build/
 /workspace/run/
 /workspace/run2/
