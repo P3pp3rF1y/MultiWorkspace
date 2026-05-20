@@ -665,12 +665,31 @@
         "inputs": [],
         "outputs": [
           { "item": "sophisticatedbackpacks:netherite_backpack" }
-        ]
+        ],
+        "expectedMatches": 1
       }
     },
     {
-      "name": "red iron backpack dye recipe narrows result",
+      "name": "diamond backpack use shows netherite smithing once",
+      "type": "use",
+      "focus": { "item": "sophisticatedbackpacks:diamond_backpack" },
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "item": "sophisticatedbackpacks:diamond_backpack" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:netherite_backpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red iron backpack recipes do not show dye recipe",
       "type": "recipe",
+      "viewers": ["jei", "rei"],
       "focus": "redIronBackpack",
       "expect": {
         "categoryPattern": "crafting|craft",
@@ -689,7 +708,7 @@
         "notOutputs": [
           { "sameAs": "blackIronBackpack" }
         ],
-        "expectedMatches": 1
+        "expectedMatches": 0
       }
     },
     {
@@ -785,6 +804,22 @@
       }
     },
     {
+      "name": "mixed-color gold backpack recipes do not show dye recipe",
+      "type": "recipe",
+      "viewers": ["jei", "rei"],
+      "focus": "mixedGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "outputs": [
+          { "sameAs": "mixedGoldBackpack" }
+        ],
+        "expectedMatches": 0
+      }
+    },
+    {
       "name": "slot-only gold backpack tier recipe is available",
       "type": "recipe",
       "focus": "slotOnlyGoldBackpack",
@@ -827,6 +862,263 @@
         ],
         "outputs": [
           { "sameAs": "renderInfoGoldBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "mixed-color netherite backpack smithing recipe preserves both colors",
+      "type": "recipe",
+      "focus": "mixedNetheriteBackpack",
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "mixedDiamondBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "mixedNetheriteBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redNetheriteBackpack" },
+          { "sameAs": "blackNetheriteBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red diamond backpack smithing recipe preserves focused result",
+      "type": "recipe",
+      "focus": "redNetheriteBackpack",
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "redNetheriteBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackNetheriteBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red basic backpack use produces only red copper output",
+      "type": "use",
+      "focus": "redBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "redCopperBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackCopperBackpack" },
+          { "sameAs": "notRedCopperBackpack" }
+        ]
+      }
+    },
+    {
+      "name": "red basic backpack use produces only red iron output",
+      "type": "use",
+      "focus": "redBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "redBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "redIronBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackIronBackpack" },
+          { "sameAs": "notRedIronBackpack" }
+        ]
+      }
+    },
+    {
+      "name": "red iron backpack use produces only red gold output",
+      "type": "use",
+      "focus": "redIronBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          {
+            "item": "sophisticatedbackpacks:iron_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:main_color": -5231066,
+              "encoded.components.sophisticatedcore:accent_color": -5231066
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:main_color": -5231066,
+              "encoded.components.sophisticatedcore:accent_color": -5231066
+            }
+          }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackGoldBackpack" },
+          { "sameAs": "notRedGoldBackpack" }
+        ]
+      }
+    },
+    {
+      "name": "mixed-color iron backpack use produces only mixed gold output",
+      "type": "use",
+      "viewers": ["jei", "rei"],
+      "focus": "mixedIronBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "mixedIronBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "mixedGoldBackpack" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redGoldBackpack" },
+          { "sameAs": "blackGoldBackpack" },
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "absent": [
+              "encoded.components.sophisticatedcore:main_color",
+              "encoded.components.sophisticatedcore:accent_color"
+            ]
+          }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red gold backpack use produces only red diamond output",
+      "type": "use",
+      "focus": "redGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:main_color": -5231066,
+              "encoded.components.sophisticatedcore:accent_color": -5231066
+            }
+          }
+        ],
+        "outputs": [
+          { "sameAs": "redDiamondBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackDiamondBackpack" },
+          { "sameAs": "notRedDiamondBackpack" }
+        ]
+      }
+    },
+    {
+      "name": "red diamond backpack use produces only red netherite output",
+      "type": "use",
+      "focus": "redDiamondBackpack",
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "redNetheriteBackpack" }
+        ],
+        "notOutputs": [
+          { "sameAs": "blackNetheriteBackpack" },
+          { "sameAs": "notRedNetheriteBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted basic backpack use shows copper upgrade once",
+      "type": "use",
+      "focus": { "item": "sophisticatedbackpacks:backpack" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedbackpacks:backpack" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:copper_backpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted basic backpack use shows iron upgrade once",
+      "type": "use",
+      "focus": { "item": "sophisticatedbackpacks:backpack" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedbackpacks:backpack" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:iron_backpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted copper backpack use shows iron upgrade once",
+      "type": "use",
+      "focus": "craftedCopperBackpack",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedbackpacks:copper_backpack" }
+        ],
+        "outputs": [
+          { "sameAs": "craftedIronBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted iron backpack recipe shows basic source once",
+      "type": "recipe",
+      "focus": "craftedIronBackpack",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedbackpacks:backpack" }
+        ],
+        "outputs": [
+          { "sameAs": "craftedIronBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "visible untinted iron backpack recipe shows copper source once",
+      "type": "recipe",
+      "focus": "craftedIronBackpack",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "sophisticatedbackpacks:copper_backpack" }
+        ],
+        "outputs": [
+          { "sameAs": "craftedIronBackpack" }
         ],
         "expectedMatches": 1
       }
@@ -1043,232 +1335,6 @@
         ],
         "outputs": [
           { "item": "sophisticatedbackpacks:iron_backpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "mixed-color netherite backpack smithing recipe preserves both colors",
-      "type": "recipe",
-      "focus": "mixedNetheriteBackpack",
-      "expect": {
-        "categoryPattern": "smithing",
-        "inputs": [
-          { "item": "minecraft:netherite_upgrade_smithing_template" },
-          { "item": "minecraft:netherite_ingot" },
-          { "sameAs": "mixedDiamondBackpack" }
-        ],
-        "outputs": [
-          { "sameAs": "mixedNetheriteBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "redNetheriteBackpack" },
-          { "sameAs": "blackNetheriteBackpack" }
-        ]
-      }
-    },
-    {
-      "name": "red diamond backpack smithing recipe preserves focused result",
-      "type": "recipe",
-      "focus": "redNetheriteBackpack",
-      "expect": {
-        "categoryPattern": "smithing",
-        "inputs": [
-          { "item": "minecraft:netherite_upgrade_smithing_template" },
-          { "item": "minecraft:netherite_ingot" },
-          { "sameAs": "redDiamondBackpack" }
-        ],
-        "outputs": [
-          { "sameAs": "redNetheriteBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackNetheriteBackpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "red basic backpack use produces only red copper output",
-      "type": "use",
-      "focus": "redBackpack",
-      "expect": {
-        "categoryPattern": "crafting|craft",
-        "inputs": [
-          { "sameAs": "redBackpack" }
-        ],
-        "outputs": [
-          { "sameAs": "redCopperBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackCopperBackpack" },
-          { "sameAs": "notRedCopperBackpack" }
-        ]
-      }
-    },
-    {
-      "name": "red basic backpack use produces only red iron output",
-      "type": "use",
-      "focus": "redBackpack",
-      "expect": {
-        "categoryPattern": "crafting|craft",
-        "inputs": [
-          { "sameAs": "redBackpack" }
-        ],
-        "outputs": [
-          { "sameAs": "redIronBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackIronBackpack" },
-          { "sameAs": "notRedIronBackpack" }
-        ]
-      }
-    },
-    {
-      "name": "red iron backpack use produces only red gold output",
-      "type": "use",
-      "focus": "redIronBackpack",
-      "expect": {
-        "categoryPattern": "crafting|craft",
-        "inputs": [
-          {
-            "item": "sophisticatedbackpacks:iron_backpack",
-            "match": {
-              "encoded.components.sophisticatedcore:main_color": -5231066,
-              "encoded.components.sophisticatedcore:accent_color": -5231066
-            }
-          }
-        ],
-        "outputs": [
-          {
-            "item": "sophisticatedbackpacks:gold_backpack",
-            "match": {
-              "encoded.components.sophisticatedcore:main_color": -5231066,
-              "encoded.components.sophisticatedcore:accent_color": -5231066
-            }
-          }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackGoldBackpack" },
-          { "sameAs": "notRedGoldBackpack" }
-        ]
-      }
-    },
-    {
-      "name": "red gold backpack use produces only red diamond output",
-      "type": "use",
-      "focus": "redGoldBackpack",
-      "expect": {
-        "categoryPattern": "crafting|craft",
-        "inputs": [
-          {
-            "item": "sophisticatedbackpacks:gold_backpack",
-            "match": {
-              "encoded.components.sophisticatedcore:main_color": -5231066,
-              "encoded.components.sophisticatedcore:accent_color": -5231066
-            }
-          }
-        ],
-        "outputs": [
-          { "sameAs": "redDiamondBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackDiamondBackpack" },
-          { "sameAs": "notRedDiamondBackpack" }
-        ]
-      }
-    },
-    {
-      "name": "red diamond backpack use produces only red netherite output",
-      "type": "use",
-      "focus": "redDiamondBackpack",
-      "expect": {
-        "categoryPattern": "smithing",
-        "inputs": [
-          { "item": "minecraft:netherite_upgrade_smithing_template" },
-          { "item": "minecraft:netherite_ingot" },
-          { "sameAs": "redDiamondBackpack" }
-        ],
-        "outputs": [
-          { "sameAs": "redNetheriteBackpack" }
-        ],
-        "notOutputs": [
-          { "sameAs": "blackNetheriteBackpack" },
-          { "sameAs": "notRedNetheriteBackpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "visible untinted basic backpack use shows copper upgrade once",
-      "type": "use",
-      "focus": { "item": "sophisticatedbackpacks:backpack" },
-      "expect": {
-        "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [
-          { "item": "sophisticatedbackpacks:backpack" }
-        ],
-        "outputs": [
-          { "item": "sophisticatedbackpacks:copper_backpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "visible untinted basic backpack use shows iron upgrade once",
-      "type": "use",
-      "focus": { "item": "sophisticatedbackpacks:backpack" },
-      "expect": {
-        "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [
-          { "item": "sophisticatedbackpacks:backpack" }
-        ],
-        "outputs": [
-          { "item": "sophisticatedbackpacks:iron_backpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "visible untinted copper backpack use shows iron upgrade once",
-      "type": "use",
-      "focus": "craftedCopperBackpack",
-      "expect": {
-        "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [
-          { "item": "sophisticatedbackpacks:copper_backpack" }
-        ],
-        "outputs": [
-          { "sameAs": "craftedIronBackpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "visible untinted iron backpack recipe shows basic source once",
-      "type": "recipe",
-      "focus": "craftedIronBackpack",
-      "expect": {
-        "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [
-          { "item": "sophisticatedbackpacks:backpack" }
-        ],
-        "outputs": [
-          { "sameAs": "craftedIronBackpack" }
-        ],
-        "expectedMatches": 1
-      }
-    },
-    {
-      "name": "visible untinted iron backpack recipe shows copper source once",
-      "type": "recipe",
-      "focus": "craftedIronBackpack",
-      "expect": {
-        "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [
-          { "item": "sophisticatedbackpacks:copper_backpack" }
-        ],
-        "outputs": [
-          { "sameAs": "craftedIronBackpack" }
         ],
         "expectedMatches": 1
       }

@@ -203,9 +203,9 @@ function Test-StackMatch {
 }
 
 function Test-RecipeContainsStack {
-	param(
-		[object]$Recipe,
-		[ValidateSet("inputs", "outputs")]
+    param(
+        [object]$Recipe,
+        [ValidateSet("inputs", "outputs")]
         [string]$Side,
         [object]$Expectation
     )
@@ -214,77 +214,106 @@ function Test-RecipeContainsStack {
         if (Test-StackMatch -Stack $stack -Expectation $Expectation) {
             return $true
         }
-	}
-	return $false
+    }
+    return $false
 }
 
 function Test-RecipeSlotMatch {
-	param(
-		[object]$Recipe,
-		[ValidateSet("inputs", "outputs")]
-		[string]$Side,
-		[int]$Index,
-		[object]$Expectation
-	)
+    param(
+        [object]$Recipe,
+        [ValidateSet("inputs", "outputs")]
+        [string]$Side,
+        [int]$Index,
+        [object]$Expectation
+    )
 
-	if ($Index -ge @($Recipe.$Side).Count) {
-		return $false
-	}
-	foreach ($stack in (Get-Alternatives @($Recipe.$Side[$Index]))) {
-		if (Test-StackMatch -Stack $stack -Expectation $Expectation) {
-			return $true
-		}
-	}
-	return $false
+    if ($Index -ge @($Recipe.$Side).Count) {
+        return $false
+    }
+    $empty = Get-ObjectProperty -Object $Expectation -Name "empty"
+    if ($null -ne $empty) {
+        return [bool]$empty -eq (@(Get-Alternatives @($Recipe.$Side[$Index])).Count -eq 0)
+    }
+    foreach ($stack in (Get-Alternatives @($Recipe.$Side[$Index]))) {
+        if (Test-StackMatch -Stack $stack -Expectation $Expectation) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Test-RecipeSlotsMatch {
-	param(
-		[object]$Recipe,
-		[ValidateSet("inputs", "outputs")]
-		[string]$Side,
-		[object[]]$Expectations
-	)
+    param(
+        [object]$Recipe,
+        [ValidateSet("inputs", "outputs")]
+        [string]$Side,
+        [object[]]$Expectations
+    )
 
-	for ($i = 0; $i -lt @($Expectations).Count; $i++) {
-		$expectation = $Expectations[$i]
-		if ($null -eq $expectation) {
-			continue
-		}
-		if (-not (Test-RecipeSlotMatch -Recipe $Recipe -Side $Side -Index $i -Expectation $expectation)) {
-			return $false
-		}
-	}
-	return $true
+    for ($i = 0; $i -lt @($Expectations).Count; $i++) {
+        $expectation = $Expectations[$i]
+        if ($null -eq $expectation) {
+            continue
+        }
+        if (-not (Test-RecipeSlotMatch -Recipe $Recipe -Side $Side -Index $i -Expectation $expectation)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RecipeNonEmptySlotCount {
+    param(
+        [object]$Recipe,
+        [ValidateSet("inputs", "outputs")]
+        [string]$Side,
+        [int]$ExpectedCount
+    )
+
+    $actualCount = 0
+    foreach ($slot in @($Recipe.$Side)) {
+        if (@(Get-Alternatives @($slot)).Count -gt 0) {
+            $actualCount++
+        }
+    }
+    return $actualCount -eq $ExpectedCount
 }
 
 function Test-RecipeMatch {
-	param(
-		[object]$Recipe,
+    param(
+        [object]$Recipe,
         [object]$Expectation
     )
 
     if (-not [string]::IsNullOrWhiteSpace($Expectation.categoryPattern) -and $Recipe.category -notmatch $Expectation.categoryPattern -and $Recipe.categoryName -notmatch $Expectation.categoryPattern) {
         return $false
     }
-	foreach ($input in @($Expectation.inputs)) {
-		if (-not (Test-RecipeContainsStack -Recipe $Recipe -Side inputs -Expectation $input)) {
-			return $false
-		}
-	}
-	$inputSlots = Get-ObjectProperty -Object $Expectation -Name "inputSlots"
-	if ($null -ne $inputSlots -and -not (Test-RecipeSlotsMatch -Recipe $Recipe -Side inputs -Expectations @($inputSlots))) {
-		return $false
-	}
-	foreach ($output in @($Expectation.outputs)) {
-		if (-not (Test-RecipeContainsStack -Recipe $Recipe -Side outputs -Expectation $output)) {
-			return $false
-		}
-	}
-	$outputSlots = Get-ObjectProperty -Object $Expectation -Name "outputSlots"
-	if ($null -ne $outputSlots -and -not (Test-RecipeSlotsMatch -Recipe $Recipe -Side outputs -Expectations @($outputSlots))) {
-		return $false
-	}
+    foreach ($input in @($Expectation.inputs)) {
+        if (-not (Test-RecipeContainsStack -Recipe $Recipe -Side inputs -Expectation $input)) {
+            return $false
+        }
+    }
+    $inputSlots = Get-ObjectProperty -Object $Expectation -Name "inputSlots"
+    if ($null -ne $inputSlots -and -not (Test-RecipeSlotsMatch -Recipe $Recipe -Side inputs -Expectations @($inputSlots))) {
+        return $false
+    }
+    $inputSlotCount = Get-ObjectProperty -Object $Expectation -Name "inputNonEmptySlotCount"
+    if ($null -ne $inputSlotCount -and -not (Test-RecipeNonEmptySlotCount -Recipe $Recipe -Side inputs -ExpectedCount $inputSlotCount)) {
+        return $false
+    }
+    foreach ($output in @($Expectation.outputs)) {
+        if (-not (Test-RecipeContainsStack -Recipe $Recipe -Side outputs -Expectation $output)) {
+            return $false
+        }
+    }
+    $outputSlots = Get-ObjectProperty -Object $Expectation -Name "outputSlots"
+    if ($null -ne $outputSlots -and -not (Test-RecipeSlotsMatch -Recipe $Recipe -Side outputs -Expectations @($outputSlots))) {
+        return $false
+    }
+    $outputSlotCount = Get-ObjectProperty -Object $Expectation -Name "outputNonEmptySlotCount"
+    if ($null -ne $outputSlotCount -and -not (Test-RecipeNonEmptySlotCount -Recipe $Recipe -Side outputs -ExpectedCount $outputSlotCount)) {
+        return $false
+    }
     $notInputs = Get-ObjectProperty -Object $Expectation -Name "notInputs"
     if ($null -ne $notInputs) {
         foreach ($input in @($notInputs)) {
@@ -333,8 +362,7 @@ function Invoke-Query {
     do {
         $query = Invoke-BridgeJson -Method Post -Path "/recipe-viewer/query" -Body $body
         Assert-True $query.ok "Query failed for '$focusDescription': $($query.error)"
-        $nonTagCount = @(@($query.recipes) + @($query.uses) | Where-Object { $_.category -ne "minecraft:plugins/tag" }).Count
-        if ($nonTagCount -gt 0) {
+        if (($query.recipeCount + $query.useCount) -gt 0) {
             return $query
         }
         Start-Sleep -Seconds 1
@@ -361,10 +389,12 @@ function Test-RecipeExpectation {
     $query = Invoke-Query -Test $Test
     $matches = Get-MatchingRecipes -Recipes $query.recipes -Expectation $Test.expect
     $matchCount = @($matches).Count
-    Assert-True ($matchCount -gt 0) "Recipe expectation failed for '$($Test.name)'. Candidate recipes: $(@($query.recipes | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
-    if ($Test.expect.expectedMatches) {
-        Assert-True ($matchCount -eq $Test.expect.expectedMatches) "Recipe expectation failed for '$($Test.name)': expected $($Test.expect.expectedMatches) matches but got $matchCount."
+    $expectedMatches = Get-ObjectProperty -Object $Test.expect -Name "expectedMatches"
+    if ($null -ne $expectedMatches) {
+        Assert-True ($matchCount -eq $expectedMatches) "Recipe expectation failed for '$($Test.name)': expected $expectedMatches matches but got $matchCount. Matches: $(@($matches | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
+        return $matches
     }
+    Assert-True ($matchCount -gt 0) "Recipe expectation failed for '$($Test.name)'. Candidate recipes: $(@($query.recipes | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
     return $matches
 }
 
@@ -374,10 +404,12 @@ function Test-UseExpectation {
     $query = Invoke-Query -Test $Test
     $matches = Get-MatchingRecipes -Recipes $query.uses -Expectation $Test.expect
     $matchCount = @($matches).Count
-    Assert-True ($matchCount -gt 0) "Use expectation failed for '$($Test.name)'. Candidate uses: $(@($query.uses | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
-    if ($Test.expect.expectedMatches) {
-        Assert-True ($matchCount -eq $Test.expect.expectedMatches) "Use expectation failed for '$($Test.name)': expected $($Test.expect.expectedMatches) matches but got $matchCount."
+    $expectedMatches = Get-ObjectProperty -Object $Test.expect -Name "expectedMatches"
+    if ($null -ne $expectedMatches) {
+        Assert-True ($matchCount -eq $expectedMatches) "Use expectation failed for '$($Test.name)': expected $expectedMatches matches but got $matchCount. Matches: $(@($matches | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
+        return $matches
     }
+    Assert-True ($matchCount -gt 0) "Use expectation failed for '$($Test.name)'. Candidate uses: $(@($query.uses | ForEach-Object { $_.id + ' [' + $_.category + ']' }) -join '; ')"
     return $matches
 }
 
