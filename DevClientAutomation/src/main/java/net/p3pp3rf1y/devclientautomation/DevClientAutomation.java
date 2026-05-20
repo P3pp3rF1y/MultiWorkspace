@@ -385,10 +385,14 @@ public class DevClientAutomation {
                 minecraft.setScreen(new InventoryScreen(minecraft.player));
                 return "{\"ok\":true,\"handled\":true}";
             }
-            if (minecraft.screen != null) {
-                boolean handled = minecraft.screen.keyPressed(keyCode, 0, 0);
-                return "{\"ok\":true,\"handled\":" + handled + "}";
-            }
+			if (minecraft.screen != null) {
+				boolean handled = minecraft.screen.keyPressed(keyCode, 0, 0);
+				if (!handled && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+					minecraft.screen.onClose();
+					handled = true;
+				}
+				return "{\"ok\":true,\"handled\":" + handled + "}";
+			}
             return "{\"ok\":true,\"handled\":false}";
         }
 

@@ -95,6 +95,150 @@
         "encoded.components.sophisticatedcore:accent_color": -5231066
       }
     },
+    "runtimeIronBackpack": {
+      "item": "sophisticatedbackpacks:iron_backpack",
+      "encoded": {
+        "id": "sophisticatedbackpacks:iron_backpack",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:number_of_inventory_slots": 54,
+          "sophisticatedcore:number_of_upgrade_slots": 2,
+          "sophisticatedcore:storage_uuid": [0, 0, 0, 291]
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 54,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 2
+      }
+    },
+    "runtimeGoldBackpack": {
+      "item": "sophisticatedbackpacks:gold_backpack",
+      "encoded": {
+        "id": "sophisticatedbackpacks:gold_backpack",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:number_of_inventory_slots": 81,
+          "sophisticatedcore:number_of_upgrade_slots": 3,
+          "sophisticatedcore:storage_uuid": [0, 0, 0, 1110]
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 81,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 3
+      }
+    },
+    "runtimeRenderInfoBackpack": {
+      "item": "sophisticatedbackpacks:backpack",
+      "encoded": {
+        "id": "sophisticatedbackpacks:backpack",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:number_of_inventory_slots": 27,
+          "sophisticatedcore:number_of_upgrade_slots": 1,
+          "sophisticatedcore:render_info_tag": {
+            "tankRenderInfo": {
+              "fluid": "minecraft:water",
+              "amount": 1000
+            }
+          },
+          "sophisticatedcore:storage_uuid": [0, 0, 0, 2222]
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 27,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 1,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "runtimeRenderInfoCopperBackpack": {
+      "item": "sophisticatedbackpacks:copper_backpack",
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 45,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 1,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae",
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "runtimeRenderInfoIronBackpack": {
+      "item": "sophisticatedbackpacks:iron_backpack",
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 54,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 2,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae",
+        "encoded.components.sophisticatedcore:main_color": -5231066,
+        "encoded.components.sophisticatedcore:accent_color": -5231066
+      }
+    },
+    "runtimeRenderedGoldBackpack": {
+      "item": "sophisticatedbackpacks:gold_backpack",
+      "encoded": {
+        "id": "sophisticatedbackpacks:gold_backpack",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:number_of_inventory_slots": 81,
+          "sophisticatedcore:number_of_upgrade_slots": 3,
+          "sophisticatedcore:main_color": -11327636,
+          "sophisticatedcore:accent_color": -7904597,
+          "sophisticatedcore:render_info_tag": {
+            "tankRenderInfo": {
+              "fluid": "minecraft:water",
+              "amount": 1000
+            }
+          },
+          "sophisticatedcore:storage_uuid": [0, 0, 0, 1110]
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 81,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 3,
+        "encoded.components.sophisticatedcore:main_color": -11327636,
+        "encoded.components.sophisticatedcore:accent_color": -7904597,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      }
+    },
+    "runtimeRenderedIronBackpack": {
+      "item": "sophisticatedbackpacks:iron_backpack",
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 54,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 2,
+        "encoded.components.sophisticatedcore:main_color": -11327636,
+        "encoded.components.sophisticatedcore:accent_color": -7904597,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456"
+      }
+    },
+    "runtimeRenderedDiamondBackpack": {
+      "item": "sophisticatedbackpacks:diamond_backpack",
+      "match": {
+        "encoded.components.sophisticatedcore:number_of_inventory_slots": 108,
+        "encoded.components.sophisticatedcore:number_of_upgrade_slots": 5,
+        "encoded.components.sophisticatedcore:main_color": -11327636,
+        "encoded.components.sophisticatedcore:accent_color": -7904597,
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.fluid": "minecraft:water",
+        "encoded.components.sophisticatedcore:render_info_tag.tankRenderInfo.amount": 1000
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456"
+      }
+    },
     "blackIronBackpack": {
       "item": "sophisticatedbackpacks:iron_backpack",
       "match": {
@@ -340,8 +484,26 @@
       "focus": { "item": "sophisticatedbackpacks:backpack" },
       "expect": {
         "categoryPattern": "crafting|craft",
+        "inputs": [],
         "outputs": [
-          { "item": "sophisticatedbackpacks:backpack" }
+          {
+            "anyOf": [
+              {
+                "item": "sophisticatedbackpacks:backpack",
+                "absent": [
+                  "encoded.components.sophisticatedcore:main_color",
+                  "encoded.components.sophisticatedcore:accent_color"
+                ]
+              },
+              {
+                "item": "sophisticatedbackpacks:backpack",
+                "match": {
+                  "encoded.components.sophisticatedcore:main_color": -3382982,
+                  "encoded.components.sophisticatedcore:accent_color": -10342886
+                }
+              }
+            ]
+          }
         ]
       }
     },
@@ -404,7 +566,7 @@
       "type": "recipe",
       "focus": "craftedIronBackpack",
       "expect": {
-        "categoryPattern": "crafting|craft",
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
         "inputs": [
           { "item": "sophisticatedbackpacks:backpack" }
         ],
@@ -419,7 +581,7 @@
       "type": "recipe",
       "focus": "craftedIronBackpack",
       "expect": {
-        "categoryPattern": "crafting|craft",
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
         "inputs": [
           { "item": "sophisticatedbackpacks:copper_backpack" }
         ],
@@ -503,12 +665,31 @@
         "inputs": [],
         "outputs": [
           { "item": "sophisticatedbackpacks:netherite_backpack" }
-        ]
+        ],
+        "expectedMatches": 1
       }
     },
     {
-      "name": "red iron backpack dye recipe narrows result",
+      "name": "diamond backpack use shows netherite smithing once",
+      "type": "use",
+      "focus": { "item": "sophisticatedbackpacks:diamond_backpack" },
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "item": "sophisticatedbackpacks:diamond_backpack" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:netherite_backpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red iron backpack recipes do not show dye recipe",
       "type": "recipe",
+      "viewers": ["jei", "rei"],
       "focus": "redIronBackpack",
       "expect": {
         "categoryPattern": "crafting|craft",
@@ -527,7 +708,7 @@
         "notOutputs": [
           { "sameAs": "blackIronBackpack" }
         ],
-        "expectedMatches": 1
+        "expectedMatches": 0
       }
     },
     {
@@ -623,6 +804,22 @@
       }
     },
     {
+      "name": "mixed-color gold backpack recipes do not show dye recipe",
+      "type": "recipe",
+      "viewers": ["jei", "rei"],
+      "focus": "mixedGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "outputs": [
+          { "sameAs": "mixedGoldBackpack" }
+        ],
+        "expectedMatches": 0
+      }
+    },
+    {
       "name": "slot-only gold backpack tier recipe is available",
       "type": "recipe",
       "focus": "slotOnlyGoldBackpack",
@@ -686,7 +883,8 @@
         "notOutputs": [
           { "sameAs": "redNetheriteBackpack" },
           { "sameAs": "blackNetheriteBackpack" }
-        ]
+        ],
+        "expectedMatches": 1
       }
     },
     {
@@ -773,6 +971,36 @@
           { "sameAs": "blackGoldBackpack" },
           { "sameAs": "notRedGoldBackpack" }
         ]
+      }
+    },
+    {
+      "name": "mixed-color iron backpack use produces only mixed gold output",
+      "type": "use",
+      "viewers": ["jei", "rei"],
+      "focus": "mixedIronBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "mixedIronBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "mixedGoldBackpack" }
+        ],
+        "notInputs": [
+          { "itemPattern": "^minecraft:.*_dye$" }
+        ],
+        "notOutputs": [
+          { "sameAs": "redGoldBackpack" },
+          { "sameAs": "blackGoldBackpack" },
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "absent": [
+              "encoded.components.sophisticatedcore:main_color",
+              "encoded.components.sophisticatedcore:accent_color"
+            ]
+          }
+        ],
+        "expectedMatches": 1
       }
     },
     {
@@ -891,6 +1119,222 @@
         ],
         "outputs": [
           { "sameAs": "craftedIronBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime gold backpack recipe ignores non-render components",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "runtimeGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          {
+            "item": "sophisticatedbackpacks:iron_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:number_of_inventory_slots": 54,
+              "encoded.components.sophisticatedcore:number_of_upgrade_slots": 2
+            },
+            "absent": [
+              "encoded.components.sophisticatedcore:storage_uuid"
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:number_of_inventory_slots": 81,
+              "encoded.components.sophisticatedcore:number_of_upgrade_slots": 3
+            },
+            "absent": [
+              "encoded.components.sophisticatedcore:storage_uuid"
+            ]
+          }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime rendered gold backpack recipe ignores non-render components",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderedGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "runtimeRenderedIronBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "runtimeRenderedGoldBackpack" }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime iron backpack use ignores non-render components",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeIronBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          {
+            "item": "sophisticatedbackpacks:iron_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:number_of_inventory_slots": 54,
+              "encoded.components.sophisticatedcore:number_of_upgrade_slots": 2
+            },
+            "absent": [
+              "encoded.components.sophisticatedcore:storage_uuid"
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "item": "sophisticatedbackpacks:gold_backpack",
+            "match": {
+              "encoded.components.sophisticatedcore:number_of_inventory_slots": 81,
+              "encoded.components.sophisticatedcore:number_of_upgrade_slots": 3
+            },
+            "absent": [
+              "encoded.components.sophisticatedcore:storage_uuid"
+            ]
+          }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000123" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000123" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime rendered gold backpack use ignores non-render components",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderedGoldBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "runtimeRenderedGoldBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "runtimeRenderedDiamondBackpack" }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-000000000456" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime render info base backpack use shows copper upgrade once",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderInfoBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "runtimeRenderInfoBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "runtimeRenderInfoCopperBackpack" }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime render info base backpack use has one copper tier recipe",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderInfoBackpack",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputSlots": [
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "sophisticatedbackpacks:backpack" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" },
+          { "item": "minecraft:copper_ingot" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:copper_backpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime render info base backpack use shows iron upgrade once",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderInfoBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "sameAs": "runtimeRenderInfoBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "runtimeRenderInfoIronBackpack" }
+        ],
+        "notInputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae" } }
+        ],
+        "notOutputs": [
+          { "match": { "encoded.components.sophisticatedcore:storage_uuid": "00000000-0000-0000-0000-0000000008ae" } }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "runtime render info base backpack use has one iron tier recipe",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": "runtimeRenderInfoBackpack",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputSlots": [
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "sophisticatedbackpacks:backpack" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" },
+          { "item": "minecraft:iron_ingot" }
+        ],
+        "outputs": [
+          { "item": "sophisticatedbackpacks:iron_backpack" }
         ],
         "expectedMatches": 1
       }

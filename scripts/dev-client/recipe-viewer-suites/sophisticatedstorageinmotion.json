@@ -530,23 +530,31 @@
       "focus": { "item": "sophisticatedstorageinmotion:storage_minecart" },
       "expect": {
         "categoryPattern": "crafting|craft",
-        "inputs": [],
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "itemPattern": "^sophisticatedstorage:.*" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           { "item": "sophisticatedstorageinmotion:storage_minecart" }
         ]
       }
     },
     {
-      "name": "oak storage boat can be crafted from oak boat and storage",
+      "name": "storage boat can be crafted from boat or raft and storage",
       "type": "recipe",
       "focus": { "item": "sophisticatedstorageinmotion:storage_boat" },
       "expect": {
         "categoryPattern": "crafting|craft",
-        "inputs": [],
+        "inputs": [
+          { "itemPattern": "^minecraft:(.*_boat|bamboo_raft)$" },
+          { "itemPattern": "^sophisticatedstorage:.*" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           {
             "item": "sophisticatedstorageinmotion:storage_boat",
-            "componentsPattern": "boat_type"
+            "componentsPattern": "wood_type|boat_type"
           }
         ]
       }
@@ -641,6 +649,40 @@
         "notOutputs": [
           { "sameAs": "redChestStorageMinecart" }
         ]
+      }
+    },
+    {
+      "name": "red barrel use shows storage minecart assembly ingredients",
+      "type": "use",
+      "focus": "redIronBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:minecart" },
+          { "sameAs": "redIronBarrel" }
+        ],
+        "inputNonEmptySlotCount": 2,
+        "outputs": [
+          { "sameAs": "redBarrelStorageMinecart" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red barrel use shows storage boat assembly ingredients",
+      "type": "use",
+      "focus": "redIronBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:oak_boat" },
+          { "sameAs": "redIronBarrel" }
+        ],
+        "inputNonEmptySlotCount": 2,
+        "outputs": [
+          { "sameAs": "redOakBarrelStorageBoat" }
+        ],
+        "expectedMatches": 1
       }
     },
     {
