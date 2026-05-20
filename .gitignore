@@ -3,6 +3,7 @@
 /build/
 /DevClientAutomation/build/
 /.source-cache/
+/docs/
 /workspace/build/
 /workspace/run/
 /workspace/run2/
