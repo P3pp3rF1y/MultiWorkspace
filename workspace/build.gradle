@@ -113,6 +113,9 @@ base {
     archivesName = 'modid'
 }
 
+def recipeViewer = (findProperty("recipe_viewer") ?: "jei").toString()
+def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {
@@ -182,6 +185,9 @@ neoForge {
         "reliquary" {
             sourceSet(project(':Reliquary').sourceSets.main)
         }
+        "devclientautomation" {
+            sourceSet(project(':DevClientAutomation').sourceSets.main)
+        }
     }
 }
 
@@ -222,15 +228,21 @@ dependencies {
     if (findProject(':SophisticatedInventoryInteractions') != null) {
         implementation project(':SophisticatedInventoryInteractions')
     }
+    if (findProject(':DevClientAutomation') != null) {
+        implementation project(':DevClientAutomation')
+    }
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
         implementation project(':SophisticatedStorageCreateIntegration')
     }
 */
 
-    runtimeOnly "curse.maven:jade-324717:6524708"
-    //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+    if (!minimalDevClientRuntime) {
+        // Drop extra test mods into workspace/local-mods to load them in dev runs.
+        runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
+
+        runtimeOnly "curse.maven:jade-324717:6524708"
+        //runtimeOnly "curse.maven:embeddium-908741:5213210"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
@@ -253,9 +265,9 @@ dependencies {
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
-    runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
-    runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
-    runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
+        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
+        runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
 /*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
@@ -279,7 +291,7 @@ dependencies {
     runtimeOnly "curse.maven:AE2-223794:6399563"
 */
 
-    runtimeOnly "curse.maven:spark-361579:5971514"
+        runtimeOnly "curse.maven:spark-361579:5971514"
 
 /*
     runtimeOnly "curse.maven:craftingstation-318551:5569165"
@@ -287,13 +299,30 @@ dependencies {
     runtimeOnly "curse.maven:mousetweaks-60089:5637846"
 
 */
-    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+        runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    }
 /*
     runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
 */
-//    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+    switch (recipeViewer) {
+        case "emi":
+            runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+            break
+        case "rei":
+            runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+            runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+            runtimeOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+            break
+        case "jei":
+            runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+            break
+        case "none":
+            break
+        default:
+            throw new GradleException("Unknown recipe_viewer '${recipeViewer}'. Expected emi, rei, jei, or none.")
+    }
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
