@@ -43,6 +43,14 @@ public final class RecipeViewerAutomationManager {
         return viewer.get().queryJson(requestJson);
     }
 
+    public static String statsJson() {
+        Optional<RecipeViewerAutomation> viewer = activeViewer();
+        if (viewer.isEmpty()) {
+            return noViewerJson();
+        }
+        return viewer.get().statsJson();
+    }
+
     private static Optional<RecipeViewerAutomation> activeViewer() {
         if (ModList.get().isLoaded("emi")) {
             return Optional.of(new EmiRecipeViewerAutomation());

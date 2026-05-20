@@ -98,6 +98,7 @@ public class DevClientAutomation {
                 httpServer.createContext("/recipe-viewer/search", this::recipeViewerSearch);
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
                 httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
+                httpServer.createContext("/recipe-viewer/stats", this::recipeViewerStats);
                 httpServer.setExecutor(executor);
                 httpServer.start();
                 writeDiscoveryFile(httpServer.getAddress().getPort());
@@ -272,6 +273,16 @@ public class DevClientAutomation {
 			}
 		}
 
+        private void recipeViewerStats(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "GET");
+            try {
+                sendJson(exchange, runOnClient(RecipeViewerAutomationManager::statsJson));
+            } catch (RuntimeException e) {
+                LOGGER.error("Recipe viewer stats failed", e);
+                sendJson(exchange, "{\"ok\":false," + jsonProperty("error", e.getMessage()) + "}");
+            }
+        }
+
         private String buildStateJson() {
             Minecraft minecraft = Minecraft.getInstance();
             Screen screen = minecraft.screen;
@@ -369,10 +380,14 @@ public class DevClientAutomation {
                 minecraft.setScreen(new InventoryScreen(minecraft.player));
                 return "{\"ok\":true,\"handled\":true}";
             }
-            if (minecraft.screen != null) {
-                boolean handled = minecraft.screen.keyPressed(keyCode, 0, 0);
-                return "{\"ok\":true,\"handled\":" + handled + "}";
-            }
+			if (minecraft.screen != null) {
+				boolean handled = minecraft.screen.keyPressed(keyCode, 0, 0);
+				if (!handled && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+					minecraft.screen.onClose();
+					handled = true;
+				}
+				return "{\"ok\":true,\"handled\":" + handled + "}";
+			}
             return "{\"ok\":true,\"handled\":false}";
         }
 

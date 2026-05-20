@@ -25,6 +25,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
+    private static final int STATS_LIMIT = 40;
+
     @Override
     public String id() {
         return "emi";
@@ -99,6 +101,39 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
                 + "\"recipes\":" + recipesJson(recipes, limit, stack.get().getItemStack()) + ","
                 + "\"uses\":" + recipesJson(uses, limit, stack.get().getItemStack())
                 + "}";
+    }
+
+    @Override
+    public String statsJson() {
+        List<EmiRecipe> recipes = EmiApi.getRecipeManager().getRecipes();
+        List<RecipeStats> stats = recipes.stream().map(RecipeStats::of).toList();
+        long inputAlternatives = stats.stream().mapToLong(RecipeStats::inputAlternatives).sum();
+        long outputAlternatives = stats.stream().mapToLong(RecipeStats::outputAlternatives).sum();
+        long broadInputSlots = stats.stream().mapToLong(RecipeStats::broadInputSlots).sum();
+        return "{\"ok\":true,"
+                + JsonUtil.property("viewer", id()) + ","
+                + "\"indexStackCount\":" + EmiApi.getIndexStacks().size() + ","
+                + "\"recipeCount\":" + recipes.size() + ","
+                + "\"inputAlternatives\":" + inputAlternatives + ","
+                + "\"outputAlternatives\":" + outputAlternatives + ","
+                + "\"broadInputSlots\":" + broadInputSlots + ","
+                + JsonUtil.rawProperty("byClass", groupedStatsJson(stats, RecipeStats::className)) + ","
+                + JsonUtil.rawProperty("byCategory", groupedStatsJson(stats, RecipeStats::category)) + ","
+                + JsonUtil.rawProperty("byNamespace", groupedStatsJson(stats, RecipeStats::namespace)) + ","
+                + JsonUtil.rawProperty("byPathBucket", groupedStatsJson(stats, RecipeStats::pathBucket))
+                + "}";
+    }
+
+    private static String groupedStatsJson(List<RecipeStats> stats, Function<RecipeStats, String> classifier) {
+        Map<String, MutableRecipeStats> grouped = new LinkedHashMap<>();
+        for (RecipeStats recipeStats : stats) {
+            grouped.computeIfAbsent(classifier.apply(recipeStats), ignored -> new MutableRecipeStats()).add(recipeStats);
+        }
+        return grouped.entrySet().stream()
+                .sorted(Comparator.<Map.Entry<String, MutableRecipeStats>>comparingLong(entry -> entry.getValue().recipes()).reversed())
+                .limit(STATS_LIMIT)
+                .map(entry -> entry.getValue().json(entry.getKey()))
+                .collect(Collectors.joining(",", "[", "]"));
     }
 
     private static Optional<EmiStack> findStack(JsonObject request) {
@@ -355,5 +390,83 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
     private static Map<String, Long> categoryCounts(List<EmiRecipe> recipes) {
         return recipes.stream().map(EmiRecipe::getCategory).map(EmiRecipeCategory::getId).map(Object::toString)
                 .collect(Collectors.groupingBy(Function.identity(), LinkedHashMap::new, Collectors.counting()));
+    }
+
+    private record RecipeStats(String className, String category, String namespace, String pathBucket, int inputs, int outputs, int inputAlternatives, int outputAlternatives, int broadInputSlots) {
+        private static RecipeStats of(EmiRecipe recipe) {
+            List<? extends EmiIngredient> inputs = recipe.getInputs();
+            List<? extends EmiIngredient> outputs = recipe.getOutputs();
+            String id = recipe.getId() == null ? "unknown:unknown" : recipe.getId().toString();
+            String namespace = recipe.getId() == null ? "unknown" : recipe.getId().getNamespace();
+            return new RecipeStats(
+                    recipe.getClass().getName(),
+                    recipe.getCategory().getId().toString(),
+                    namespace,
+                    pathBucket(id),
+                    inputs.size(),
+                    outputs.size(),
+                    alternatives(inputs),
+                    alternatives(outputs),
+                    broadSlots(inputs)
+            );
+        }
+
+        private static int alternatives(List<? extends EmiIngredient> ingredients) {
+            return ingredients.stream().mapToInt(ingredient -> ingredient.getEmiStacks().size()).sum();
+        }
+
+        private static int broadSlots(List<? extends EmiIngredient> ingredients) {
+            return (int) ingredients.stream().filter(ingredient -> ingredient.getEmiStacks().size() > 1).count();
+        }
+
+        private static String pathBucket(String id) {
+            int namespaceSeparator = id.indexOf(':');
+            String path = namespaceSeparator >= 0 ? id.substring(namespaceSeparator + 1) : id;
+            String[] segments = path.split("/");
+            if (segments.length >= 3 && "input".equals(segments[segments.length - 3])) {
+                return String.join("/", Arrays.copyOf(segments, segments.length - 2));
+            }
+            if (segments.length >= 2 && "source".equals(segments[segments.length - 2])) {
+                return String.join("/", Arrays.copyOf(segments, segments.length - 1));
+            }
+            if (segments.length >= 2 && segments[segments.length - 1].matches("\\d+")) {
+                return String.join("/", Arrays.copyOf(segments, segments.length - 1));
+            }
+            return path;
+        }
+    }
+
+    private static class MutableRecipeStats {
+        private long recipes;
+        private long inputs;
+        private long outputs;
+        private long inputAlternatives;
+        private long outputAlternatives;
+        private long broadInputSlots;
+
+        private void add(RecipeStats stats) {
+            recipes++;
+            inputs += stats.inputs();
+            outputs += stats.outputs();
+            inputAlternatives += stats.inputAlternatives();
+            outputAlternatives += stats.outputAlternatives();
+            broadInputSlots += stats.broadInputSlots();
+        }
+
+        private long recipes() {
+            return recipes;
+        }
+
+        private String json(String key) {
+            return "{"
+                    + JsonUtil.property("key", key) + ","
+                    + "\"recipes\":" + recipes + ","
+                    + "\"inputs\":" + inputs + ","
+                    + "\"outputs\":" + outputs + ","
+                    + "\"inputAlternatives\":" + inputAlternatives + ","
+                    + "\"outputAlternatives\":" + outputAlternatives + ","
+                    + "\"broadInputSlots\":" + broadInputSlots
+                    + "}";
+        }
     }
 }
