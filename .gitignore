@@ -1,5 +1,9 @@
 /.gradle/
 /.idea/
+/.source-cache/
+/build/
+/DevClientAutomation/build/
+/docs/
 /workspace/build/
 /workspace/run/
 /workspace/run2/

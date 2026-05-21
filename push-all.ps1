@@ -26,12 +26,14 @@ $maxRunFindAttempts = 60   # 60 * 10s = ~10 minutes to find the run after push
 $repos = @(
     @{ Name = "Reliquary";                               Path = "Reliquary";                               WaitForCI = $true  },
     @{ Name = "SophisticatedCore";                       Path = "SophisticatedCore";                       WaitForCI = $true  },
+    @{ Name = "SophisticatedInventoryInteractions";      Path = "SophisticatedInventoryInteractions";      WaitForCI = $false },
     @{ Name = "SophisticatedBackpacks";                  Path = "SophisticatedBackpacks";                  WaitForCI = $true  },
     @{ Name = "SophisticatedBackpacksCreateIntegration"; Path = "SophisticatedBackpacksCreateIntegration"; WaitForCI = $false },
     @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
     @{ Name = "SophisticatedStorageCreateIntegration";   Path = "SophisticatedStorageCreateIntegration";   WaitForCI = $false },
     @{ Name = "SophisticatedStorageInMotion";            Path = "SophisticatedStorageInMotion";            WaitForCI = $true  },
-    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false }
+    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false },
+    @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false }
 )
 
 # ---------------------------------------------------------------------
@@ -54,6 +56,10 @@ function Get-WorkflowId([string]$repoFull) {
 
 function Test-HasChangesToPush([string]$branchName) {
     git fetch origin $branchName *> $null
+    if ($LASTEXITCODE -ne 0) {
+        return $true
+    }
+
     $aheadCount = (git rev-list --count "origin/$branchName..HEAD").Trim()
     return ([int]$aheadCount -gt 0)
 }
@@ -157,17 +163,17 @@ foreach ($repo in $repos) {
 
         $repoFull = "$owner/$($repo.Name)"
 
-        # Resolve workflow id (once per repo; fast and robust vs file name)
-        $workflowId = Get-WorkflowId -repoFull $repoFull
-
         $sha = (git rev-parse HEAD).Trim()
         Write-Host "Pushing $($repo.Name) ($branch) sha=$sha"
-        git push origin $branch
+        git push -u origin $branch
 
         if (-not $repo.WaitForCI) {
             Write-Host "WaitForCI = false, continuing immediately."
             continue
         }
+
+        # Resolve workflow id only for repos that must wait on CI.
+        $workflowId = Get-WorkflowId -repoFull $repoFull
 
         Write-Host "WaitForCI = true, waiting for workflow '$workflowName' (id=$workflowId) to complete..."
 
