@@ -119,6 +119,12 @@ repositories {
             includeGroup "com.refinedmods.refinedstorage"
         }
     }
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
 
 version = '1.0'
@@ -129,6 +135,8 @@ base {
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+def recipeViewer = (findProperty("recipe_viewer") ?: "jei").toString()
+def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
 
 neoForge {
     version = project.neo_version
@@ -141,6 +149,8 @@ neoForge {
 
         client {
             client()
+            systemProperty 'mixin.debug.export', 'true'
+            systemProperty 'mixin.debug.export.decompile', 'true'
         }
 
         client2 {
@@ -148,6 +158,8 @@ neoForge {
 
             gameDirectory = file('runs/client2')
             programArguments.addAll '--username', 'Dev2'
+            systemProperty 'mixin.debug.export', 'true'
+            systemProperty 'mixin.debug.export.decompile', 'true'
         }
 
         server {
@@ -183,6 +195,9 @@ neoForge {
         }
         "sophisticatedinventoryinteractions" {
             sourceSet(project(':SophisticatedInventoryInteractions').sourceSets.main)
+        }
+        "devclientautomation" {
+            sourceSet(project(':DevClientAutomation').sourceSets.main)
         }
 /*
         "sophisticatedstoragecreateintegration" {
@@ -238,9 +253,17 @@ dependencies {
     if (findProject(':SophisticatedInventoryInteractions') != null) {
         implementation project(':SophisticatedInventoryInteractions')
     }
+    if (findProject(':DevClientAutomation') != null) {
+        implementation project(':DevClientAutomation')
+    }
 
     // Drop extra test mods into workspace/local-mods to load them in dev runs.
-    runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
+    if (!minimalDevClientRuntime) {
+        runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
+/*
+    runtimeOnly "maven.modrinth:iris:${iris_version}"
+    runtimeOnly "maven.modrinth:sodium:${sodium_version}"
+*/
 
 /*
     if (findProject(':SophisticatedStorageCreateIntegration') != null) {
@@ -248,16 +271,15 @@ dependencies {
     }
 */
 
-    runtimeOnly "curse.maven:enderio-64578:7958101"
+//    runtimeOnly "curse.maven:enderio-64578:7958101"
 
     runtimeOnly "curse.maven:jade-324717:${jade_cf_file_id}"
     //runtimeOnly "curse.maven:embeddium-908741:5213210"
-    runtimeOnly "curse.maven:easyvillagers-400514:7856418"
+//    runtimeOnly "curse.maven:easyvillagers-400514:7856418"
 //    runtimeOnly "curse.maven:blurplus-393563:7830008"
 //    runtimeOnly "curse.maven:midnightlib-488090:7811718"
 //    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
 //    runtimeOnly "curse.maven:colossalchests-237875:7891282"
-    runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
@@ -281,10 +303,8 @@ dependencies {
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
     runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
-/*
     runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
     runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
-*/
 /*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
@@ -316,7 +336,7 @@ dependencies {
     runtimeOnly "curse.maven:mousetweaks-60089:5637846"
 
 */
-//    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
 //    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
@@ -331,6 +351,25 @@ dependencies {
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
 */
 //    runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+    }
+
+    switch (recipeViewer) {
+        case "emi":
+            runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+            break
+        case "rei":
+            runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
+            compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+            compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+            break
+        case "jei":
+            runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
+            break
+        case "none":
+            break
+        default:
+            throw new GradleException("Unsupported recipe_viewer '${recipeViewer}'. Use emi, rei, jei, or none.")
+    }
 
     //runtimeOnly "curse.maven:etf-568563:5921308"
     //runtimeOnly "curse.maven:emf-844662:5722727"
