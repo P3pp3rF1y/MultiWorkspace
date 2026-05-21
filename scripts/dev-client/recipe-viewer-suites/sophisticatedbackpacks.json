@@ -526,6 +526,22 @@
       }
     },
     {
+      "name": "creative red backpack shows its dye recipe",
+      "type": "recipe",
+      "viewers": ["jei", "rei"],
+      "focus": "redBackpack",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:red_dye" }
+        ],
+        "outputs": [
+          { "sameAs": "redBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
       "name": "untinted backpack tier upgrade usages are visible",
       "type": "chain",
       "steps": [
@@ -903,6 +919,24 @@
         ],
         "notOutputs": [
           { "sameAs": "blackNetheriteBackpack" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "dye-color netherite backpack smithing recipe is not duplicated",
+      "type": "recipe",
+      "viewers": ["jei", "rei"],
+      "focus": "redNetheriteBackpack",
+      "expect": {
+        "categoryPattern": "smithing",
+        "inputs": [
+          { "item": "minecraft:netherite_upgrade_smithing_template" },
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondBackpack" }
+        ],
+        "outputs": [
+          { "sameAs": "redNetheriteBackpack" }
         ],
         "expectedMatches": 1
       }
