@@ -39,6 +39,22 @@
         "encoded.components.sophisticatedstorage:flat_top": true
       }
     },
+    "spruceBarrel": {
+      "item": "sophisticatedstorage:barrel",
+      "encoded": {
+        "id": "sophisticatedstorage:barrel",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "spruce"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "spruce"
+      },
+      "notMatch": {
+        "encoded.components.sophisticatedstorage:flat_top": true
+      }
+    },
     "flatAcaciaBarrel": {
       "item": "sophisticatedstorage:barrel",
       "encoded": {
@@ -115,6 +131,19 @@
       },
       "match": {
         "encoded.components.sophisticatedstorage:wood_type": "acacia"
+      }
+    },
+    "oakChest": {
+      "item": "sophisticatedstorage:chest",
+      "encoded": {
+        "id": "sophisticatedstorage:chest",
+        "count": 1,
+        "components": {
+          "sophisticatedstorage:wood_type": "oak"
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedstorage:wood_type": "oak"
       }
     },
     "acaciaCopperChest": {
@@ -940,7 +969,8 @@
             "item": "sophisticatedstorage:barrel",
             "componentsPattern": "wood_type"
           }
-        ]
+        ],
+        "expectedMatches": 1
       }
     },
     {
@@ -958,7 +988,71 @@
             "item": "sophisticatedstorage:chest",
             "componentsPattern": "wood_type"
           }
-        ]
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "oak chest shows exact, generic, and vanilla conversion recipes once",
+      "type": "recipe",
+      "focus": "oakChest",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "oakChest" }
+        ],
+        "expectedMatches": 3
+      }
+    },
+    {
+      "name": "spruce barrel shows exact and vanilla conversion recipes once in EMI",
+      "type": "recipe",
+      "viewers": ["emi"],
+      "focus": "spruceBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "spruceBarrel" }
+        ],
+        "expectedMatches": 2
+      }
+    },
+    {
+      "name": "spruce barrel shows exact, generic, and vanilla conversion recipes once in JEI",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "spruceBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "spruceBarrel" }
+        ],
+        "expectedMatches": 3
+      }
+    },
+    {
+      "name": "spruce barrel shows exact, generic, and vanilla conversion recipes once in REI",
+      "type": "recipe",
+      "viewers": ["rei"],
+      "focus": "spruceBarrel",
+      "expect": {
+        "categoryPattern": "^minecraft:plugins/crafting$",
+        "inputs": [
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "spruceBarrel" }
+        ],
+        "expectedMatches": 3
       }
     },
     {
@@ -1075,7 +1169,11 @@
       "focus": { "item": "sophisticatedstorage:netherite_barrel" },
       "expect": {
         "categoryPattern": "^minecraft:crafting$|^Crafting$",
-        "inputs": [],
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "item": "sophisticatedstorage:diamond_barrel" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           { "item": "sophisticatedstorage:netherite_barrel" }
         ],
@@ -1276,12 +1374,33 @@
       }
     },
     {
+      "name": "red diamond barrel use shows netherite upgrade ingredients",
+      "type": "use",
+      "focus": "redDiamondBarrel",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondBarrel" }
+        ],
+        "inputNonEmptySlotCount": 2,
+        "outputs": [
+          { "sameAs": "redNetheriteBarrel" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
       "name": "red netherite barrel tier recipe preserves focused result",
       "type": "recipe",
       "focus": "redNetheriteBarrel",
       "expect": {
         "categoryPattern": "crafting|craft",
-        "inputs": [],
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondBarrel" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           { "sameAs": "redNetheriteBarrel" }
         ],
@@ -1371,12 +1490,33 @@
       }
     },
     {
+      "name": "red diamond chest use shows netherite upgrade ingredients",
+      "type": "use",
+      "focus": "redDiamondChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondChest" }
+        ],
+        "inputNonEmptySlotCount": 2,
+        "outputs": [
+          { "sameAs": "redNetheriteChest" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
       "name": "red netherite chest tier recipe preserves focused result",
       "type": "recipe",
       "focus": "redNetheriteChest",
       "expect": {
         "categoryPattern": "crafting|craft",
-        "inputs": [],
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondChest" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           { "sameAs": "redNetheriteChest" }
         ],
@@ -1466,12 +1606,33 @@
       }
     },
     {
+      "name": "red diamond shulker box use shows netherite upgrade ingredients",
+      "type": "use",
+      "focus": "redDiamondShulkerBox",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondShulkerBox" }
+        ],
+        "inputNonEmptySlotCount": 2,
+        "outputs": [
+          { "sameAs": "redNetheriteShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
       "name": "red netherite shulker box tier recipe preserves focused result",
       "type": "recipe",
       "focus": "redNetheriteShulkerBox",
       "expect": {
         "categoryPattern": "crafting|craft",
-        "inputs": [],
+        "inputs": [
+          { "item": "minecraft:netherite_ingot" },
+          { "sameAs": "redDiamondShulkerBox" }
+        ],
+        "inputNonEmptySlotCount": 2,
         "outputs": [
           { "sameAs": "redNetheriteShulkerBox" }
         ],
@@ -1492,8 +1653,11 @@
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "sameAs": "spruceCopperChest" },
-          { "sameAs": "oakCopperChest" }
+          { "sameAs": "oakCopperChest" },
+          { "item": "minecraft:shulker_shell" },
+          { "item": "sophisticatedstorage:copper_chest" }
         ],
+        "inputNonEmptySlotCount": 3,
         "outputs": [
           { "item": "sophisticatedstorage:copper_shulker_box" }
         ],
@@ -1516,6 +1680,31 @@
           { "sameAs": "blackCopperChest" }
         ],
         "outputs": [
+          { "sameAs": "redCopperShulkerBox" },
+          { "sameAs": "blackCopperShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "spruce copper chest use shows shulker conversion once",
+      "type": "use",
+      "focus": "spruceCopperChest",
+      "expect": {
+        "categoryPattern": "crafting|craft",
+        "inputs": [
+          { "item": "minecraft:shulker_shell" },
+          { "sameAs": "spruceCopperChest" }
+        ],
+        "inputNonEmptySlotCount": 3,
+        "outputs": [
+          { "item": "sophisticatedstorage:copper_shulker_box" }
+        ],
+        "notInputs": [
+          { "sameAs": "redCopperChest" },
+          { "sameAs": "blackCopperChest" }
+        ],
+        "notOutputs": [
           { "sameAs": "redCopperShulkerBox" },
           { "sameAs": "blackCopperShulkerBox" }
         ],
