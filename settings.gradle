@@ -21,4 +21,5 @@ include 'SophisticatedStorageInMotion'
 include 'SophisticatedItemActions'
 include 'SophisticatedInventoryInteractions'
 
+include 'DevClientAutomation'
 include 'workspace'
