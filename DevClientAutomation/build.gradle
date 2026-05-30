@@ -115,6 +115,7 @@ tasks.withType(JavaCompile).configureEach {
 
 dependencies {
     compileOnly project(':SophisticatedCore')
+    compileOnly project(':SophisticatedBackpacks')
     compileOnly "dev.emi:emi-neoforge:${emi_version}"
     compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}"
     compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
