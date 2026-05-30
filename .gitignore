@@ -8,3 +8,6 @@
 /workspace/run2/
 /workspace/run3/
 /.source-cache/
+/.settings/org.eclipse.buildship.core.prefs
+/block-texture/
+/logs/
