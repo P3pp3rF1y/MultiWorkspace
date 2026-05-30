@@ -1,5 +1,9 @@
 package net.p3pp3rf1y.devclientautomation;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -12,8 +16,15 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
@@ -33,11 +44,25 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
+import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
+import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
+import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitter;
+import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
+import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
+import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
+import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;
+import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -45,11 +70,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Mod(value = DevClientAutomation.MOD_ID, dist = Dist.CLIENT)
@@ -98,6 +131,7 @@ public class DevClientAutomation {
                 httpServer.createContext("/recipe-viewer/search", this::recipeViewerSearch);
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
                 httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
+                httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
                 httpServer.setExecutor(executor);
                 httpServer.start();
                 writeDiscoveryFile(httpServer.getAddress().getPort());
@@ -286,6 +320,386 @@ public class DevClientAutomation {
             requireMethod(exchange, "POST");
             String body = readBody(exchange);
             sendJson(exchange, runOnClient(() -> RecipeViewerAutomationManager.queryJson(body)));
+        }
+
+        private void backpackColumnUpgradeRegressions(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
+        }
+
+        private String runBackpackColumnUpgradeRegressions(ServerPlayer player) {
+            ColumnUpgradeRegressionSuite suite = loadColumnUpgradeRegressionSuite();
+
+            List<ColumnUpgradeRegressionResult> results = new ArrayList<>();
+            for (ColumnUpgradeRegressionScenario scenario : suite.scenarios()) {
+                results.add(runColumnUpgradeRegressionScenario(scenario, suite.stackGenerator()));
+            }
+
+            long failed = results.stream().filter(result -> !result.passed()).count();
+            StringBuilder json = new StringBuilder("{\"ok\":").append(failed == 0).append(",\"total\":").append(results.size()).append(",\"failed\":")
+                    .append(failed).append(",\"results\":[");
+            for (int i = 0; i < results.size(); i++) {
+                if (i > 0) {
+                    json.append(',');
+                }
+                ColumnUpgradeRegressionResult result = results.get(i);
+                json.append('{').append(jsonProperty("name", result.name())).append(",\"passed\":").append(result.passed()).append(",\"expectedFits\":")
+                        .append(result.expectedFits()).append(",\"actualFits\":").append(result.actualFits()).append(",\"beforeStacks\":")
+                        .append(result.beforeStacks()).append(",\"afterStacks\":").append(result.afterStacks()).append(',').append(jsonProperty("error", result.error()))
+                        .append('}');
+            }
+            json.append("]}");
+
+            player.getInventory().setChanged();
+            return json.toString();
+        }
+
+        private ColumnUpgradeRegressionSuite loadColumnUpgradeRegressionSuite() {
+            try (InputStream inputStream = DevClientAutomation.class.getResourceAsStream("/devclientautomation/backpack_column_upgrade_regressions.json")) {
+                if (inputStream == null) {
+                    throw new IllegalStateException("Missing backpack column upgrade regression definitions");
+                }
+                JsonObject root = JsonParser.parseReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).getAsJsonObject();
+                ColumnUpgradeStackGenerator stackGenerator = getStackGenerator(root.getAsJsonObject("stackGenerator"));
+                JsonArray scenarioElements = root.getAsJsonArray("scenarios");
+                List<ColumnUpgradeRegressionScenario> scenarios = new ArrayList<>();
+                for (JsonElement scenarioElement : scenarioElements) {
+                    JsonObject scenario = scenarioElement.getAsJsonObject();
+                    String name = scenario.get("name").getAsString();
+                    int inventorySlots = scenario.get("inventorySlots").getAsInt();
+                    ResourceLocation upgradeName = ResourceLocation.parse(scenario.get("upgrade").getAsString());
+                    Item upgradeItem = BuiltInRegistries.ITEM.getOptional(upgradeName).orElseThrow(() -> new IllegalArgumentException("Unknown upgrade " + upgradeName));
+                    int[] occupiedSlots = getOccupiedSlots(scenario);
+                    boolean expectedFits = scenario.get("expectedFits").getAsBoolean();
+                    int[] noSortSlots = getIntArray(scenario, "noSortSlots");
+                    int[] memorySlots = getIntArray(scenario, "memorySlots");
+                    int[] stableSlots = getIntArray(scenario, "stableSlots");
+					CapturedMobSpec[] capturedMobs = getCapturedMobs(scenario);
+					int[] expectedCapturedMobSlots = getIntArray(scenario, "expectedCapturedMobSlots");
+					String operation = scenario.has("operation") ? scenario.get("operation").getAsString() : "insert";
+					scenarios.add(new ColumnUpgradeRegressionScenario(name, inventorySlots, upgradeItem, occupiedSlots, noSortSlots, memorySlots, stableSlots,
+							capturedMobs, expectedCapturedMobSlots, operation, expectedFits));
+				}
+                return new ColumnUpgradeRegressionSuite(stackGenerator, scenarios);
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to read backpack column upgrade regression definitions", e);
+            }
+        }
+
+        private ColumnUpgradeStackGenerator getStackGenerator(JsonObject stackGenerator) {
+            JsonArray itemElements = stackGenerator.getAsJsonArray("items");
+            List<Item> items = new ArrayList<>();
+            for (JsonElement itemElement : itemElements) {
+                ResourceLocation itemName = ResourceLocation.parse(itemElement.getAsString());
+                items.add(BuiltInRegistries.ITEM.getOptional(itemName).orElseThrow(() -> new IllegalArgumentException("Unknown stack item " + itemName)));
+            }
+            JsonObject countSequence = stackGenerator.getAsJsonObject("countSequence");
+            return new ColumnUpgradeStackGenerator(items, countSequence.get("start").getAsInt(), countSequence.get("max").getAsInt());
+        }
+
+        private int[] getOccupiedSlots(JsonObject scenario) {
+            if (scenario.has("occupiedSlots")) {
+                JsonArray occupiedSlots = scenario.getAsJsonArray("occupiedSlots");
+                int[] slots = new int[occupiedSlots.size()];
+                for (int i = 0; i < occupiedSlots.size(); i++) {
+                    slots[i] = occupiedSlots.get(i).getAsInt();
+                }
+                return slots;
+            }
+            if (scenario.has("firstSlots")) {
+                return firstSlots(scenario.get("firstSlots").getAsInt());
+            }
+            if (scenario.has("occupiedColumns")) {
+                JsonObject occupiedColumns = scenario.getAsJsonObject("occupiedColumns");
+                return occupiedColumns(occupiedColumns.get("rows").getAsInt(), occupiedColumns.get("columns").getAsInt(),
+                        occupiedColumns.get("occupiedColumns").getAsInt());
+            }
+            throw new IllegalArgumentException("Scenario " + scenario.get("name").getAsString() + " does not define occupied slots");
+        }
+
+		private int[] getIntArray(JsonObject json, String key) {
+            if (!json.has(key)) {
+                return new int[0];
+            }
+            JsonArray elements = json.getAsJsonArray(key);
+            int[] values = new int[elements.size()];
+            for (int i = 0; i < elements.size(); i++) {
+                values[i] = elements.get(i).getAsInt();
+            }
+			return values;
+		}
+
+		private CapturedMobSpec[] getCapturedMobs(JsonObject scenario) {
+			if (!scenario.has("capturedMobs")) {
+				return new CapturedMobSpec[0];
+			}
+			JsonArray elements = scenario.getAsJsonArray("capturedMobs");
+			CapturedMobSpec[] capturedMobs = new CapturedMobSpec[elements.size()];
+			for (int i = 0; i < elements.size(); i++) {
+				JsonObject capturedMob = elements.get(i).getAsJsonObject();
+				String entityType = capturedMob.has("entityType") ? capturedMob.get("entityType").getAsString() : "minecraft:pig";
+				capturedMobs[i] = new CapturedMobSpec(capturedMob.get("slot").getAsInt(), capturedMob.get("width").getAsInt(),
+						capturedMob.get("height").getAsInt(), entityType);
+			}
+			return capturedMobs;
+		}
+
+        private ColumnUpgradeRegressionResult runColumnUpgradeRegressionScenario(ColumnUpgradeRegressionScenario scenario, ColumnUpgradeStackGenerator stackGenerator) {
+			ItemStack backpack = createBackpackStack(scenario.inventorySlots());
+			IBackpackWrapper wrapper = BackpackWrapper.fromStack(backpack);
+			if (scenario.operation().equals("remove")) {
+				wrapper.setColumnsTaken(getUpgradeColumnsTaken(scenario.upgradeItem()), false);
+			}
+
+			InventoryHandler inventory = wrapper.getInventoryHandler();
+			fillRegressionStacks(inventory, scenario.occupiedSlots(), stackGenerator);
+			applyProtectedSlots(wrapper, scenario.noSortSlots(), scenario.memorySlots());
+			addCapturedMobs(wrapper, scenario.capturedMobs());
+			inventory.saveInventory();
+
+			Map<String, Integer> beforeStacks = snapshotStacks(inventory);
+			Map<String, String> beforeCapturedMobs = snapshotCapturedMobs(wrapper);
+			Map<Integer, String> beforeProtectedStacks = snapshotProtectedStacks(inventory, scenario.protectedSlots());
+			Map<Integer, String> beforeStableStacks = snapshotProtectedStacks(inventory, scenario.stableSlots());
+			Map<String, String> beforeProtectedSettings = snapshotProtectedSettings(wrapper, scenario);
+			ColumnUpgradeSimulationResult simulationResult = simulateColumnUpgradeOperation(backpack, wrapper, scenario.upgradeItem(), scenario.operation());
+			wrapper = BackpackWrapper.fromStack(backpack);
+			if (simulationResult.fits() != scenario.expectedFits()) {
+                return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
+                        snapshotStacks(wrapper.getInventoryHandler()).size(), "fit result mismatch");
+            }
+
+			Map<String, Integer> afterStacks = snapshotStacks(wrapper.getInventoryHandler());
+			Map<String, String> afterCapturedMobs = snapshotCapturedMobs(wrapper);
+			Map<Integer, String> afterProtectedStacks = snapshotProtectedStacks(wrapper.getInventoryHandler(), scenario.protectedSlots());
+			Map<Integer, String> afterStableStacks = snapshotProtectedStacks(wrapper.getInventoryHandler(), scenario.stableSlots());
+			Map<String, String> afterProtectedSettings = snapshotProtectedSettings(wrapper, scenario);
+			Optional<String> capturedMobLayoutError = capturedMobLayoutError(wrapper);
+			if (capturedMobLayoutError.isPresent()) {
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
+						capturedMobLayoutError.get() + " actual=" + afterCapturedMobs);
+			}
+            if (!beforeProtectedStacks.equals(afterProtectedStacks)) {
+                return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
+                        "protected slot stack changed");
+            }
+            if (!beforeProtectedSettings.equals(afterProtectedSettings)) {
+                return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
+                        "protected slot settings changed");
+            }
+			if (!beforeStableStacks.equals(afterStableStacks)) {
+                return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
+                        "stable slot stack changed");
+			}
+			if (!capturedMobSlotsMatch(wrapper, scenario.expectedCapturedMobSlots())) {
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
+						"captured mob slots mismatch expected=" + Arrays.toString(scenario.expectedCapturedMobSlots()) + " actual=" + afterCapturedMobs);
+			}
+			if (scenario.expectedFits()) {
+				if (!beforeStacks.equals(afterStacks)) {
+					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(), "stack snapshot changed");
+				}
+				if (scenario.expectedCapturedMobSlots().length == 0 && !beforeCapturedMobs.equals(afterCapturedMobs)) {
+					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(), "captured mob snapshot changed");
+				}
+			} else if (!beforeStacks.equals(afterStacks)) {
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, false, false, beforeStacks.size(), afterStacks.size(), "blocked insertion mutated stacks");
+			} else if (!beforeCapturedMobs.equals(afterCapturedMobs)) {
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, false, false, beforeStacks.size(), afterStacks.size(), "blocked insertion mutated captured mobs");
+			}
+
+            return new ColumnUpgradeRegressionResult(scenario.name(), true, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(), null);
+        }
+
+		private void applyProtectedSlots(IBackpackWrapper wrapper, int[] noSortSlots, int[] memorySlots) {
+            NoSortSettingsCategory noSortSettings = wrapper.getSettingsHandler().getTypeCategory(NoSortSettingsCategory.class);
+            for (int slot : noSortSlots) {
+                noSortSettings.selectSlot(slot);
+            }
+
+            MemorySettingsCategory memorySettings = wrapper.getSettingsHandler().getTypeCategory(MemorySettingsCategory.class);
+            for (int slot : memorySlots) {
+                memorySettings.selectSlot(slot);
+            }
+		}
+
+		private void addCapturedMobs(IBackpackWrapper wrapper, CapturedMobSpec[] capturedMobs) {
+			if (capturedMobs.length == 0) {
+				return;
+			}
+			wrapper.getUpgradeHandler().setStackInSlot(1, new ItemStack(ModItems.MOB_CATCHER_UPGRADE.get()));
+			wrapper.getUpgradeHandler().saveInventory();
+			for (int i = 0; i < capturedMobs.length; i++) {
+				CapturedMobSpec capturedMob = capturedMobs[i];
+				MobCatcherStorage.addCapturedMob(wrapper, new CapturedMob(new UUID(0, i + 1), ResourceLocation.parse(capturedMob.entityType()), new CompoundTag(),
+						capturedMob.slot(), capturedMob.width(), capturedMob.height(), capturedMob.width() * capturedMob.height(), false, capturedMob.entityType(), 10, 10));
+			}
+		}
+
+		private ColumnUpgradeSimulationResult simulateColumnUpgradeOperation(ItemStack backpack, IBackpackWrapper wrapper, Item upgradeItem, String operation) {
+            int currentColumnsTaken = wrapper.getColumnsTaken();
+            int columnsTaken = getUpgradeColumnsTaken(upgradeItem);
+            int targetColumnsTaken = switch (operation) {
+                case "insert" -> currentColumnsTaken + columnsTaken;
+                case "remove" -> currentColumnsTaken - columnsTaken;
+                default -> throw new IllegalArgumentException("Unknown column upgrade regression operation " + operation);
+            };
+            int rows = wrapper.getNumberOfSlotRows();
+            int baseSlots = wrapper.getInventoryHandler().getSlots() + currentColumnsTaken * rows;
+            int baseColumns = baseSlots <= 81 ? 9 : 12;
+            int currentColumns = baseColumns - currentColumnsTaken;
+            int targetColumns = baseColumns - targetColumnsTaken;
+            int targetSlots = baseSlots - targetColumnsTaken * rows;
+
+            InventoryLayoutFitResult fitResult = InventoryLayoutFitter.fit(wrapper.getInventoryLayoutParts(currentColumns, targetColumns), targetSlots, targetColumns,
+                    targetColumnsTaken < currentColumnsTaken);
+            if (!fitResult.fits()) {
+                return new ColumnUpgradeSimulationResult(false);
+            }
+
+			if (targetColumnsTaken > currentColumnsTaken) {
+				wrapper.applyInventoryLayout(fitResult, targetColumns);
+			}
+			wrapper.setColumnsTaken(targetColumnsTaken, false);
+			wrapper.onContentsNbtUpdated();
+			wrapper.applyInventoryLayout(fitResult, targetColumns);
+			wrapper.onContentsNbtUpdated();
+			wrapper.getUpgradeHandler().setStackInSlot(0, operation.equals("insert") ? new ItemStack(upgradeItem) : ItemStack.EMPTY);
+			wrapper.getUpgradeHandler().saveInventory();
+			wrapper.getInventoryHandler().saveInventory();
+			BackpackWrapper.fromStack(backpack).getInventoryHandler().saveInventory();
+
+            return new ColumnUpgradeSimulationResult(true);
+        }
+
+        private int getUpgradeColumnsTaken(Item upgradeItem) {
+            if (!(upgradeItem instanceof IUpgradeItem<?> upgrade)) {
+                throw new IllegalArgumentException("Item is not an upgrade: " + BuiltInRegistries.ITEM.getKey(upgradeItem));
+            }
+            return upgrade.getInventoryColumnsTaken();
+        }
+
+        private void fillRegressionStacks(InventoryHandler inventory, int[] slots, ColumnUpgradeStackGenerator stackGenerator) {
+            for (int i = 0; i < slots.length; i++) {
+                inventory.setStackInSlot(slots[i], new ItemStack(stackGenerator.items().get(i % stackGenerator.items().size()), stackGenerator.getCount(i)));
+            }
+        }
+
+        private Map<String, Integer> snapshotStacks(InventoryHandler inventory) {
+            Map<String, Integer> stacks = new HashMap<>();
+            for (int slot = 0; slot < inventory.getSlots(); slot++) {
+                ItemStack stack = inventory.getStackInSlot(slot);
+                if (stack.isEmpty()) {
+                    continue;
+                }
+                String stackKey = BuiltInRegistries.ITEM.getKey(stack.getItem()) + ":" + stack.getCount();
+                stacks.merge(stackKey, 1, Integer::sum);
+            }
+			return stacks;
+		}
+
+		private Map<String, String> snapshotCapturedMobs(IBackpackWrapper wrapper) {
+			Map<String, String> capturedMobs = new HashMap<>();
+			for (CapturedMob capturedMob : MobCatcherStorage.getCapturedMobs(wrapper)) {
+				capturedMobs.put(capturedMob.id().toString(), capturedMob.slot() + ":" + capturedMob.width() + "x" + capturedMob.height());
+			}
+			return capturedMobs;
+		}
+
+		private boolean capturedMobSlotsMatch(IBackpackWrapper wrapper, int[] expectedSlots) {
+			if (expectedSlots.length == 0) {
+				return true;
+			}
+			List<CapturedMob> capturedMobs = MobCatcherStorage.getCapturedMobs(wrapper);
+			if (capturedMobs.size() != expectedSlots.length) {
+				return false;
+			}
+			for (int i = 0; i < expectedSlots.length; i++) {
+				if (capturedMobs.get(i).slot() != expectedSlots[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		private Optional<String> capturedMobLayoutError(IBackpackWrapper wrapper) {
+			int columns = MobCatcherStorage.getColumns(wrapper);
+			int inventorySlots = wrapper.getInventoryHandler().getSlots();
+			Set<Integer> capturedMobOccupiedSlots = new HashSet<>();
+			for (CapturedMob capturedMob : MobCatcherStorage.getCapturedMobs(wrapper)) {
+				if (capturedMob.slot() % columns + capturedMob.width() > columns) {
+					return Optional.of("captured mob crosses row");
+				}
+				for (int y = 0; y < capturedMob.height(); y++) {
+					for (int x = 0; x < capturedMob.width(); x++) {
+						int slot = capturedMob.slot() + y * columns + x;
+						if (slot < 0 || slot >= inventorySlots) {
+							return Optional.of("captured mob slot out of bounds");
+						}
+						if (!capturedMobOccupiedSlots.add(slot)) {
+							return Optional.of("captured mobs overlap");
+						}
+						if (!wrapper.getInventoryHandler().getStackInSlot(slot).isEmpty()) {
+							return Optional.of("captured mob overlaps stack at slot " + slot);
+						}
+					}
+				}
+			}
+			return Optional.empty();
+		}
+
+        private Map<Integer, String> snapshotProtectedStacks(InventoryHandler inventory, int[] slots) {
+            Map<Integer, String> stacks = new HashMap<>();
+            for (int slot : slots) {
+                if (slot >= inventory.getSlots()) {
+                    continue;
+                }
+                ItemStack stack = inventory.getStackInSlot(slot);
+                if (!stack.isEmpty()) {
+                    stacks.put(slot, BuiltInRegistries.ITEM.getKey(stack.getItem()) + ":" + stack.getCount());
+                }
+            }
+            return stacks;
+        }
+
+        private Map<String, String> snapshotProtectedSettings(IBackpackWrapper wrapper, ColumnUpgradeRegressionScenario scenario) {
+            Map<String, String> settings = new HashMap<>();
+            NoSortSettingsCategory noSortSettings = wrapper.getSettingsHandler().getTypeCategory(NoSortSettingsCategory.class);
+            for (int slot : scenario.noSortSlots()) {
+                settings.put("noSort:" + slot, String.valueOf(noSortSettings.getNoSortSlots().contains(slot)));
+            }
+            MemorySettingsCategory memorySettings = wrapper.getSettingsHandler().getTypeCategory(MemorySettingsCategory.class);
+            for (int slot : scenario.memorySlots()) {
+                settings.put("memory:" + slot, String.valueOf(memorySettings.isSlotSelected(slot)));
+            }
+            return settings;
+        }
+
+        private ItemStack createBackpackStack(int inventorySlots) {
+            ItemStack backpack = new ItemStack(ModItems.DIAMOND_BACKPACK.get());
+            backpack.set(ModCoreDataComponents.STORAGE_UUID, UUID.randomUUID());
+            backpack.set(ModCoreDataComponents.NUMBER_OF_INVENTORY_SLOTS, inventorySlots);
+            backpack.set(ModCoreDataComponents.NUMBER_OF_UPGRADE_SLOTS, 5);
+            return backpack;
+        }
+
+        private static int[] firstSlots(int count) {
+            int[] slots = new int[count];
+            for (int slot = 0; slot < count; slot++) {
+                slots[slot] = slot;
+            }
+            return slots;
+        }
+
+        private static int[] occupiedColumns(int rows, int columns, int occupiedColumns) {
+            int[] slots = new int[rows * occupiedColumns];
+            int index = 0;
+            for (int row = 0; row < rows; row++) {
+                for (int column = 0; column < occupiedColumns; column++) {
+                    slots[index++] = row * columns + column;
+                }
+            }
+            return slots;
         }
 
         private String buildStateJson() {
@@ -511,6 +925,15 @@ public class DevClientAutomation {
             }
         }
 
+        private static void sendJsonHandling(HttpExchange exchange, Supplier<String> jsonSupplier) throws IOException {
+            try {
+                sendJson(exchange, jsonSupplier.get());
+            } catch (RuntimeException e) {
+                LOGGER.error("Automation endpoint failed", e);
+                sendJson(exchange, "{\"ok\":false," + jsonProperty("error", e.getMessage()) + "}");
+            }
+        }
+
         private static <T> T runOnClient(Supplier<T> supplier) {
             CompletableFuture<T> future = new CompletableFuture<>();
             Minecraft.getInstance().execute(() -> {
@@ -530,6 +953,74 @@ public class DevClientAutomation {
             } catch (TimeoutException e) {
                 throw new IllegalStateException("Failed to run client task", e);
             }
+        }
+
+        private static <T> T runOnServer(Function<ServerPlayer, T> function) {
+            ServerTaskContext context = runOnClient(() -> {
+                MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+                if (server == null) {
+                    throw new IllegalStateException("Singleplayer server is not loaded");
+                }
+                if (Minecraft.getInstance().player == null) {
+                    throw new IllegalStateException("Client player is not loaded");
+                }
+                return new ServerTaskContext(server, Minecraft.getInstance().player.getUUID());
+            });
+
+            CompletableFuture<T> future = new CompletableFuture<>();
+            context.server().execute(() -> {
+                try {
+                    ServerPlayer player = context.server().getPlayerList().getPlayer(context.playerUuid());
+                    if (player == null) {
+                        throw new IllegalStateException("Server player is not loaded");
+                    }
+                    future.complete(function.apply(player));
+                } catch (Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            });
+            try {
+                return future.get(CLIENT_TASK_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for server task", e);
+            } catch (ExecutionException e) {
+                throw new IllegalStateException("Failed to run server task: " + e.getCause(), e);
+            } catch (TimeoutException e) {
+                throw new IllegalStateException("Failed to run server task", e);
+            }
+        }
+
+        private record ColumnUpgradeRegressionSuite(ColumnUpgradeStackGenerator stackGenerator, List<ColumnUpgradeRegressionScenario> scenarios) {
+        }
+
+        private record ColumnUpgradeStackGenerator(List<Item> items, int countStart, int countMax) {
+            private int getCount(int stackIndex) {
+                return countStart + stackIndex % (countMax - countStart + 1);
+            }
+        }
+
+		private record ColumnUpgradeRegressionScenario(String name, int inventorySlots, Item upgradeItem, int[] occupiedSlots, int[] noSortSlots, int[] memorySlots,
+				int[] stableSlots, CapturedMobSpec[] capturedMobs, int[] expectedCapturedMobSlots, String operation, boolean expectedFits) {
+            private int[] protectedSlots() {
+                int[] slots = new int[noSortSlots.length + memorySlots.length];
+                System.arraycopy(noSortSlots, 0, slots, 0, noSortSlots.length);
+                System.arraycopy(memorySlots, 0, slots, noSortSlots.length, memorySlots.length);
+                return slots;
+			}
+		}
+
+		private record CapturedMobSpec(int slot, int width, int height, String entityType) {
+		}
+
+        private record ColumnUpgradeRegressionResult(String name, boolean passed, boolean expectedFits, boolean actualFits, int beforeStacks, int afterStacks,
+                String error) {
+        }
+
+        private record ColumnUpgradeSimulationResult(boolean fits) {
+        }
+
+        private record ServerTaskContext(MinecraftServer server, UUID playerUuid) {
         }
 
         private static Optional<String> extractString(String json, String key) {
