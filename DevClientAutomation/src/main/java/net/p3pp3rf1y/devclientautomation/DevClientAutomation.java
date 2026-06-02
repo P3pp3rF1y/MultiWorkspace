@@ -14,6 +14,8 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
@@ -42,6 +44,8 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
@@ -50,6 +54,8 @@ import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -76,6 +82,8 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
+import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
+import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,6 +178,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/seed", this::seedBackpack);
 				httpServer.createContext("/backpack/bulk-drop", this::bulkDropFromNestedBackpack);
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
+				httpServer.createContext("/storage/controller-double-chest-regressions", this::storageControllerDoubleChestRegressions);
 				httpServer.createContext("/backpack/dropped-items", this::droppedItemsStatus);
 				httpServer.createContext("/backpack/clear-dropped-items", this::clearDroppedItems);
 				httpServer.createContext("/screenshot", this::screenshot);
@@ -414,6 +423,12 @@ public class DevClientAutomation {
 			sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
 		}
 
+		private void storageControllerDoubleChestRegressions(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			boolean inspectOnly = extractBoolean(body, "inspectOnly").orElse(false);
+			sendJsonHandling(exchange, () -> runOnServer(player -> runStorageControllerDoubleChestRegressions(player, inspectOnly)));
+		}
 		private void droppedItemsStatus(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "GET");
 			sendJsonHandling(exchange, () -> runOnServer(player -> droppedItemsStatus(player, Items.REDSTONE)));
@@ -921,6 +936,116 @@ public class DevClientAutomation {
 			return json.toString();
 		}
 
+		private String runStorageControllerDoubleChestRegressions(ServerPlayer player, boolean inspectOnly) {
+			List<ControllerDoubleChestRegressionResult> results = List.of(
+					runControllerDoubleChestRegression(player, "double_chest_then_controller", player.blockPosition().offset(0, 0, 6), false, true, inspectOnly),
+					runControllerDoubleChestRegression(player, "controller_then_left_chest_then_right_chest", player.blockPosition().offset(6, 0, 6), true, false, inspectOnly),
+					runControllerDoubleChestRegression(player, "controller_then_right_chest_then_left_chest", player.blockPosition().offset(12, 0, 6), true, true, inspectOnly)
+			);
+
+			long failed = results.stream().filter(result -> !result.passed()).count();
+			StringBuilder json = new StringBuilder("{\"ok\":").append(failed == 0).append(",\"inspectOnly\":").append(inspectOnly).append(",\"total\":").append(results.size()).append(",\"failed\":")
+					.append(failed).append(",\"results\":[");
+			for (int i = 0; i < results.size(); i++) {
+				if (i > 0) {
+					json.append(',');
+				}
+				ControllerDoubleChestRegressionResult result = results.get(i);
+				json.append('{').append(jsonProperty("name", result.name())).append(",\"passed\":").append(result.passed()).append(",\"registeredStorages\":")
+						.append(result.registeredStorages()).append(",\"slots\":").append(result.slots()).append(',').append(jsonProperty("positions", result.positions()))
+						.append(',').append(jsonProperty("chestState", result.chestState())).append(',').append(jsonProperty("error", result.error())).append('}');
+			}
+			json.append("]}");
+			return json.toString();
+		}
+
+		private ControllerDoubleChestRegressionResult runControllerDoubleChestRegression(ServerPlayer player, String name, BlockPos controllerPos, boolean controllerFirst, boolean farChestFirst, boolean inspectOnly) {
+			ServerLevel level = player.serverLevel();
+			BlockPos leftChestPos = controllerPos.east();
+			BlockPos rightChestPos = leftChestPos.east();
+			if (!inspectOnly) {
+				clearControllerDoubleChestRegressionArea(level, controllerPos);
+
+				if (controllerFirst) {
+					placeController(level, player, controllerPos);
+				}
+				if (farChestFirst) {
+					placeChest(level, player, rightChestPos);
+					placeChest(level, player, leftChestPos);
+				} else {
+					placeChest(level, player, leftChestPos);
+					placeChest(level, player, rightChestPos);
+				}
+				if (!controllerFirst) {
+					placeController(level, player, controllerPos);
+				}
+			}
+
+			return level.getBlockEntity(controllerPos, ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).map(controller -> {
+				List<BlockPos> storagePositions = controller.getStoragePositions();
+				int registeredStorages = storagePositions.size();
+				String positions = storagePositions.toString();
+				String chestState = getChestState(level, leftChestPos) + "; " + getChestState(level, rightChestPos);
+				int slots = registeredStorages == 1 ? controller.getSlots(0) : 0;
+				boolean mainStorageRegistered = registeredStorages == 1 && storagePositions.contains(rightChestPos);
+				boolean passed = mainStorageRegistered && slots == 54 && isDoubleChest(level, leftChestPos, rightChestPos);
+				String error = null;
+				if (!passed) {
+					error = "expected one connected double chest registered at " + rightChestPos + " with 54 slots; slots=" + slots + "; chestState=" + chestState;
+				}
+				return new ControllerDoubleChestRegressionResult(name, passed, registeredStorages, slots, positions, chestState, error);
+			}).orElseGet(() -> new ControllerDoubleChestRegressionResult(name, false, 0, 0, "[]",
+					getChestState(level, leftChestPos) + "; " + getChestState(level, rightChestPos), "controller block entity missing"));
+		}
+
+		private void clearControllerDoubleChestRegressionArea(ServerLevel level, BlockPos controllerPos) {
+			for (int x = -1; x <= 3; x++) {
+				for (int y = -1; y <= 2; y++) {
+					for (int z = -1; z <= 1; z++) {
+						level.setBlock(controllerPos.offset(x, y, z), Blocks.AIR.defaultBlockState(), 3);
+					}
+				}
+			}
+		}
+
+		private void placeController(ServerLevel level, ServerPlayer player, BlockPos pos) {
+			placeBlockWithItem(level, player, pos, new ItemStack(ModBlocks.CONTROLLER_ITEM.get()));
+		}
+
+		private void placeChest(ServerLevel level, ServerPlayer player, BlockPos pos) {
+			placeBlockWithItem(level, player, pos, new ItemStack(ModBlocks.CHEST_ITEM.get()));
+		}
+
+		private void placeBlockWithItem(ServerLevel level, ServerPlayer player, BlockPos pos, ItemStack stack) {
+			BlockPos supportPos = pos.below();
+			level.setBlock(supportPos, Blocks.DIRT.defaultBlockState(), 3);
+			player.setYRot(0);
+			player.setXRot(0);
+			player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+			BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(supportPos), Direction.UP, supportPos, false);
+			player.gameMode.useItemOn(player, level, stack, InteractionHand.MAIN_HAND, hitResult);
+		}
+
+		private boolean isDoubleChest(ServerLevel level, BlockPos leftChestPos, BlockPos rightChestPos) {
+			return level.getBlockState(leftChestPos).is(ModBlocks.CHEST.get())
+					&& level.getBlockState(rightChestPos).is(ModBlocks.CHEST.get())
+					&& level.getBlockState(leftChestPos).getValue(ChestBlock.TYPE) == ChestType.LEFT
+					&& level.getBlockState(rightChestPos).getValue(ChestBlock.TYPE) == ChestType.RIGHT
+					&& level.getBlockEntity(leftChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos)).orElse(false)
+					&& level.getBlockEntity(rightChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos)).orElse(false);
+		}
+
+		private String getChestState(ServerLevel level, BlockPos pos) {
+			BlockState state = level.getBlockState(pos);
+			if (!state.is(ModBlocks.CHEST.get())) {
+				return pos + "=not_chest(" + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + ")";
+			}
+			return level.getBlockEntity(pos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get())
+					.map(be -> pos + "=type:" + state.getValue(ChestBlock.TYPE) + ",facing:" + state.getValue(ChestBlock.FACING) + ",main:" + be.getMainPos()
+							+ ",hasData:" + be.hasStorageData() + ",controller:" + be.getControllerPos().map(Object::toString).orElse("none")
+							+ ",slots:" + be.getStorageWrapper().getInventoryHandler().getSlots())
+					.orElse(pos + "=chest_without_be");
+		}
 		private ColumnUpgradeRegressionSuite loadColumnUpgradeRegressionSuite() {
 			try (InputStream inputStream = DevClientAutomation.class.getResourceAsStream("/devclientautomation/backpack_column_upgrade_regressions.json")) {
 				if (inputStream == null) {
@@ -1714,6 +1839,8 @@ public class DevClientAutomation {
 				String error) {
 		}
 
+		private record ControllerDoubleChestRegressionResult(String name, boolean passed, int registeredStorages, int slots, String positions, String chestState, String error) {
+		}
 		private record ColumnUpgradeSimulationResult(boolean fits) {
 		}
 
