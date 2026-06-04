@@ -13,16 +13,24 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
@@ -39,23 +47,38 @@ import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
+import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
+import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
+import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
+import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
+import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
+import net.p3pp3rf1y.sophisticatedbackpacks.network.BackpackOpenPayload;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
+import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryHandler;
+import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitter;
+import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
+import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +87,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -107,6 +131,9 @@ public class DevClientAutomation {
     }
 
     private static class AutomationServer {
+        private static final UUID SUB_MOB_CATCHER_PARENT_MOB_ID = new UUID(0L, 101L);
+        private static final UUID SUB_MOB_CATCHER_SUB_MOB_ID = new UUID(0L, 102L);
+
         private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2, runnable -> {
             Thread thread = new Thread(runnable, "Dev Client Automation");
             thread.setDaemon(true);
@@ -132,6 +159,8 @@ public class DevClientAutomation {
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
                 httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
                 httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
+                httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
+                httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
                 httpServer.setExecutor(executor);
                 httpServer.start();
                 writeDiscoveryFile(httpServer.getAddress().getPort());
@@ -325,6 +354,725 @@ public class DevClientAutomation {
         private void backpackColumnUpgradeRegressions(HttpExchange exchange) throws IOException {
             requireMethod(exchange, "POST");
             sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
+        }
+
+        private void backpackRemoteUpgradeSlotRegression(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, () -> runOnClient(this::runBackpackRemoteUpgradeSlotRegression));
+        }
+
+        private void backpackGuiRegressionRun(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            String body = readBody(exchange);
+            sendJsonHandling(exchange, () -> runBackpackGuiRegression(body));
+        }
+
+        private String runBackpackGuiRegression(String body) {
+            JsonObject request = body == null || body.isBlank() ? new JsonObject() : JsonParser.parseString(body).getAsJsonObject();
+            String name = request.has("name") ? request.get("name").getAsString() : "unnamed";
+            String type = request.has("type") ? request.get("type").getAsString() : "columnUpgradeSync";
+            if ("subMobCatcherImmediateOpen".equals(type)) {
+                return runSubMobCatcherImmediateOpenRegression(name);
+            }
+            if (!"columnUpgradeSync".equals(type)) {
+                throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
+            }
+
+            BackpackGuiRegressionContext context = BackpackGuiRegressionContext.fromName(request.has("context") ? request.get("context").getAsString() : "");
+            resetBackpackGuiRegressionState();
+            prepareBackpackGuiRegression(context);
+            waitForOpenBackpackGuiRegressionMenu(context);
+            PlacedColumnUpgradeClickExpectation expectation = clickBackpackGuiRegressionColumnUpgradeWhenReady(context);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            PlacedColumnUpgradeState state;
+            do {
+                state = runOnClient(() -> getBackpackGuiRegressionState(context));
+                if (state.matches(expectation)) {
+                    return placedColumnUpgradeRegressionJson(name, true, expectation, state, null);
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+
+            return placedColumnUpgradeRegressionJson(name, false, expectation, state, "Timed out waiting for " + context.jsonName() + " backpack column sync");
+        }
+
+        private String runSubMobCatcherImmediateOpenRegression(String name) {
+            try {
+                resetBackpackGuiRegressionState();
+                runOnServer(this::setupParentMobCatcherBackpackRegression);
+                runOnClient(this::setupClientParentMobCatcherBackpackRegression);
+                runOnServer(this::openParentMobCatcherBackpackRegression);
+                waitForOpenParentBackpackMenu();
+
+                runOnServer(this::insertMobCatcherSubBackpackIntoOpenParent);
+                runOnClient(this::insertClientMobCatcherSubBackpackIntoOpenParent);
+
+                SubMobCatcherRegressionState parentState = runOnClient(this::getParentMobCatcherRegressionState);
+                if (!parentState.parentMatches()) {
+                    return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data did not stay separate after inserting sub backpack");
+                }
+
+                openSubBackpackColumnUpgradeRegressionWhenReady();
+
+                SubMobCatcherRegressionState subState = runOnClient(this::getSubMobCatcherRegressionState);
+                return subMobCatcherRegressionJson(name, subState.subMatches(), parentState, subState,
+                        subState.subMatches() ? null : "Sub backpack did not open with its own mob catcher data");
+            } catch (RuntimeException e) {
+                SubMobCatcherRegressionState state = runOnClient(this::getCurrentMobCatcherRegressionStateSafely);
+                return subMobCatcherRegressionJson(name, false, state, state, e.getMessage());
+            }
+        }
+
+        private void resetBackpackGuiRegressionState() {
+            runOnServer(player -> {
+                player.containerMenu.setCarried(ItemStack.EMPTY);
+                player.closeContainer();
+                player.getInventory().setChanged();
+                return true;
+            });
+            runOnClient(() -> {
+                if (Minecraft.getInstance().player != null) {
+                    Minecraft.getInstance().player.containerMenu.setCarried(ItemStack.EMPTY);
+                    Minecraft.getInstance().setScreen(null);
+                }
+                return true;
+            });
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            do {
+                if (runOnClient(() -> Minecraft.getInstance().screen == null
+                        && (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer)))) {
+                    return;
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+        }
+
+        private PlacedColumnUpgradeClickExpectation clickBackpackGuiRegressionColumnUpgradeWhenReady(BackpackGuiRegressionContext context) {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            RuntimeException lastError = null;
+            do {
+                try {
+                    waitForOpenBackpackGuiRegressionMenu(context);
+                    return runOnClient(() -> clickBackpackGuiRegressionColumnUpgrade(context));
+                } catch (RuntimeException e) {
+                    lastError = e;
+                    sleep(50);
+                }
+            } while (System.nanoTime() < deadline);
+            throw lastError == null ? new IllegalStateException("Timed out waiting to click " + context.jsonName() + " backpack upgrade") : lastError;
+        }
+
+        private void prepareBackpackGuiRegression(BackpackGuiRegressionContext context) {
+            switch (context) {
+                case PLACED -> {
+                    runOnServer(this::setupPlacedBackpackColumnUpgradeRegression);
+                    runOnClient(this::setupClientPlacedBackpackColumnUpgradeRegression);
+                    runOnServer(this::openPlacedBackpackColumnUpgradeRegression);
+                }
+                case CURIOS -> {
+                    runOnServer(this::setupCuriosBackpackColumnUpgradeRegression);
+                    runOnClient(this::setupClientCuriosBackpackColumnUpgradeRegression);
+                    runOnServer(this::openCuriosBackpackColumnUpgradeRegression);
+                }
+                case SUB -> {
+                    runOnServer(this::setupSubBackpackColumnUpgradeRegression);
+                    runOnClient(this::setupClientSubBackpackColumnUpgradeRegression);
+                    runOnServer(this::openParentBackpackColumnUpgradeRegression);
+                    waitForOpenParentBackpackMenu();
+                    openSubBackpackColumnUpgradeRegressionWhenReady();
+                }
+            }
+        }
+
+        private void openSubBackpackColumnUpgradeRegressionWhenReady() {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            do {
+                runOnClient(this::openSubBackpackColumnUpgradeRegressionFromClient);
+                sleep(100);
+                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                        && Minecraft.getInstance().player != null
+                        && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
+                        && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
+                    return;
+                }
+            } while (System.nanoTime() < deadline);
+        }
+
+        private Boolean openSubBackpackColumnUpgradeRegressionFromClient() {
+            PacketDistributor.sendToServer(new BackpackOpenPayload(0));
+            return true;
+        }
+
+        private void waitForOpenParentBackpackMenu() {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            do {
+                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                        && Minecraft.getInstance().player != null
+                        && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
+                        && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK)) {
+                    return;
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+            throw new IllegalStateException("Timed out waiting for parent backpack screen to open");
+        }
+
+        private void waitForOpenBackpackGuiRegressionMenu(BackpackGuiRegressionContext context) {
+            switch (context) {
+                case PLACED -> waitForOpenPlacedBackpackMenu();
+                case CURIOS -> waitForOpenCuriosBackpackMenu();
+                case SUB -> waitForOpenSubBackpackMenu();
+            }
+        }
+
+        private PlacedColumnUpgradeClickExpectation clickBackpackGuiRegressionColumnUpgrade(BackpackGuiRegressionContext context) {
+            return switch (context) {
+                case PLACED -> clickPlacedBackpackColumnUpgrade();
+                case CURIOS -> clickCuriosBackpackColumnUpgrade();
+                case SUB -> clickSubBackpackColumnUpgrade();
+            };
+        }
+
+        private PlacedColumnUpgradeState getBackpackGuiRegressionState(BackpackGuiRegressionContext context) {
+            return switch (context) {
+                case PLACED -> getPlacedBackpackColumnUpgradeState();
+                case CURIOS -> getCuriosBackpackColumnUpgradeState();
+                case SUB -> getSubBackpackColumnUpgradeState();
+            };
+        }
+
+        private Boolean setupPlacedBackpackColumnUpgradeRegression(ServerPlayer player) {
+            ServerLevel level = (ServerLevel) player.level();
+            Direction facing = player.getDirection();
+            BlockPos pos = getRegressionBackpackPos(player);
+
+            level.setBlock(pos, ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, facing.getOpposite()), 3);
+            BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(level, pos, BackpackBlockEntity.class)
+                    .orElseThrow(() -> new IllegalStateException("Failed to place regression backpack block"));
+
+            backpackBlockEntity.setBackpack(createColumnUpgradeRegressionBackpack());
+            return true;
+        }
+
+        private Boolean setupClientPlacedBackpackColumnUpgradeRegression() {
+            if (Minecraft.getInstance().level == null || Minecraft.getInstance().player == null) {
+                throw new IllegalStateException("Client level/player is not available");
+            }
+            BlockPos pos = getRegressionBackpackPos(Minecraft.getInstance().player);
+            Minecraft.getInstance().level.setBlock(pos, ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
+            BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, BackpackBlockEntity.class)
+                    .orElseThrow(() -> new IllegalStateException("Failed to create client regression backpack block"));
+            backpackBlockEntity.setBackpack(createColumnUpgradeRegressionBackpack());
+            return true;
+        }
+
+        private Boolean openPlacedBackpackColumnUpgradeRegression(ServerPlayer player) {
+            ServerLevel level = (ServerLevel) player.level();
+            BlockPos pos = getRegressionBackpackPos(player);
+
+            BackpackContext.Block backpackContext = new BackpackContext.Block(pos);
+            player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Placed Column Regression")), backpackContext::toBuffer);
+            level.gameEvent(player, GameEvent.CONTAINER_OPEN, pos);
+            return true;
+        }
+
+        private BlockPos getRegressionBackpackPos(LivingEntity player) {
+            return player.blockPosition().relative(player.getDirection(), 2);
+        }
+
+        private Boolean setupCuriosBackpackColumnUpgradeRegression(ServerPlayer player) {
+            ItemStack backpack = createColumnUpgradeRegressionBackpack();
+            String identifier = getCuriosBackpackIdentifier(player, backpack);
+            ensureCuriosSlot(player, identifier, 1);
+            setCuriosStack(player, identifier, 0, backpack);
+            PlayerInventoryHandler inventoryHandler = PlayerInventoryProvider.get().getPlayerInventoryHandler(CompatModIds.CURIOS)
+                    .orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
+            if (inventoryHandler.getStackInSlot(player, identifier, 0).isEmpty()) {
+                throw new IllegalStateException("Curios backpack stack was not set in " + identifier);
+            }
+            return true;
+        }
+
+        private Boolean setupClientCuriosBackpackColumnUpgradeRegression() {
+            if (Minecraft.getInstance().player == null) {
+                throw new IllegalStateException("Client player is not available");
+            }
+            ItemStack backpack = createColumnUpgradeRegressionBackpack();
+            String identifier = getCuriosBackpackIdentifier(Minecraft.getInstance().player, backpack);
+            setCuriosStack(Minecraft.getInstance().player, identifier, 0, backpack);
+            return true;
+        }
+
+        private Boolean openCuriosBackpackColumnUpgradeRegression(ServerPlayer player) {
+            String identifier = getCuriosBackpackIdentifier(player, createColumnUpgradeRegressionBackpack());
+
+            BackpackContext.Item backpackContext = new BackpackContext.Item(CompatModIds.CURIOS, identifier, 0);
+            player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Curios Column Regression")), backpackContext::toBuffer);
+            return true;
+        }
+
+        private Boolean setupSubBackpackColumnUpgradeRegression(ServerPlayer player) {
+            player.getInventory().getNonEquipmentItems().set(0, createParentBackpackWithColumnUpgradeSubBackpack());
+            player.getInventory().setChanged();
+            return true;
+        }
+
+        private Boolean setupParentMobCatcherBackpackRegression(ServerPlayer player) {
+            player.getInventory().getNonEquipmentItems().set(0, createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
+            player.getInventory().setChanged();
+            return true;
+        }
+
+        private Boolean setupClientSubBackpackColumnUpgradeRegression() {
+            if (Minecraft.getInstance().player == null) {
+                throw new IllegalStateException("Client player is not available");
+            }
+            Minecraft.getInstance().player.getInventory().getNonEquipmentItems().set(0, createParentBackpackWithColumnUpgradeSubBackpack());
+            Minecraft.getInstance().player.getInventory().setChanged();
+            return true;
+        }
+
+        private Boolean setupClientParentMobCatcherBackpackRegression() {
+            if (Minecraft.getInstance().player == null) {
+                throw new IllegalStateException("Client player is not available");
+            }
+            Minecraft.getInstance().player.getInventory().getNonEquipmentItems().set(0, createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
+            Minecraft.getInstance().player.getInventory().setChanged();
+            return true;
+        }
+
+        private Boolean openParentMobCatcherBackpackRegression(ServerPlayer player) {
+            BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
+            player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Mob Catcher Parent Regression")), backpackContext::toBuffer);
+            return true;
+        }
+
+        private Boolean openParentBackpackColumnUpgradeRegression(ServerPlayer player) {
+            BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
+            player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Parent Column Regression")), backpackContext::toBuffer);
+            return true;
+        }
+
+        private Boolean openSubBackpackColumnUpgradeRegression(ServerPlayer player) {
+            BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0, true);
+            player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Sub Column Regression")), backpackContext::toBuffer);
+            return true;
+        }
+
+        private Boolean insertMobCatcherSubBackpackIntoOpenParent(ServerPlayer player) {
+            if (!(player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Parent backpack menu is not open on server");
+            }
+            insertMobCatcherSubBackpack(menu);
+            return true;
+        }
+
+        private Boolean insertClientMobCatcherSubBackpackIntoOpenParent() {
+            if (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Parent backpack menu is not open on client");
+            }
+            insertMobCatcherSubBackpack(menu);
+            return true;
+        }
+
+        private void insertMobCatcherSubBackpack(BackpackContainer menu) {
+            if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
+                throw new IllegalStateException("Expected parent item backpack menu before inserting sub backpack");
+            }
+            InventoryHandler inventoryHandler = menu.getStorageWrapper().getInventoryHandler();
+            inventoryHandler.setStackInSlot(0, createMobCatcherRegressionBackpack(144, 7, SUB_MOB_CATCHER_SUB_MOB_ID, 10, "Sub Cow"));
+            inventoryHandler.saveInventory();
+            menu.getStorageWrapper().onContentsNbtUpdated();
+        }
+
+        private ItemStack createParentBackpackWithColumnUpgradeSubBackpack() {
+            ItemStack parentBackpack = new ItemStack(ModItems.GOLD_BACKPACK.get());
+            parentBackpack.set(ModCoreDataComponents.STORAGE_UUID, UUID.randomUUID());
+            parentBackpack.set(ModCoreDataComponents.NUMBER_OF_INVENTORY_SLOTS, 81);
+            parentBackpack.set(ModCoreDataComponents.NUMBER_OF_UPGRADE_SLOTS, 3);
+            IBackpackWrapper parentWrapper = BackpackWrapper.fromStack(parentBackpack);
+            parentWrapper.setSlotNumbers(81, 3);
+            parentWrapper.getInventoryHandler().setStackInSlot(0, createColumnUpgradeRegressionBackpack());
+            parentWrapper.onContentsNbtUpdated();
+            return parentBackpack;
+        }
+
+        private ItemStack createColumnUpgradeRegressionBackpack() {
+            ItemStack backpack = new ItemStack(ModItems.GOLD_BACKPACK.get());
+            backpack.set(ModCoreDataComponents.STORAGE_UUID, UUID.randomUUID());
+            backpack.set(ModCoreDataComponents.NUMBER_OF_INVENTORY_SLOTS, 81);
+            backpack.set(ModCoreDataComponents.NUMBER_OF_UPGRADE_SLOTS, 3);
+            IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
+            backpackWrapper.setSlotNumbers(81, 3);
+            backpackWrapper.getInventoryHandler();
+            backpackWrapper.getUpgradeHandler().setStackInSlot(1, new ItemStack(ModItems.TANK_UPGRADE.get()));
+            backpackWrapper.setColumnsTaken(2, false);
+            backpackWrapper.onContentsNbtUpdated();
+            return backpack;
+        }
+
+        private ItemStack createMobCatcherRegressionBackpack(int inventorySlots, int upgradeSlots, UUID mobId, int mobSlot, String displayName) {
+            ItemStack backpack = inventorySlots > 81 ? new ItemStack(ModItems.DIAMOND_BACKPACK.get()) : new ItemStack(ModItems.GOLD_BACKPACK.get());
+            backpack.set(ModCoreDataComponents.STORAGE_UUID, UUID.randomUUID());
+            backpack.set(ModCoreDataComponents.NUMBER_OF_INVENTORY_SLOTS, inventorySlots);
+            backpack.set(ModCoreDataComponents.NUMBER_OF_UPGRADE_SLOTS, upgradeSlots);
+            IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
+            backpackWrapper.setSlotNumbers(inventorySlots, upgradeSlots);
+            backpackWrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.MOB_CATCHER_UPGRADE.get()));
+            backpackWrapper.getUpgradeHandler().saveInventory();
+            MobCatcherStorage.addCapturedMob(backpackWrapper, new CapturedMob(mobId, ResourceLocation.parse("minecraft:pig"), new CompoundTag(), mobSlot, 1, 1, 1, false, displayName, 10, 10));
+            backpackWrapper.onContentsNbtUpdated();
+            return backpack;
+        }
+
+        private void ensureCuriosSlot(ServerPlayer player, String identifier, int slots) {
+            PlayerInventoryHandler inventoryHandler = PlayerInventoryProvider.get().getPlayerInventoryHandler(CompatModIds.CURIOS)
+                    .orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
+            if (inventoryHandler.getSlotCount(player, identifier) < slots) {
+                MinecraftServer server = player.level().getServer();
+                if (server == null) {
+                    throw new IllegalStateException("Server is not available for Curios slot setup");
+                }
+                server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withPermission(4).withSuppressedOutput(), "curios add " + identifier + " " + player.getGameProfile().getName() + " " + slots);
+            }
+            if (inventoryHandler.getSlotCount(player, identifier) < slots) {
+                throw new IllegalStateException("Unable to configure Curios slot " + identifier + "; slot count is " + inventoryHandler.getSlotCount(player, identifier));
+            }
+        }
+
+        private String getCuriosBackpackIdentifier(LivingEntity player, ItemStack backpack) {
+            for (String identifier : getCuriosItemSlotTypes(backpack, player).keySet()) {
+                return identifier;
+            }
+
+            if (!(player instanceof Player inventoryPlayer)) {
+                return "back";
+            }
+            PlayerInventoryHandler inventoryHandler = PlayerInventoryProvider.get().getPlayerInventoryHandler(CompatModIds.CURIOS)
+                    .orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
+            for (String identifier : inventoryHandler.getIdentifiers(inventoryPlayer)) {
+                if (inventoryHandler.getSlotCount(inventoryPlayer, identifier) > 0) {
+                    return identifier;
+                }
+            }
+            return "back";
+        }
+
+        private Map<String, ?> getCuriosItemSlotTypes(ItemStack backpack, LivingEntity player) {
+            try {
+                Class<?> curiosSlotTypesClass = Class.forName("top.theillusivec4.curios.api.CuriosSlotTypes");
+                return (Map<String, ?>) curiosSlotTypesClass.getMethod("getItemSlotTypes", ItemStack.class, boolean.class).invoke(null, backpack, false);
+            } catch (ReflectiveOperationException e) {
+                return Map.of();
+            }
+        }
+
+        private void setCuriosStack(LivingEntity player, String identifier, int slot, ItemStack backpack) {
+            try {
+                Class<?> curiosApiClass = Class.forName("top.theillusivec4.curios.api.CuriosApi");
+                Optional<?> curiosInventory = (Optional<?>) curiosApiClass.getMethod("getCuriosInventory", LivingEntity.class).invoke(null, player);
+                Object inventory = curiosInventory.orElseThrow(() -> new IllegalStateException("Player has no Curios inventory"));
+                inventory.getClass().getMethod("setEquippedCurio", String.class, int.class, ItemStack.class).invoke(inventory, identifier, slot, backpack);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Unable to set Curios backpack stack", e);
+            }
+        }
+
+        private void waitForOpenPlacedBackpackMenu() {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            do {
+                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                        && Minecraft.getInstance().player != null
+                        && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
+                        && menu.getBlockPosition().isPresent())) {
+                    return;
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+            throw new IllegalStateException("Timed out waiting for placed backpack screen to open");
+        }
+
+        private void waitForOpenCuriosBackpackMenu() {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            do {
+                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                        && Minecraft.getInstance().player != null
+                        && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
+                        && menu.getBlockPosition().isEmpty())) {
+                    return;
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+            throw new IllegalStateException("Timed out waiting for curios backpack screen to open");
+        }
+
+        private void waitForOpenSubBackpackMenu() {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            do {
+                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                        && Minecraft.getInstance().player != null
+                        && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
+                        && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
+                    return;
+                }
+                sleep(50);
+            } while (System.nanoTime() < deadline);
+            throw new IllegalStateException("Timed out waiting for sub backpack screen to open");
+        }
+
+        private PlacedColumnUpgradeClickExpectation clickPlacedBackpackColumnUpgrade() {
+            BackpackContainer menu = getOpenPlacedBackpackMenu();
+            if (menu.getNumberOfUpgradeSlots() < 2) {
+                throw new IllegalStateException("Placed backpack needs at least two upgrade slots");
+            }
+            if (!menu.getCarried().isEmpty()) {
+                throw new IllegalStateException("Cursor must be empty before running placed backpack regression");
+            }
+
+            Slot slot = menu.upgradeSlots.get(1);
+            ItemStack slotStack = slot.getItem();
+            if (slotStack.isEmpty() || !(slotStack.getItem() instanceof IUpgradeItem<?> upgradeItem) || upgradeItem.getInventoryColumnsTaken() == 0) {
+                throw new IllegalStateException("Placed backpack upgrade slot 1 must contain a column-taking upgrade");
+            }
+
+            int beforeColumnsTaken = menu.getStorageWrapper().getColumnsTaken();
+            int columnsChange = upgradeItem.getInventoryColumnsTaken();
+            int expectedColumnsTaken = beforeColumnsTaken - columnsChange;
+            int rows = menu.getStorageWrapper().getNumberOfSlotRows();
+            int handlerSlots = menu.getStorageWrapper().getInventoryHandler().getSlots();
+            int baseColumns = handlerSlots <= 81 ? 9 : 12;
+            int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
+            int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
+
+            clickSlot(Minecraft.getInstance().screen, slot);
+
+            return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
+        }
+
+        private BackpackContainer getOpenPlacedBackpackMenu() {
+            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Placed backpack screen is not open");
+            }
+            if (menu.getBlockPosition().isEmpty()) {
+                throw new IllegalStateException("Open backpack is not a placed backpack");
+            }
+            return menu;
+        }
+
+        private PlacedColumnUpgradeClickExpectation clickCuriosBackpackColumnUpgrade() {
+            BackpackContainer menu = getOpenCuriosBackpackMenu();
+            if (menu.getNumberOfUpgradeSlots() < 2) {
+                throw new IllegalStateException("Curios backpack needs at least two upgrade slots");
+            }
+            if (!menu.getCarried().isEmpty()) {
+                throw new IllegalStateException("Cursor must be empty before running curios backpack regression");
+            }
+
+            Slot slot = menu.upgradeSlots.get(1);
+            ItemStack slotStack = slot.getItem();
+            if (slotStack.isEmpty() || !(slotStack.getItem() instanceof IUpgradeItem<?> upgradeItem) || upgradeItem.getInventoryColumnsTaken() == 0) {
+                throw new IllegalStateException("Curios backpack upgrade slot 1 must contain a column-taking upgrade");
+            }
+
+            int beforeColumnsTaken = menu.getStorageWrapper().getColumnsTaken();
+            int columnsChange = upgradeItem.getInventoryColumnsTaken();
+            int expectedColumnsTaken = beforeColumnsTaken - columnsChange;
+            int rows = menu.getStorageWrapper().getNumberOfSlotRows();
+            int handlerSlots = menu.getStorageWrapper().getInventoryHandler().getSlots();
+            int baseColumns = handlerSlots <= 81 ? 9 : 12;
+            int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
+            int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
+
+            clickSlot(Minecraft.getInstance().screen, slot);
+
+            return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
+        }
+
+        private BackpackContainer getOpenCuriosBackpackMenu() {
+            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Curios backpack screen is not open");
+            }
+            if (menu.getBlockPosition().isPresent()) {
+                throw new IllegalStateException("Open backpack is not a Curios/item backpack");
+            }
+            return menu;
+        }
+
+        private PlacedColumnUpgradeClickExpectation clickSubBackpackColumnUpgrade() {
+            BackpackContainer menu = getOpenSubBackpackMenu();
+            if (menu.getNumberOfUpgradeSlots() < 2) {
+                throw new IllegalStateException("Sub backpack needs at least two upgrade slots");
+            }
+            if (!menu.getCarried().isEmpty()) {
+                throw new IllegalStateException("Cursor must be empty before running sub backpack regression");
+            }
+
+            Slot slot = menu.upgradeSlots.get(1);
+            ItemStack slotStack = slot.getItem();
+            if (slotStack.isEmpty() || !(slotStack.getItem() instanceof IUpgradeItem<?> upgradeItem) || upgradeItem.getInventoryColumnsTaken() == 0) {
+                throw new IllegalStateException("Sub backpack upgrade slot 1 must contain a column-taking upgrade");
+            }
+
+            int beforeColumnsTaken = menu.getStorageWrapper().getColumnsTaken();
+            int columnsChange = upgradeItem.getInventoryColumnsTaken();
+            int expectedColumnsTaken = beforeColumnsTaken - columnsChange;
+            int rows = menu.getStorageWrapper().getNumberOfSlotRows();
+            int handlerSlots = menu.getStorageWrapper().getInventoryHandler().getSlots();
+            int baseColumns = handlerSlots <= 81 ? 9 : 12;
+            int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
+            int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
+
+            clickSlot(Minecraft.getInstance().screen, slot);
+
+            return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
+        }
+
+        private BackpackContainer getOpenSubBackpackMenu() {
+            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Sub backpack screen is not open");
+            }
+            if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_SUB_BACKPACK) {
+                throw new IllegalStateException("Open backpack is not an item sub backpack");
+            }
+            return menu;
+        }
+
+        private void clickSlot(Screen screen, Slot slot) {
+            int leftPos = getScreenIntField(screen, "leftPos");
+            int topPos = getScreenIntField(screen, "topPos");
+            double x = leftPos + slot.x + 8.0;
+            double y = topPos + slot.y + 8.0;
+            if (!screen.mouseClicked(x, y, 0)) {
+                throw new IllegalStateException("Backpack upgrade slot click was not handled");
+            }
+            screen.mouseReleased(x, y, 0);
+        }
+
+        private int getScreenIntField(Screen screen, String fieldName) {
+            Class<?> screenClass = screen.getClass();
+            while (screenClass != null) {
+                try {
+                    Field field = screenClass.getDeclaredField(fieldName);
+                    field.setAccessible(true);
+                    return field.getInt(screen);
+                } catch (NoSuchFieldException e) {
+                    screenClass = screenClass.getSuperclass();
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException("Unable to read screen field " + fieldName, e);
+                }
+            }
+            throw new IllegalStateException("Unable to find screen field " + fieldName);
+        }
+
+        private PlacedColumnUpgradeState getPlacedBackpackColumnUpgradeState() {
+            BackpackContainer menu = getOpenPlacedBackpackMenu();
+            return new PlacedColumnUpgradeState(menu.getStorageWrapper().getColumnsTaken(), menu.getNumberOfStorageInventorySlots(),
+                    menu.getStorageWrapper().getInventoryHandler().getSlots(), menu.upgradeSlots.get(1).getItem().isEmpty(), !menu.getCarried().isEmpty());
+        }
+
+        private PlacedColumnUpgradeState getCuriosBackpackColumnUpgradeState() {
+            BackpackContainer menu = getOpenCuriosBackpackMenu();
+            return new PlacedColumnUpgradeState(menu.getStorageWrapper().getColumnsTaken(), menu.getNumberOfStorageInventorySlots(),
+                    menu.getStorageWrapper().getInventoryHandler().getSlots(), menu.upgradeSlots.get(1).getItem().isEmpty(), !menu.getCarried().isEmpty());
+        }
+
+        private PlacedColumnUpgradeState getSubBackpackColumnUpgradeState() {
+            BackpackContainer menu = getOpenSubBackpackMenu();
+            return new PlacedColumnUpgradeState(menu.getStorageWrapper().getColumnsTaken(), menu.getNumberOfStorageInventorySlots(),
+                    menu.getStorageWrapper().getInventoryHandler().getSlots(), menu.upgradeSlots.get(1).getItem().isEmpty(), !menu.getCarried().isEmpty());
+        }
+
+        private String placedColumnUpgradeRegressionJson(String name, boolean ok, PlacedColumnUpgradeClickExpectation expectation, PlacedColumnUpgradeState state, String error) {
+            return "{\"ok\":" + ok
+                    + "," + jsonProperty("name", name)
+                    + ",\"expectedColumnsTaken\":" + expectation.expectedColumnsTaken()
+                    + ",\"actualColumnsTaken\":" + state.columnsTaken()
+                    + ",\"expectedStorageSlots\":" + expectation.expectedStorageSlots()
+                    + ",\"actualStorageSlots\":" + state.storageSlots()
+                    + ",\"actualInventoryHandlerSlots\":" + state.inventoryHandlerSlots()
+                    + ",\"upgradeSlotEmpty\":" + state.upgradeSlotEmpty()
+                    + ",\"carriedNotEmpty\":" + state.carriedNotEmpty()
+                    + "," + jsonProperty("error", error)
+                    + "}";
+        }
+
+        private SubMobCatcherRegressionState getParentMobCatcherRegressionState() {
+            BackpackContainer menu = getOpenParentBackpackMenu();
+            IBackpackWrapper nestedWrapper = getNestedBackpackWrapper(menu);
+            return getSubMobCatcherRegressionState(menu, nestedWrapper);
+        }
+
+        private SubMobCatcherRegressionState getSubMobCatcherRegressionState() {
+            BackpackContainer menu = getOpenSubBackpackMenu();
+            return getSubMobCatcherRegressionState(menu, null);
+        }
+
+        private SubMobCatcherRegressionState getCurrentMobCatcherRegressionStateSafely() {
+            try {
+                if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu) {
+                    IBackpackWrapper nestedWrapper = menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK ? getNestedBackpackWrapper(menu) : null;
+                    return getSubMobCatcherRegressionState(menu, nestedWrapper);
+                }
+            } catch (RuntimeException ignored) {
+                // Return an empty state below so the regression response still explains the failure.
+            }
+            return new SubMobCatcherRegressionState("none", 0, false, 0, null, 0, null);
+        }
+
+        private BackpackContainer getOpenParentBackpackMenu() {
+            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                throw new IllegalStateException("Parent backpack screen is not open");
+            }
+            if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
+                throw new IllegalStateException("Open backpack is not a parent item backpack");
+            }
+            return menu;
+        }
+
+        private IBackpackWrapper getNestedBackpackWrapper(BackpackContainer menu) {
+            ItemStack nestedBackpack = menu.getStorageWrapper().getInventoryHandler().getStackInSlot(0);
+            if (!(nestedBackpack.getItem() instanceof BackpackItem)) {
+                throw new IllegalStateException("Parent backpack slot 0 does not contain a backpack");
+            }
+            return BackpackWrapper.fromStack(nestedBackpack);
+        }
+
+        private SubMobCatcherRegressionState getSubMobCatcherRegressionState(BackpackContainer menu, IBackpackWrapper nestedWrapper) {
+            List<CapturedMob> currentMobs = MobCatcherStorage.getCapturedMobs(menu.getStorageWrapper());
+            List<CapturedMob> nestedMobs = nestedWrapper == null ? List.of() : MobCatcherStorage.getCapturedMobs(nestedWrapper);
+            return new SubMobCatcherRegressionState(menu.getBackpackContext().getType().name(), menu.getStorageWrapper().getInventoryHandler().getSlots(), nestedWrapper != null,
+                    currentMobs.size(), currentMobs.isEmpty() ? null : currentMobs.get(0).id().toString(), nestedMobs.size(), nestedMobs.isEmpty() ? null : nestedMobs.get(0).id().toString());
+        }
+
+        private String subMobCatcherRegressionJson(String name, boolean ok, SubMobCatcherRegressionState parentState, SubMobCatcherRegressionState subState, String error) {
+            return "{\"ok\":" + ok
+                    + "," + jsonProperty("name", name)
+                    + "," + jsonProperty("parentContext", parentState.context())
+                    + ",\"parentStorageSlots\":" + parentState.storageSlots()
+                    + ",\"parentSlot0Backpack\":" + parentState.slot0Backpack()
+                    + ",\"parentMobCount\":" + parentState.currentMobCount()
+                    + "," + jsonProperty("parentMobId", parentState.currentMobId())
+                    + ",\"parentNestedMobCount\":" + parentState.nestedMobCount()
+                    + "," + jsonProperty("parentNestedMobId", parentState.nestedMobId())
+                    + "," + jsonProperty("subContext", subState.context())
+                    + ",\"subStorageSlots\":" + subState.storageSlots()
+                    + ",\"subMobCount\":" + subState.currentMobCount()
+                    + "," + jsonProperty("subMobId", subState.currentMobId())
+                    + "," + jsonProperty("error", error)
+                    + "}";
+        }
+
+        private String runBackpackRemoteUpgradeSlotRegression() {
+            if (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
+                return "{\"ok\":false,\"error\":\"Player does not have a storage menu open\"}";
+            }
+            if (menu.getNumberOfUpgradeSlots() < 2) {
+                return "{\"ok\":false,\"error\":\"Storage menu needs at least two upgrade slots\"}";
+            }
+
+            int logicalUpgradeSlot = menu.getFirstUpgradeSlot() + 1;
+            menu.setRemoteSlot(logicalUpgradeSlot, menu.getSlot(logicalUpgradeSlot).getItem().copy());
+            return "{\"ok\":true,\"slot\":" + logicalUpgradeSlot + "}";
         }
 
         private String runBackpackColumnUpgradeRegressions(ServerPlayer player) {
@@ -1012,6 +1760,55 @@ public class DevClientAutomation {
 
 		private record CapturedMobSpec(int slot, int width, int height, String entityType) {
 		}
+
+        private record PlacedColumnUpgradeClickExpectation(int expectedColumnsTaken, int expectedStorageSlots) {
+        }
+
+        private record PlacedColumnUpgradeState(int columnsTaken, int storageSlots, int inventoryHandlerSlots, boolean upgradeSlotEmpty, boolean carriedNotEmpty) {
+            private boolean matches(PlacedColumnUpgradeClickExpectation expectation) {
+                return columnsTaken == expectation.expectedColumnsTaken() && storageSlots == expectation.expectedStorageSlots()
+                        && inventoryHandlerSlots == expectation.expectedStorageSlots() && upgradeSlotEmpty && carriedNotEmpty;
+            }
+        }
+
+        private record SubMobCatcherRegressionState(String context, int storageSlots, boolean slot0Backpack, int currentMobCount, String currentMobId,
+                int nestedMobCount, String nestedMobId) {
+            private boolean parentMatches() {
+                return BackpackContext.ContextType.ITEM_BACKPACK.name().equals(context) && slot0Backpack && storageSlots == 81 && currentMobCount == 1
+                        && SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId) && nestedMobCount == 1
+                        && SUB_MOB_CATCHER_SUB_MOB_ID.toString().equals(nestedMobId);
+            }
+
+            private boolean subMatches() {
+                return BackpackContext.ContextType.ITEM_SUB_BACKPACK.name().equals(context) && storageSlots == 144 && currentMobCount == 1
+                        && SUB_MOB_CATCHER_SUB_MOB_ID.toString().equals(currentMobId);
+            }
+        }
+
+        private enum BackpackGuiRegressionContext {
+            PLACED("placed"),
+            CURIOS("curios"),
+            SUB("sub");
+
+            private final String jsonName;
+
+            BackpackGuiRegressionContext(String jsonName) {
+                this.jsonName = jsonName;
+            }
+
+            private String jsonName() {
+                return jsonName;
+            }
+
+            private static BackpackGuiRegressionContext fromName(String name) {
+                for (BackpackGuiRegressionContext context : values()) {
+                    if (context.jsonName.equals(name)) {
+                        return context;
+                    }
+                }
+                throw new IllegalArgumentException("Unknown backpack GUI regression context " + name);
+            }
+        }
 
         private record ColumnUpgradeRegressionResult(String name, boolean passed, boolean expectedFits, boolean actualFits, int beforeStacks, int afterStacks,
                 String error) {
