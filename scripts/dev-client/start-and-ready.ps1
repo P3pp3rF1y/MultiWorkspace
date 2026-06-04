@@ -6,6 +6,8 @@ param(
     [switch]$ShowLauncherWindow,
     [bool]$LoadWorld = $true,
     [switch]$CloseOnExit,
+    [switch]$SkipRecipeViewerReady,
+    [switch]$MinimalRuntime,
     [ValidateSet("", "emi", "jei", "rei", "none")]
     [string]$RecipeViewer = ""
 )
@@ -15,9 +17,15 @@ $ErrorActionPreference = "Stop"
 $discoveryPath = Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
+if (Test-Path $discoveryPath) {
+    Remove-Item -LiteralPath $discoveryPath -Force
+}
+
 $gradleCommand = "gradlew.bat :workspace:runClient"
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
+} elseif ($MinimalRuntime) {
+    $gradleCommand = "$gradleCommand -Pdev_client_minimal_runtime=true -Pdev_client_curios_runtime=true"
 }
 
 $cmdMode = if ($CloseOnExit) { '/c' } else { '/k' }
@@ -90,6 +98,12 @@ if ($LoadWorld -and -not $state.playerLoaded) {
 do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
+    if ($SkipRecipeViewerReady) {
+        if (-not $LoadWorld -or $state.playerLoaded) {
+            break
+        }
+        continue
+    }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
     if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
         break
@@ -102,5 +116,5 @@ $discovery = Get-BridgeDiscovery
     port = $discovery.port
     baseUrl = "http://$($discovery.host):$($discovery.port)"
     state = Invoke-BridgeJson -Method Get -Path "/state"
-    recipeViewer = $viewerState
+    recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
 }

@@ -170,6 +170,7 @@ base {
 
 def recipeViewer = (findProperty("recipe_viewer") ?: "emi").toString()
 def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "false").toString().toBoolean()
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
@@ -299,6 +300,10 @@ dependencies {
         transitive = false
     }
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
+
+    if (minimalDevClientRuntime && curiosDevClientRuntime) {
+        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+    }
 
     if (!minimalDevClientRuntime) {
         // Drop extra test mods into workspace/local-mods to load them in dev runs.
