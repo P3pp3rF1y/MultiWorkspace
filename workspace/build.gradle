@@ -115,6 +115,7 @@ base {
 
 def recipeViewer = (findProperty("recipe_viewer") ?: "jei").toString()
 def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "false").toString().toBoolean()
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
@@ -237,6 +238,10 @@ dependencies {
     }
 */
 
+    if (minimalDevClientRuntime && curiosDevClientRuntime) {
+        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+    }
+
     if (!minimalDevClientRuntime) {
         // Drop extra test mods into workspace/local-mods to load them in dev runs.
         runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
@@ -265,7 +270,7 @@ dependencies {
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
-//        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
         runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
         runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
         runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
