@@ -35,17 +35,3 @@ runtime viewer API data exposed by `DevClientAutomation`; the existing JUnit
 
 When the regression runner starts the client itself, it stops that client through
 `POST /client/stop` in a `finally` block after the suite completes or fails.
-
-## Backpack Regression Suites
-
-Backpack GUI regression suites use the same dev-client bridge and script-driven
-JSON pattern:
-
-```powershell
-.\scripts\dev-client\run-backpack-regression.ps1 -Suite sophisticatedbackpacks
-```
-
-Suites live under `scripts/dev-client/backpack-suites`. The Java bridge performs
-the in-game setup and interaction for each declarative scenario through
-`POST /backpack/gui-regression/run`; the script owns suite loading, startup,
-assertions, and result aggregation.
