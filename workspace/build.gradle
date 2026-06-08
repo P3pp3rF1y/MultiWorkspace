@@ -71,7 +71,7 @@ repositories {
         }
     }
     maven {
-        url = "https://maven.octo-studios.com/#/releases"
+        url = "https://maven.theillusivec4.top/"
         content {
             includeGroup 'top.theillusivec4.curios'
         }
@@ -239,7 +239,7 @@ dependencies {
 */
 
     if (minimalDevClientRuntime && curiosDevClientRuntime) {
-        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
     }
 
     if (!minimalDevClientRuntime) {
@@ -270,12 +270,12 @@ dependencies {
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
-        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
         runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
         runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
-        runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
-        runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*
+        runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
+        runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
     runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
