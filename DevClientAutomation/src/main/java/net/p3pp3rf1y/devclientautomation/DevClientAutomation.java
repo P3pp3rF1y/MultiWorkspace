@@ -61,6 +61,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -130,6 +131,7 @@ public class DevClientAutomation {
 
     public DevClientAutomation(IEventBus modBus) {
         modBus.addListener(DevClientAutomation::clientSetup);
+        DemoCommand.init();
     }
 
     private static void clientSetup(FMLClientSetupEvent event) {
