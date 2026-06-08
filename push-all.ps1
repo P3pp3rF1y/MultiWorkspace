@@ -23,6 +23,8 @@ $runLookback        = 50
 $maxRunFindAttempts = 60   # 60 * 10s = ~10 minutes to find the run after push
 
 # Repos in dependency order
+$rootRepo = @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false }
+
 $repos = @(
     @{ Name = "Reliquary";                               Path = "Reliquary";                               WaitForCI = $true  },
     @{ Name = "SophisticatedCore";                       Path = "SophisticatedCore";                       WaitForCI = $true  },
@@ -32,8 +34,7 @@ $repos = @(
     @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
     @{ Name = "SophisticatedStorageCreateIntegration";   Path = "SophisticatedStorageCreateIntegration";   WaitForCI = $false },
     @{ Name = "SophisticatedStorageInMotion";            Path = "SophisticatedStorageInMotion";            WaitForCI = $true  },
-    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false },
-    @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false }
+    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false }
 )
 
 # ---------------------------------------------------------------------
@@ -126,21 +127,7 @@ function Wait-RunCompletion([string]$repoFull, [string]$runId) {
     }
 }
 
-# ---------------------------------------------------------------------
-# Preconditions
-# ---------------------------------------------------------------------
-
-Require-Command git
-Require-Command gh
-
-# Ensure gh auth is set up
-gh auth status *> $null
-
-# ---------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------
-
-foreach ($repo in $repos) {
+function Invoke-PushRepo([hashtable]$repo) {
     Write-Host "`n=== Processing $($repo.Name) ===" -ForegroundColor Cyan
 
     $repoPath = Join-Path $workspaceRoot $repo.Path
@@ -153,12 +140,12 @@ foreach ($repo in $repos) {
         $currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
         if ($currentBranch -ne $branch) {
             Write-Host "On branch '$currentBranch' (expected '$branch'), skipping." -ForegroundColor Yellow
-            continue
+            return
         }
 
         if (-not (Test-HasChangesToPush $branch)) {
             Write-Host "No changes to push, skipping."
-            continue
+            return
         }
 
         $repoFull = "$owner/$($repo.Name)"
@@ -169,7 +156,7 @@ foreach ($repo in $repos) {
 
         if (-not $repo.WaitForCI) {
             Write-Host "WaitForCI = false, continuing immediately."
-            continue
+            return
         }
 
         # Resolve workflow id only for repos that must wait on CI.
@@ -186,7 +173,7 @@ foreach ($repo in $repos) {
 
         if (-not $runId) {
             Write-Host "Workflow run not found for sha=$sha; continuing (downstream may still race if publish is delayed)." -ForegroundColor Yellow
-            continue
+            return
         }
 
         Write-Host "Matched run_id=$runId, waiting for completion..."
@@ -196,6 +183,29 @@ foreach ($repo in $repos) {
     finally {
         Pop-Location
     }
+}
+
+# ---------------------------------------------------------------------
+# Preconditions
+# ---------------------------------------------------------------------
+
+Require-Command git
+Require-Command gh
+
+# Ensure gh auth is set up
+gh auth status *> $null
+
+# ---------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------
+
+try {
+    foreach ($repo in $repos) {
+        Invoke-PushRepo -repo $repo
+    }
+}
+finally {
+    Invoke-PushRepo -repo $rootRepo
 }
 
 Write-Host "`n🎉 All repositories processed in dependency order." -ForegroundColor Green
