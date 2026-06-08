@@ -53,6 +53,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
+import net.p3pp3rf1y.devclientautomation.demo.DemoMouseMotion;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -119,6 +121,8 @@ public class DevClientAutomation {
 
     public DevClientAutomation(IEventBus modBus) {
         modBus.addListener(DevClientAutomation::clientSetup);
+        DemoCommand.init();
+        DemoMouseMotion.init();
     }
 
     private static void clientSetup(FMLClientSetupEvent event) {
@@ -1582,8 +1586,8 @@ public class DevClientAutomation {
             if (targetX < 0 || targetY < 0) {
                 return "{\"ok\":false,\"error\":\"Missing mouse coordinates\"}";
             }
-            double scale = minecraft.getWindow().getGuiScale();
-            GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), targetX * scale, targetY * scale);
+            DemoMouseMotion.moveTo(targetX, targetY, 12, () -> {
+            });
             return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
         }
 
