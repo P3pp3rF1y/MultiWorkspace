@@ -6,10 +6,14 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.commands.arguments.item.ItemInput;
@@ -20,44 +24,65 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
+import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class DemoCommand {
 	private static boolean quiet = false;
+	private static VisualMobCatchAction visualMobCatchAction;
+	private static PlayerWorldAction playerWorldAction;
 
 	private DemoCommand() {
 	}
 
 	public static void init() {
+		DemoMouseMotion.init();
+		DemoMotionRecorder.init();
 		MinecraftForge.EVENT_BUS.addListener(DemoCommand::registerCommands);
+		MinecraftForge.EVENT_BUS.addListener(DemoCommand::tickPlayerWorldActions);
+		MinecraftForge.EVENT_BUS.addListener(DemoCommand::renderPlayerWorldCamera);
+		MinecraftForge.EVENT_BUS.addListener(DemoCommand::tickVisualActions);
 		MinecraftForge.EVENT_BUS.addListener(DemoPlayback::tick);
 	}
 
@@ -122,21 +147,86 @@ public class DemoCommand {
 										.executes(context -> setNearestStorageTargetSlot(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))))));
 
+		var mobCatcher = Commands.literal("mobCatcher")
+				.then(Commands.literal("catchNearest")
+						.then(Commands.argument("selector", StringArgumentType.word())
+								.executes(context -> catchNearestMob(context.getSource(), StringArgumentType.getString(context, "selector"), 8D, true))
+								.then(Commands.argument("range", DoubleArgumentType.doubleArg(1D, 64D))
+										.executes(context -> catchNearestMob(context.getSource(), StringArgumentType.getString(context, "selector"),
+												DoubleArgumentType.getDouble(context, "range"), true)))))
+				.then(Commands.literal("catchNearby")
+						.then(Commands.argument("selector", StringArgumentType.word()).then(Commands.argument("count", IntegerArgumentType.integer(1, 20))
+								.executes(context -> catchNearbyMobs(context.getSource(), StringArgumentType.getString(context, "selector"),
+										IntegerArgumentType.getInteger(context, "count"), 8D, true))
+								.then(Commands.argument("range", DoubleArgumentType.doubleArg(1D, 64D))
+										.executes(context -> catchNearbyMobs(context.getSource(), StringArgumentType.getString(context, "selector"),
+												IntegerArgumentType.getInteger(context, "count"), DoubleArgumentType.getDouble(context, "range"), true))))))
+				.then(Commands.literal("releaseFirst").executes(context -> releaseFirstCapturedMob(context.getSource(), true)));
+
+		var playerLookAt = Commands.literal("lookAt")
+				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
+						.then(Commands.argument("z", DoubleArgumentType.doubleArg())
+								.executes(context -> lookAt(context.getSource(), positionArg(context), 20, true))
+								.then(Commands.argument("ticks", IntegerArgumentType.integer(1, 200))
+										.executes(context -> lookAt(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "ticks"), true))))));
+
+		var playerLookAtEntity = Commands.literal("lookAtEntity")
+				.then(Commands.argument("selector", StringArgumentType.word())
+						.executes(context -> lookAtEntity(context.getSource(), StringArgumentType.getString(context, "selector"), 12D, 20, true))
+						.then(Commands.argument("range", DoubleArgumentType.doubleArg(1D, 64D))
+								.executes(context -> lookAtEntity(context.getSource(), StringArgumentType.getString(context, "selector"),
+										DoubleArgumentType.getDouble(context, "range"), 20, true))
+								.then(Commands.argument("ticks", IntegerArgumentType.integer(1, 200))
+										.executes(context -> lookAtEntity(context.getSource(), StringArgumentType.getString(context, "selector"),
+												DoubleArgumentType.getDouble(context, "range"), IntegerArgumentType.getInteger(context, "ticks"), true)))));
+
+		var playerMoveTo = Commands.literal("moveTo")
+				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
+						.then(Commands.argument("z", DoubleArgumentType.doubleArg())
+								.executes(context -> moveTo(context.getSource(), positionArg(context), 200, true))
+								.then(Commands.argument("maxTicks", IntegerArgumentType.integer(1, 1000))
+										.executes(context -> moveTo(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "maxTicks"), true))))));
+
+		var playerMoveToLookingAt = Commands.literal("moveToLookingAt")
+				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
+						.then(Commands.argument("z", DoubleArgumentType.doubleArg()).then(Commands.argument("lookX", DoubleArgumentType.doubleArg())
+								.then(Commands.argument("lookY", DoubleArgumentType.doubleArg()).then(Commands.argument("lookZ", DoubleArgumentType.doubleArg())
+										.then(Commands.argument("maxTicks", IntegerArgumentType.integer(1, 1000))
+												.executes(context -> moveToLookingAt(context.getSource(), positionArg(context),
+														new Vec3(DoubleArgumentType.getDouble(context, "lookX"), DoubleArgumentType.getDouble(context, "lookY"),
+																DoubleArgumentType.getDouble(context, "lookZ")), IntegerArgumentType.getInteger(context, "maxTicks"), true)))))))));
+
+		var playerCommands = Commands.literal("player").then(Commands.literal("clearInventory").executes(context -> clearInventory(context.getSource(), true)))
+				.then(Commands.literal("hotbar").then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8))
+						.then(Commands.argument("item", ItemArgument.item(event.getBuildContext())).then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+								.executes(context -> setHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true))))))
+						.then(Commands.literal("select").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8)).executes(context -> selectHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), true)))))
+				.then(playerLookAt).then(playerLookAtEntity)
+				.then(Commands.literal("walkForward").then(Commands.argument("ticks", IntegerArgumentType.integer(1, 400))
+						.executes(context -> walkForward(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
+				.then(playerMoveTo).then(playerMoveToLookingAt);
+
+		var segmentCommands = Commands.literal("segment")
+				.then(Commands.literal("record").then(Commands.argument("name", StringArgumentType.word()).executes(context -> recordOnly(context.getSource(), "segment record " + StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("stop").executes(context -> recordOnly(context.getSource(), "segment stop")));
+
+		var motionCommands = Commands.literal("motion").then(Commands.literal("status").executes(context -> motionRecordingStatus(context.getSource())))
+				.then(Commands.literal("record").then(Commands.argument("name", StringArgumentType.word()).executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("recording").then(Commands.literal("stop").executes(context -> stopMotionRecording(context.getSource())))
+						.then(Commands.literal("start").then(Commands.argument("name", StringArgumentType.word()).executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name"))))))
+				.then(Commands.literal("stop").executes(context -> stopMotionRecording(context.getSource())));
+
 		dispatcher.register(Commands.literal("demo")
 				.then(Commands.literal("new").then(Commands.argument("name", StringArgumentType.word()).executes(context -> newDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
 				.then(Commands.literal("save").executes(context -> saveDemo(context.getSource())))
 				.then(Commands.literal("quiet").then(Commands.literal("on").executes(context -> setQuiet(context.getSource(), true)))
 						.then(Commands.literal("off").executes(context -> setQuiet(context.getSource(), false))))
 				.then(Commands.literal("wait").then(Commands.argument("ticks", IntegerArgumentType.integer(0)).executes(context -> wait(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
-				.then(Commands.literal("run").then(Commands.argument("name", StringArgumentType.word()).executes(context -> runDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("run").then(Commands.argument("name", StringArgumentType.word()).suggests((context, builder) -> suggestDemoNames(builder)).executes(context -> runDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
 				.then(Commands.literal("marker").then(Commands.literal("set").then(Commands.argument("name", StringArgumentType.word()).executes(context -> recordOnly(context.getSource(), "marker set " + StringArgumentType.getString(context, "name"))))))
-				.then(Commands.literal("player").then(Commands.literal("clearInventory").executes(context -> clearInventory(context.getSource(), true)))
-						.then(Commands.literal("hotbar").then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8))
-								.then(Commands.argument("item", ItemArgument.item(event.getBuildContext())).then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-										.executes(context -> setHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true))))))
-								.then(Commands.literal("select").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8)).executes(context -> selectHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), true))))))
+				.then(playerCommands)
 				.then(Commands.literal("container").then(lookedAtContainer).then(blockContainer))
-				.then(Commands.literal("storageTarget").then(nearbyStorageTarget).then(nearestStorageTarget))
+				.then(Commands.literal("storageTarget").then(nearbyStorageTarget).then(nearestStorageTarget)).then(mobCatcher)
 				.then(Commands.literal("backpack").then(Commands.literal("giveConfigured").then(Commands.argument("mode", StringArgumentType.word())
 						.executes(context -> giveConfiguredBackpack(context.getSource(), StringArgumentType.getString(context, "mode"), List.of(), true))
 						.then(Commands.literal("items").then(Commands.argument("items", StringArgumentType.greedyString())
@@ -144,8 +234,7 @@ public class DemoCommand {
 						.then(Commands.literal("open").executes(context -> openBackpack(context.getSource(), true))))
 				.then(Commands.literal("step").then(Commands.literal("closeScreen").executes(context -> closeScreen(context.getSource(), true)))
 						.then(Commands.literal("keybind").then(Commands.argument("action", StringArgumentType.word()).executes(context -> triggerKeybindAction(context.getSource(), StringArgumentType.getString(context, "action"), true)))))
-				.then(Commands.literal("segment").then(Commands.literal("record").then(Commands.argument("name", StringArgumentType.word()).executes(context -> recordOnly(context.getSource(), "segment record " + StringArgumentType.getString(context, "name")))))
-						.then(Commands.literal("stop").executes(context -> recordOnly(context.getSource(), "segment stop")))));
+				.then(segmentCommands).then(motionCommands));
 	}
 
 	static void success(CommandSourceStack source, Supplier<Component> message) {
@@ -164,6 +253,57 @@ public class DemoCommand {
 			source.sendSuccess(() -> Component.literal("Demo messages enabled"), false);
 		}
 		return 1;
+	}
+
+	private static int startMotionRecording(CommandSourceStack source, String name) {
+		if (name.equalsIgnoreCase("stop") || name.equalsIgnoreCase("status") || name.equalsIgnoreCase("recording")) {
+			source.sendFailure(Component.literal("Use a descriptive motion recording name, not '" + name + "'"));
+			return 0;
+		}
+		if (DemoMotionRecorder.isRecording()) {
+			source.sendFailure(Component.literal("Motion recording " + DemoMotionRecorder.recordingName() + " is already active"));
+			return 0;
+		}
+		DemoMotionRecorder.start(name);
+		success(source, () -> Component.literal("Started motion recording " + name));
+		return 1;
+	}
+
+	private static int motionRecordingStatus(CommandSourceStack source) {
+		if (!DemoMotionRecorder.isRecording()) {
+			source.sendSuccess(() -> Component.literal("No active motion recording"), false);
+			return 1;
+		}
+
+		source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "Recording %s: %d samples, %.1fs", DemoMotionRecorder.recordingName(),
+				DemoMotionRecorder.sampleCount(), DemoMotionRecorder.recordingDurationSeconds())), false);
+		return 1;
+	}
+
+	private static int stopMotionRecording(CommandSourceStack source) {
+		try {
+			Path path = DemoMotionRecorder.stop();
+			success(source, () -> Component.literal("Saved " + DemoMotionRecorder.sampleCount() + " motion samples to " + path));
+			return 1;
+		} catch (IOException | IllegalStateException e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static CompletableFuture<Suggestions> suggestDemoNames(SuggestionsBuilder builder) {
+		Path demosDirectory = Minecraft.getInstance().gameDirectory.toPath().resolve("devclientautomation").resolve("demos");
+		if (!Files.isDirectory(demosDirectory)) {
+			return builder.buildFuture();
+		}
+
+		try (var files = Files.list(demosDirectory)) {
+			files.filter(path -> path.getFileName().toString().endsWith(".json")).map(path -> path.getFileName().toString())
+					.map(fileName -> fileName.substring(0, fileName.length() - ".json".length())).sorted().forEach(builder::suggest);
+		} catch (IOException e) {
+			// Missing or unreadable demo files should not break command completion.
+		}
+		return builder.buildFuture();
 	}
 
 	private static int newDemo(CommandSourceStack source, String name) {
@@ -211,6 +351,24 @@ public class DemoCommand {
 			if (parts.length == 4 && parts[0].equals("player") && parts[1].equals("hotbar") && parts[2].equals("select")) {
 				return selectHotbar(source, Integer.parseInt(parts[3]), false);
 			}
+			if (parts.length == 6 && parts[0].equals("player") && parts[1].equals("lookAt")) {
+				return lookAt(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])),
+						Integer.parseInt(parts[5]), false);
+			}
+			if (parts.length == 5 && parts[0].equals("player") && parts[1].equals("lookAtEntity")) {
+				return lookAtEntity(source, parts[2], Double.parseDouble(parts[3]), Integer.parseInt(parts[4]), false);
+			}
+			if (parts.length == 3 && parts[0].equals("player") && parts[1].equals("walkForward")) {
+				return walkForward(source, Integer.parseInt(parts[2]), false);
+			}
+			if (parts.length == 6 && parts[0].equals("player") && parts[1].equals("moveTo")) {
+				return moveTo(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])),
+						Integer.parseInt(parts[5]), false);
+			}
+			if (parts.length == 9 && parts[0].equals("player") && parts[1].equals("moveToLookingAt")) {
+				return moveToLookingAt(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])),
+						new Vec3(Double.parseDouble(parts[5]), Double.parseDouble(parts[6]), Double.parseDouble(parts[7])), Integer.parseInt(parts[8]), false);
+			}
 			if (parts.length == 7 && parts[0].equals("container") && parts[1].equals("block") && parts[6].equals("clear")) {
 				return clearContainer(source, parts[2], new BlockPos(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5])), false);
 			}
@@ -244,6 +402,15 @@ public class DemoCommand {
 			if (parts.length == 3 && parts[0].equals("step") && parts[1].equals("keybind")) {
 				return triggerKeybindAction(source, parts[2], false);
 			}
+			if (parts.length == 4 && parts[0].equals("mobCatcher") && parts[1].equals("catchNearest")) {
+				return catchNearestMob(source, parts[2], Double.parseDouble(parts[3]), false);
+			}
+			if (parts.length == 5 && parts[0].equals("mobCatcher") && parts[1].equals("catchNearby")) {
+				return catchNearbyMobs(source, parts[2], Integer.parseInt(parts[3]), Double.parseDouble(parts[4]), false);
+			}
+			if (command.equals("mobCatcher releaseFirst")) {
+				return releaseFirstCapturedMob(source, false);
+			}
 		} catch (RuntimeException e) {
 			source.sendFailure(Component.literal(e.getMessage()));
 			return 0;
@@ -254,6 +421,53 @@ public class DemoCommand {
 	static int waitTicks(String command) {
 		String[] parts = command.split(" ");
 		return parts.length == 2 && parts[0].equals("wait") ? Integer.parseInt(parts[1]) : -1;
+	}
+
+	static boolean hasRunningAction() {
+		return visualMobCatchAction != null || playerWorldAction != null;
+	}
+
+	private static void tickPlayerWorldActions(TickEvent.ClientTickEvent event) {
+		if (event.phase != TickEvent.Phase.END || playerWorldAction == null) {
+			return;
+		}
+
+		try {
+			if (playerWorldAction.tick()) {
+				playerWorldAction.stop();
+				playerWorldAction = null;
+			}
+		} catch (RuntimeException e) {
+			playerWorldAction.player.sendSystemMessage(Component.literal(e.getMessage()));
+			playerWorldAction.stop();
+			playerWorldAction = null;
+		}
+	}
+
+	private static void renderPlayerWorldCamera(ViewportEvent.ComputeCameraAngles event) {
+		if (playerWorldAction != null) {
+			playerWorldAction.renderFrame(event);
+		}
+		if (visualMobCatchAction != null) {
+			visualMobCatchAction.renderFrame(event);
+		}
+	}
+
+	private static void tickVisualActions(TickEvent.ServerTickEvent event) {
+		if (event.phase != TickEvent.Phase.END || visualMobCatchAction == null || visualMobCatchAction.player.server != event.getServer()) {
+			return;
+		}
+
+		try {
+			if (visualMobCatchAction.tick()) {
+				setMovementKeys(false, false, false, false);
+				visualMobCatchAction = null;
+			}
+		} catch (RuntimeException e) {
+			visualMobCatchAction.player.sendSystemMessage(Component.literal(e.getMessage()));
+			setMovementKeys(false, false, false, false);
+			visualMobCatchAction = null;
+		}
 	}
 
 	private static int wait(CommandSourceStack source, int ticks, boolean record) {
@@ -323,6 +537,103 @@ public class DemoCommand {
 			source.sendFailure(Component.literal(e.getMessage()));
 			return 0;
 		}
+	}
+
+	private static int lookAt(CommandSourceStack source, Vec3 target, int ticks, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			if (!startPlayerWorldAction(source, new LookAtPositionAction(player, target, ticks))) {
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "player lookAt %.3f %.3f %.3f %d", target.x(), target.y(), target.z(), ticks));
+			}
+			success(source, () -> Component.literal("Started player lookAt action"));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int lookAtEntity(CommandSourceStack source, String selector, double range, int ticks, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			LivingEntity target = findMatchingMobs(player, selector, range).stream().findFirst()
+					.orElseThrow(() -> new IllegalArgumentException("No matching entity found for " + selector));
+			if (!startPlayerWorldAction(source, new LookAtPositionAction(player, target.getEyePosition(), ticks))) {
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "player lookAtEntity %s %.3f %d", selector, range, ticks));
+			}
+			success(source, () -> Component.literal("Started player lookAtEntity action"));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int walkForward(CommandSourceStack source, int ticks, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			if (!startPlayerWorldAction(source, new WalkForwardAction(player, ticks))) {
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record("player walkForward " + ticks);
+			}
+			success(source, () -> Component.literal("Started player walkForward action"));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int moveTo(CommandSourceStack source, Vec3 target, int maxTicks, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			if (!startPlayerWorldAction(source, new MoveToPositionAction(player, target, null, maxTicks))) {
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "player moveTo %.3f %.3f %.3f %d", target.x(), target.y(), target.z(), maxTicks));
+			}
+			success(source, () -> Component.literal("Started player moveTo action"));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int moveToLookingAt(CommandSourceStack source, Vec3 target, Vec3 lookTarget, int maxTicks, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			if (!startPlayerWorldAction(source, new MoveToPositionAction(player, target, lookTarget, maxTicks))) {
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "player moveToLookingAt %.3f %.3f %.3f %.3f %.3f %.3f %d", target.x(), target.y(),
+						target.z(), lookTarget.x(), lookTarget.y(), lookTarget.z(), maxTicks));
+			}
+			success(source, () -> Component.literal("Started player moveToLookingAt action"));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static boolean startPlayerWorldAction(CommandSourceStack source, PlayerWorldAction action) {
+		if (hasRunningAction()) {
+			source.sendFailure(Component.literal("A demo action is already running"));
+			return false;
+		}
+		playerWorldAction = action;
+		return true;
 	}
 
 	private static int clearLookedAtContainer(CommandSourceStack source, boolean record) {
@@ -569,6 +880,291 @@ public class DemoCommand {
 		return String.format(Locale.ROOT, "storageTarget nearest %.3f %.3f %.3f %s", position.x(), position.y(), position.z(), action);
 	}
 
+	private static float approachDegrees(float current, float target, float maxStep) {
+		float delta = Mth.wrapDegrees(target - current);
+		if (delta > maxStep) {
+			delta = maxStep;
+		} else if (delta < -maxStep) {
+			delta = -maxStep;
+		}
+		return current + delta;
+	}
+
+	private static float interpolateDegrees(float start, float target, float progress) {
+		return start + Mth.wrapDegrees(target - start) * progress;
+	}
+
+	private static float easeInOut(float progress) {
+		float clampedProgress = Mth.clamp(progress, 0F, 1F);
+		float remaining = 1F - clampedProgress;
+		return 1F - remaining * remaining * remaining * remaining;
+	}
+
+	private static Rotation rotationTo(ServerPlayer player, Vec3 target) {
+		return rotationFromEye(currentEyePosition(player), target);
+	}
+
+	private static Rotation rotationFromEye(Vec3 eyePosition, Vec3 target) {
+		Vec3 toTarget = target.subtract(eyePosition);
+		double horizontalDistance = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+		return new Rotation((float) (Math.toDegrees(Math.atan2(toTarget.z, toTarget.x)) - 90F),
+				(float) -Math.toDegrees(Math.atan2(toTarget.y, horizontalDistance)));
+	}
+
+	private static Rotation levelRotationTo(ServerPlayer player, Vec3 target) {
+		Vec3 eyePosition = currentEyePosition(player);
+		return rotationTo(player, new Vec3(target.x(), eyePosition.y, target.z()));
+	}
+
+	private static double horizontalDistance(Vec3 first, Vec3 second) {
+		double x = first.x() - second.x();
+		double z = first.z() - second.z();
+		return Math.sqrt(x * x + z * z);
+	}
+
+	private static boolean isCloseToTarget(ServerPlayer player, Vec3 target, double desiredDistance) {
+		Vec3 toTarget = target.subtract(currentPosition(player));
+		double horizontalDistance = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+		return horizontalDistance <= desiredDistance;
+	}
+
+	private static Vec3 currentPosition(ServerPlayer player) {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft.player != null ? minecraft.player.position() : player.position();
+	}
+
+	private static Vec3 currentEyePosition(ServerPlayer player) {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft.player != null ? minecraft.player.getEyePosition() : player.getEyePosition();
+	}
+
+	private static float currentYaw(ServerPlayer player) {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft.player != null ? minecraft.player.getYRot() : player.getYRot();
+	}
+
+	private static float currentPitch(ServerPlayer player) {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft.player != null ? minecraft.player.getXRot() : player.getXRot();
+	}
+
+	private static void rotatePlayer(ServerPlayer player, float yaw, float pitch) {
+		player.setYRot(yaw);
+		player.setXRot(pitch);
+		player.setYHeadRot(yaw);
+		player.setYBodyRot(yaw);
+		Minecraft minecraft = Minecraft.getInstance();
+		Runnable applyClientRotation = () -> {
+			if (minecraft.player != null) {
+				minecraft.player.setYRot(yaw);
+				minecraft.player.setXRot(pitch);
+				minecraft.player.setYHeadRot(yaw);
+				minecraft.player.setYBodyRot(yaw);
+			}
+		};
+		if (minecraft.isSameThread()) {
+			applyClientRotation.run();
+		} else {
+			minecraft.execute(applyClientRotation);
+		}
+	}
+
+	private static void setForwardKeyDown(boolean down) {
+		setMovementKeys(down, false, false, false);
+	}
+
+	private static void setMovementKeysForTarget(ServerPlayer player, Vec3 target, float viewYaw) {
+		Rotation movementRotation = levelRotationTo(player, target);
+		float delta = Mth.wrapDegrees(movementRotation.yaw() - viewYaw);
+		boolean forward = Math.abs(delta) <= 67.5F;
+		boolean back = Math.abs(delta) >= 112.5F;
+		boolean right = delta > 22.5F && delta < 157.5F;
+		boolean left = delta < -22.5F && delta > -157.5F;
+		setMovementKeys(forward, back, left, right);
+	}
+
+	private static void setMovementKeys(boolean forward, boolean back, boolean left, boolean right) {
+		Minecraft minecraft = Minecraft.getInstance();
+		Runnable applyMovementKeys = () -> {
+			minecraft.options.keyUp.setDown(forward);
+			minecraft.options.keyDown.setDown(back);
+			minecraft.options.keyLeft.setDown(left);
+			minecraft.options.keyRight.setDown(right);
+		};
+		if (minecraft.isSameThread()) {
+			applyMovementKeys.run();
+		} else {
+			minecraft.execute(applyMovementKeys);
+		}
+	}
+
+	private static int catchNearestMob(CommandSourceStack source, String selector, double range, boolean record) {
+		try {
+			if (hasRunningAction()) {
+				source.sendFailure(Component.literal("A demo action is already running"));
+				return 0;
+			}
+			ensureMobCatcherAvailable();
+
+			ServerPlayer player = source.getPlayerOrException();
+			LivingEntity target = findMatchingMobs(player, selector, range).stream().findFirst()
+					.orElseThrow(() -> new IllegalArgumentException("No matching mob catcher target found for " + selector));
+			player.getInventory().selected = 0;
+			visualMobCatchAction = new VisualMobCatchAction(player, target, player.tickCount, 100);
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "mobCatcher catchNearest %s %.3f", selector, range));
+			}
+			success(source, () -> Component.literal("Started visual mob catcher capture for " + selector));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int catchNearbyMobs(CommandSourceStack source, String selector, int count, double range, boolean record) {
+		try {
+			ServerPlayer player = source.getPlayerOrException();
+			player.getInventory().selected = 0;
+			List<LivingEntity> targets = findMatchingMobs(player, selector, range);
+			int captured = 0;
+			for (LivingEntity target : targets) {
+				if (captured >= count) {
+					break;
+				}
+				player.lookAt(EntityAnchorArgument.Anchor.EYES, target.getEyePosition());
+				InteractionResult result = invokeMobCatcherCapture(player, target);
+				if (result.consumesAction()) {
+					captured++;
+				}
+			}
+
+			if (captured == 0) {
+				source.sendFailure(Component.literal("No matching mob catcher targets captured for " + selector));
+				return 0;
+			}
+			if (record) {
+				DemoSession.get().record(String.format(Locale.ROOT, "mobCatcher catchNearby %s %d %.3f", selector, count, range));
+			}
+			int capturedCount = captured;
+			success(source, () -> Component.literal("Captured " + capturedCount + " mob(s) matching " + selector));
+			return captured;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static List<LivingEntity> findMatchingMobs(ServerPlayer player, String selector, double range) {
+		AABB searchBox = player.getBoundingBox().inflate(range);
+		List<LivingEntity> targets = player.level().getEntitiesOfClass(LivingEntity.class, searchBox,
+				entity -> entity != player && entity.isAlive() && matchesMobSelector(entity, selector));
+		targets.sort(Comparator.comparingDouble(entity -> entity.distanceToSqr(player)));
+		return targets;
+	}
+
+	private static boolean matchesMobSelector(LivingEntity entity, String selector) {
+		String normalizedSelector = selector.toLowerCase(Locale.ROOT);
+		return switch (normalizedSelector) {
+			case "any" -> true;
+			case "animal", "animals", "passive" -> !isMobCatcherHostile(entity);
+			case "hostile", "hostiles", "monster", "monsters" -> isMobCatcherHostile(entity);
+			default -> {
+				String selectorId = normalizedSelector.contains(":")
+						? normalizedSelector
+						: normalizedSelector.contains(".") ? normalizedSelector.replaceFirst("\\.", ":") : "minecraft:" + normalizedSelector;
+				String entityId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
+				yield entityId.equals(selectorId) || entityId.endsWith(":" + normalizedSelector);
+			}
+		};
+	}
+
+	private static boolean isMobCatcherHostile(LivingEntity entity) {
+		try {
+			Class<?> handlerClass = Class.forName("net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherHandler");
+			Method isHostile = handlerClass.getMethod("isHostile", LivingEntity.class);
+			return (boolean) isHostile.invoke(null, entity);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Unable to query mob catcher hostility: " + e.getMessage(), e);
+		}
+	}
+
+	private static void ensureMobCatcherAvailable() {
+		try {
+			Class.forName("net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherHandler");
+		} catch (ClassNotFoundException e) {
+			throw new IllegalStateException("Mob catcher upgrade is not available in the installed Sophisticated Backpacks jar", e);
+		}
+	}
+
+	private static InteractionResult invokeMobCatcherCapture(ServerPlayer player, LivingEntity entity) {
+		try {
+			Class<?> handlerClass = Class.forName("net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherHandler");
+			Method tryCapture = handlerClass.getMethod("tryCapture", net.minecraft.world.entity.player.Player.class, InteractionHand.class, LivingEntity.class);
+			return (InteractionResult) tryCapture.invoke(null, player, InteractionHand.MAIN_HAND, entity);
+		} catch (InvocationTargetException e) {
+			Throwable cause = e.getCause() == null ? e : e.getCause();
+			throw new IllegalStateException("Mob catcher capture failed: " + cause.getMessage(), cause);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Mob catcher upgrade is not available at runtime: " + e.getMessage(), e);
+		}
+	}
+
+	private static InteractionResult interactWithMobCatcherTarget(ServerPlayer player, LivingEntity entity) {
+		if (!(player.getItemInHand(InteractionHand.MAIN_HAND).getItem() instanceof BackpackItem)) {
+			throw new IllegalStateException("Hold the mob catcher backpack in the main hand before capturing");
+		}
+
+		Vec3 localHitPosition = entity.getBoundingBox().getCenter().subtract(entity.position());
+		PlayerInteractEvent.EntityInteractSpecific event = new PlayerInteractEvent.EntityInteractSpecific(player, InteractionHand.MAIN_HAND, entity,
+				localHitPosition);
+		MinecraftForge.EVENT_BUS.post(event);
+		return event.getCancellationResult();
+	}
+
+	private static int releaseFirstCapturedMob(CommandSourceStack source, boolean record) {
+		Minecraft.getInstance().execute(() -> {
+			try {
+				releaseFirstCapturedMobOnClient(source);
+			} catch (Exception e) {
+				source.sendFailure(Component.literal(e.getMessage()));
+			}
+		});
+		if (record) {
+			DemoSession.get().record("mobCatcher releaseFirst");
+		}
+		success(source, () -> Component.literal("Clicked first captured mob release area"));
+		return 1;
+	}
+
+	private static void releaseFirstCapturedMobOnClient(CommandSourceStack source) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (!(minecraft.screen instanceof AbstractContainerScreen<?> containerScreen)
+				|| !(containerScreen.getMenu() instanceof BackpackContainer backpackContainer)) {
+			throw new IllegalStateException("Open a backpack screen before releasing captured mobs");
+		}
+
+		List<CapturedMob> capturedMobs = MobCatcherStorage.getCapturedMobs(backpackContainer.getStorageWrapper());
+		if (capturedMobs.isEmpty()) {
+			throw new IllegalStateException("The open backpack has no captured mobs");
+		}
+
+		CapturedMob capturedMob = capturedMobs.get(0);
+		if (capturedMob.slot() >= backpackContainer.realInventorySlots.size()) {
+			throw new IllegalStateException("Captured mob slot is outside the visible backpack inventory");
+		}
+
+		Slot slot = backpackContainer.realInventorySlots.get(capturedMob.slot());
+		int x = containerScreen.getGuiLeft() + slot.x - 1;
+		int y = containerScreen.getGuiTop() + slot.y - 1;
+		int clickX = x + capturedMob.width() * 9;
+		int clickY = y + capturedMob.height() * 9;
+		DemoMouseMotion.moveTo(clickX, clickY, 12, 8, () -> {
+			containerScreen.mouseClicked(clickX, clickY, 0);
+			containerScreen.mouseReleased(clickX, clickY, 0);
+		});
+	}
+
 	private static BlockPos getLookedAtBlock(ServerPlayer player) {
 		Vec3 eyePosition = player.getEyePosition(1F);
 		Vec3 lookPosition = eyePosition.add(player.getViewVector(1F).scale(8D));
@@ -733,12 +1329,19 @@ public class DemoCommand {
 	}
 
 	private static ItemStack createConfiguredBackpack(String mode, List<ItemSeed> itemSeeds) {
-		ItemStack backpack = new ItemStack(ModItems.DIAMOND_BACKPACK.get());
+		String normalizedMode = mode.toLowerCase(Locale.ROOT);
+		ItemStack backpack = new ItemStack(normalizedMode.equals("advanced_mob_catcher") || normalizedMode.equals("advanced_mobcatcher")
+				? ModItems.NETHERITE_BACKPACK.get()
+				: ModItems.DIAMOND_BACKPACK.get());
 		IBackpackWrapper wrapper = new BackpackWrapper(backpack);
 		wrapper.setSlotNumbers(80, 5);
 		UpgradeHandler upgrades = wrapper.getUpgradeHandler();
-		if (mode.equalsIgnoreCase("restock")) {
+		if (normalizedMode.equals("restock")) {
 			upgrades.setStackInSlot(0, new ItemStack(ModItems.RESTOCK_UPGRADE.get()));
+		} else if (normalizedMode.equals("mob_catcher") || normalizedMode.equals("mobcatcher") || normalizedMode.equals("basic_mob_catcher")) {
+			upgrades.setStackInSlot(0, createItemStack("sophisticatedbackpacks:mob_catcher_upgrade", 1));
+		} else if (normalizedMode.equals("advanced_mob_catcher") || normalizedMode.equals("advanced_mobcatcher")) {
+			upgrades.setStackInSlot(0, createItemStack("sophisticatedbackpacks:advanced_mob_catcher_upgrade", 1));
 		} else {
 			upgrades.setStackInSlot(0, new ItemStack(ModItems.DEPOSIT_UPGRADE.get()));
 		}
@@ -752,7 +1355,15 @@ public class DemoCommand {
 		return backpack;
 	}
 
+	private static ItemStack createItemStack(String itemName, int count) {
+		return new ItemStack(itemFromName(itemName), count);
+	}
+
 	private static List<ItemSeed> defaultBackpackItemSeeds(String mode) {
+		String normalizedMode = mode.toLowerCase(Locale.ROOT);
+		if (normalizedMode.contains("mob_catcher") || normalizedMode.contains("mobcatcher")) {
+			return List.of();
+		}
 		int count = mode.equalsIgnoreCase("restock") ? 16 : 32;
 		return List.of(new ItemSeed("minecraft:diamond", count), new ItemSeed("minecraft:emerald", count), new ItemSeed("minecraft:copper_ingot", count), new ItemSeed("minecraft:redstone", count), new ItemSeed("minecraft:gold_ingot", count));
 	}
@@ -795,6 +1406,350 @@ public class DemoCommand {
 	}
 
 	private record StorageTarget(int index, String kind, Vec3 position, IItemHandler itemHandler) {
+	}
+
+	private record Rotation(float yaw, float pitch) {
+	}
+
+	private abstract static class PlayerWorldAction {
+		protected final ServerPlayer player;
+
+		private PlayerWorldAction(ServerPlayer player) {
+			this.player = player;
+		}
+
+		protected abstract boolean tick();
+
+		protected void renderFrame(ViewportEvent.ComputeCameraAngles event) {
+			// Default action has no camera component.
+		}
+
+		protected void stop() {
+			setMovementKeys(false, false, false, false);
+			DemoMotionRecorder.clearActionDebug();
+		}
+	}
+
+	private static class EasedCameraTurn {
+		private static final float MAX_FRAME_YAW_STEP = 2F;
+		private static final float MAX_FRAME_PITCH_STEP = 2F;
+
+		private Float startYaw;
+		private Float startPitch;
+		private Float targetYaw;
+		private Float targetPitch;
+		private long startNanos;
+		private float yaw;
+		private float pitch;
+
+		private Rotation render(ServerPlayer player, ViewportEvent.ComputeCameraAngles event, Rotation targetRotation, int ticks, int maxTicks) {
+			return render(player, event, targetRotation, ticks, maxTicks, false);
+		}
+
+		private Rotation render(ServerPlayer player, ViewportEvent.ComputeCameraAngles event, Rotation targetRotation, int ticks, int maxTicks, boolean freezeTarget) {
+			if (startYaw == null || startPitch == null) {
+				startYaw = event.getYaw();
+				startPitch = event.getPitch();
+				targetYaw = targetRotation.yaw();
+				targetPitch = targetRotation.pitch();
+				startNanos = System.nanoTime();
+				yaw = startYaw;
+				pitch = startPitch;
+			} else if (!freezeTarget) {
+				targetYaw = targetRotation.yaw();
+				targetPitch = targetRotation.pitch();
+			}
+
+			float durationNanos = Math.max(1F, maxTicks) * 50_000_000F;
+			float progress = easeInOut((System.nanoTime() - startNanos) / durationNanos);
+			float targetFrameYaw = interpolateDegrees(startYaw, targetYaw, progress);
+			float targetFramePitch = Mth.lerp(progress, startPitch, targetPitch);
+			yaw = approachDegrees(yaw, targetFrameYaw, MAX_FRAME_YAW_STEP);
+			pitch += Mth.clamp(targetFramePitch - pitch, -MAX_FRAME_PITCH_STEP, MAX_FRAME_PITCH_STEP);
+			event.setYaw(yaw);
+			event.setPitch(pitch);
+			rotatePlayer(player, yaw, pitch);
+			return new Rotation(yaw, pitch);
+		}
+
+		private void reset() {
+			startYaw = null;
+			startPitch = null;
+			targetYaw = null;
+			targetPitch = null;
+			startNanos = 0L;
+		}
+	}
+
+	private static class LookAtPositionAction extends PlayerWorldAction {
+		private final Vec3 target;
+		private final int maxTicks;
+		private final EasedCameraTurn cameraTurn = new EasedCameraTurn();
+		private int ticks;
+
+		private LookAtPositionAction(ServerPlayer player, Vec3 target, int maxTicks) {
+			super(player);
+			this.target = target;
+			this.maxTicks = maxTicks;
+		}
+
+		@Override
+		protected boolean tick() {
+			ticks++;
+			Rotation targetRotation = rotationTo(player, target);
+			boolean closeEnough = Math.abs(Mth.wrapDegrees(targetRotation.yaw() - currentYaw(player))) < 1.5F
+					&& Math.abs(targetRotation.pitch() - currentPitch(player)) < 1.5F;
+			return closeEnough || ticks >= maxTicks;
+		}
+
+		@Override
+		protected void renderFrame(ViewportEvent.ComputeCameraAngles event) {
+			Rotation targetRotation = rotationTo(player, target);
+			Rotation cameraRotation = cameraTurn.render(player, event, targetRotation, ticks, maxTicks);
+			DemoMotionRecorder.setActionDebug(new DemoMotionRecorder.ActionDebug("lookAt", "turn", ticks, maxTicks,
+					currentEyePosition(player).distanceTo(target), target.x, target.y, target.z, target.x, target.y, target.z, cameraRotation.yaw(),
+					cameraRotation.pitch(), targetRotation.yaw(), targetRotation.pitch(), cameraRotation.yaw()));
+		}
+	}
+
+	private static class WalkForwardAction extends PlayerWorldAction {
+		private final int maxTicks;
+		private int ticks;
+
+		private WalkForwardAction(ServerPlayer player, int maxTicks) {
+			super(player);
+			this.maxTicks = maxTicks;
+		}
+
+		@Override
+		protected boolean tick() {
+			ticks++;
+			setForwardKeyDown(true);
+			return ticks >= maxTicks;
+		}
+	}
+
+	private static class MoveToPositionAction extends PlayerWorldAction {
+		private static final int TRAVEL_TURN_TICKS = 24;
+		private static final int LOOK_TARGET_TURN_TICKS = 34;
+
+		private final Vec3 target;
+		private final Vec3 lookTarget;
+		private final int maxTicks;
+		private final double initialHorizontalDistance;
+		private final EasedCameraTurn travelCameraTurn = new EasedCameraTurn();
+		private final EasedCameraTurn lookCameraTurn = new EasedCameraTurn();
+		private boolean lookingAtTarget;
+		private int lookStartTick;
+		private float movementReferenceYaw;
+		private int ticks;
+
+		private MoveToPositionAction(ServerPlayer player, Vec3 target, Vec3 lookTarget, int maxTicks) {
+			super(player);
+			this.target = target;
+			this.lookTarget = lookTarget;
+			this.maxTicks = maxTicks;
+			initialHorizontalDistance = Math.max(0.001D, horizontalDistance(currentPosition(player), target));
+			movementReferenceYaw = currentYaw(player);
+		}
+
+		@Override
+		protected boolean tick() {
+			ticks++;
+			if (lookTarget != null && lookingAtTarget) {
+				if (!isCloseToTarget(player, target, 0.35D)) {
+					setMovementKeysForTarget(player, target, movementReferenceYaw);
+				} else {
+					setMovementKeys(false, false, false, false);
+				}
+				return ticks - lookStartTick >= LOOK_TARGET_TURN_TICKS || ticks >= maxTicks;
+			}
+
+			if (isCloseToTarget(player, target, 0.35D)) {
+				setMovementKeys(false, false, false, false);
+				if (lookTarget != null) {
+					lookingAtTarget = true;
+					lookStartTick = ticks;
+					lookCameraTurn.reset();
+					return false;
+				}
+			} else {
+				float travelYaw = levelRotationTo(player, target).yaw();
+				float yawError = Math.abs(Mth.wrapDegrees(travelYaw - movementReferenceYaw));
+				if (yawError > 75F) {
+					setMovementKeys(false, false, false, false);
+				} else {
+					setMovementKeysForTarget(player, target, movementReferenceYaw);
+				}
+			}
+			return lookTarget == null && currentPosition(player).distanceToSqr(target) < 0.25D || ticks >= maxTicks;
+		}
+
+		@Override
+		protected void renderFrame(ViewportEvent.ComputeCameraAngles event) {
+			Rotation travelRotation = levelRotationTo(player, target);
+			if (lookTarget == null || !shouldLookAtTargetYet()) {
+				Rotation cameraRotation = travelCameraTurn.render(player, event, travelRotation, ticks, Math.min(maxTicks, TRAVEL_TURN_TICKS));
+				movementReferenceYaw = cameraRotation.yaw();
+				recordActionDebug("travel", cameraRotation, travelRotation, target);
+				return;
+			}
+
+			if (!lookingAtTarget) {
+				lookingAtTarget = true;
+				lookStartTick = ticks;
+				lookCameraTurn.reset();
+			}
+
+			Rotation targetRotation = rotationTo(player, lookTarget);
+			Rotation cameraRotation = lookCameraTurn.render(player, event, targetRotation, ticks - lookStartTick, LOOK_TARGET_TURN_TICKS, true);
+			movementReferenceYaw = cameraRotation.yaw();
+			recordActionDebug("lookTarget", cameraRotation, targetRotation, lookTarget);
+		}
+
+		private void recordActionDebug(String phase, Rotation cameraRotation, Rotation targetRotation, Vec3 currentLookTarget) {
+			DemoMotionRecorder.setActionDebug(new DemoMotionRecorder.ActionDebug("moveTo", phase, ticks, maxTicks,
+					horizontalDistance(currentPosition(player), target), target.x, target.y, target.z, currentLookTarget.x, currentLookTarget.y,
+					currentLookTarget.z, cameraRotation.yaw(), cameraRotation.pitch(), targetRotation.yaw(), targetRotation.pitch(), movementReferenceYaw));
+		}
+
+		private boolean shouldLookAtTargetYet() {
+			double remainingDistance = horizontalDistance(currentPosition(player), target);
+			float moveProgress = (float) Mth.clamp(1D - remainingDistance / initialHorizontalDistance, 0D, 1D);
+			return moveProgress >= 0.45F;
+		}
+	}
+
+	private static class VisualMobCatchAction {
+		private static final int PRE_CLICK_SNEAK_TICKS = 10;
+		private static final int POST_CLICK_SNEAK_TICKS = 10;
+		private static final int TRAVEL_TURN_TICKS = 24;
+		private static final int LOOK_TARGET_TURN_TICKS = 32;
+
+		private final ServerPlayer player;
+		private final LivingEntity target;
+		private final int startTick;
+		private final int maxTicks;
+		private final double initialHorizontalDistance;
+		private final EasedCameraTurn travelCameraTurn = new EasedCameraTurn();
+		private final EasedCameraTurn lookCameraTurn = new EasedCameraTurn();
+		private float movementReferenceYaw;
+		private boolean lookingAtTarget;
+		private int lookStartTick;
+		private int sneakStartTick = -1;
+		private int clickTick = -1;
+
+		private VisualMobCatchAction(ServerPlayer player, LivingEntity target, int startTick, int maxTicks) {
+			this.player = player;
+			this.target = target;
+			this.startTick = startTick;
+			this.maxTicks = maxTicks;
+			initialHorizontalDistance = Math.max(0.001D, horizontalDistance(currentPosition(player), target.position()));
+			movementReferenceYaw = currentYaw(player);
+		}
+
+		private boolean tick() {
+			if (!target.isAlive()) {
+				player.setShiftKeyDown(false);
+				setMovementKeys(false, false, false, false);
+				return true;
+			}
+
+			int age = player.tickCount - startTick;
+			Vec3 targetPosition = target.position();
+			double horizontalDistance = horizontalDistance(currentPosition(player), targetPosition);
+			player.getInventory().selected = 0;
+
+			if (clickTick >= 0) {
+				setMovementKeys(false, false, false, false);
+				player.setShiftKeyDown(true);
+				if (player.tickCount - clickTick >= POST_CLICK_SNEAK_TICKS) {
+					player.setShiftKeyDown(false);
+					return true;
+				}
+				return false;
+			}
+
+			boolean closeEnough = horizontalDistance <= 2.35D;
+			if (closeEnough && !lookingAtTarget) {
+				lookingAtTarget = true;
+				lookStartTick = age;
+				lookCameraTurn.reset();
+			}
+
+			if (!closeEnough) {
+				float travelYaw = levelRotationTo(player, targetPosition).yaw();
+				float yawError = Math.abs(Mth.wrapDegrees(travelYaw - movementReferenceYaw));
+				if (yawError > 75F) {
+					setMovementKeys(false, false, false, false);
+				} else {
+					setMovementKeysForTarget(player, targetPosition, movementReferenceYaw);
+				}
+			} else {
+				setMovementKeys(false, false, false, false);
+			}
+
+			boolean lookSettled = lookingAtTarget && age - lookStartTick >= LOOK_TARGET_TURN_TICKS;
+			boolean shouldSneak = closeEnough && (lookSettled || age > 20);
+			if (shouldSneak) {
+				if (sneakStartTick < 0) {
+					sneakStartTick = player.tickCount;
+				}
+				player.setShiftKeyDown(true);
+			} else {
+				player.setShiftKeyDown(false);
+				sneakStartTick = -1;
+			}
+
+			boolean sneakedLongEnough = sneakStartTick >= 0 && player.tickCount - sneakStartTick >= PRE_CLICK_SNEAK_TICKS;
+			if ((closeEnough && lookSettled && sneakedLongEnough) || age >= maxTicks) {
+				rotatePlayer(player, currentYaw(player), currentPitch(player));
+				setMovementKeys(false, false, false, false);
+				player.setShiftKeyDown(true);
+				player.swing(InteractionHand.MAIN_HAND, true);
+				InteractionResult result = interactWithMobCatcherTarget(player, target);
+				if (!result.consumesAction()) {
+					throw new IllegalStateException("Mob catcher sneak right-click did not capture " + ForgeRegistries.ENTITY_TYPES.getKey(target.getType()));
+				}
+				clickTick = player.tickCount;
+			}
+			return false;
+		}
+
+		private void renderFrame(ViewportEvent.ComputeCameraAngles event) {
+			if (!target.isAlive()) {
+				return;
+			}
+
+			int age = player.tickCount - startTick;
+			double remainingDistance = horizontalDistance(currentPosition(player), target.position());
+			if (!lookingAtTarget && remainingDistance > 2.35D) {
+				Rotation travelRotation = levelRotationTo(player, target.position());
+				Rotation cameraRotation = travelCameraTurn.render(player, event, travelRotation, age, Math.min(maxTicks, TRAVEL_TURN_TICKS));
+				movementReferenceYaw = cameraRotation.yaw();
+				DemoMotionRecorder.setActionDebug(new DemoMotionRecorder.ActionDebug("mobCatcher", "travel", age, maxTicks, remainingDistance,
+						target.position().x, target.position().y, target.position().z, target.position().x, currentEyePosition(player).y, target.position().z,
+						cameraRotation.yaw(), cameraRotation.pitch(), travelRotation.yaw(), travelRotation.pitch(), movementReferenceYaw));
+				return;
+			}
+
+			if (!lookingAtTarget) {
+				lookingAtTarget = true;
+				lookStartTick = age;
+				lookCameraTurn.reset();
+			}
+
+			float partialTick = (float) event.getPartialTick();
+			Minecraft minecraft = Minecraft.getInstance();
+			Vec3 eyePosition = minecraft.player != null ? minecraft.player.getEyePosition(partialTick) : player.getEyePosition(partialTick);
+			Vec3 targetEyePosition = target.getEyePosition(partialTick);
+			Rotation targetRotation = rotationFromEye(eyePosition, targetEyePosition);
+			Rotation cameraRotation = lookCameraTurn.render(player, event, targetRotation, age - lookStartTick, LOOK_TARGET_TURN_TICKS, true);
+			movementReferenceYaw = cameraRotation.yaw();
+			DemoMotionRecorder.setActionDebug(new DemoMotionRecorder.ActionDebug("mobCatcher", clickTick >= 0 ? "postClick" : "lookTarget", age, maxTicks,
+					remainingDistance, target.position().x, target.position().y, target.position().z, targetEyePosition.x, targetEyePosition.y,
+					targetEyePosition.z, cameraRotation.yaw(), cameraRotation.pitch(), targetRotation.yaw(), targetRotation.pitch(), movementReferenceYaw));
+		}
 	}
 
 	private record SiaReflection(Method getBlockEntitiesInRange, Method mayInteract, Method distanceSquared, Method getBlockHandlerFor,

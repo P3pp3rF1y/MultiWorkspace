@@ -41,6 +41,10 @@ public class DemoPlayback {
 			return;
 		}
 
+		if (DemoCommand.hasRunningAction()) {
+			return;
+		}
+
 		String command = COMMANDS.poll();
 		if (command == null) {
 			CommandSourceStack completedSource = source;
