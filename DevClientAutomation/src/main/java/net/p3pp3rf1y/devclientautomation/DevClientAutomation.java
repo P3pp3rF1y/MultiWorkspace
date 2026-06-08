@@ -53,6 +53,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -123,6 +124,7 @@ public class DevClientAutomation {
 
     private static void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+            DemoCommand.init();
             if (server == null) {
                 server = new AutomationServer();
                 server.start();
