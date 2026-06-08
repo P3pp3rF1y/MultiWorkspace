@@ -89,12 +89,6 @@ repositories {
         }
     }
     maven {
-        url = "https://maven.octo-studios.com/#/releases"
-        content {
-            includeGroup 'top.theillusivec4.curios'
-        }
-    }
-    maven {
         url = "https://maven.createmod.net"
         content {
             includeGroupByRegex "com.simibubi.*"
@@ -302,7 +296,7 @@ dependencies {
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
 
     if (minimalDevClientRuntime && curiosDevClientRuntime) {
-        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
     }
 
     if (!minimalDevClientRuntime) {
@@ -320,7 +314,7 @@ dependencies {
         runtimeOnly "curse.maven:zeta-968868:${zeta_cf_file_id}"
         runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
         runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
-        runtimeOnly "curse.maven:curios-309927:${curios_cf_file_id}"
+        runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
         runtimeOnly "curse.maven:balm-531761:${balm_cf_file_id}"
         runtimeOnly "curse.maven:craftingtweaks-233071:${crafting_tweaks_cf_file_id}"
         runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
@@ -342,6 +336,9 @@ dependencies {
         runtimeOnly "curse.maven:twilightforest-227639:6472889"
         runtimeOnly "curse.maven:ftbstuffandthings-1197860:6610559"
         runtimeOnly "curse.maven:architectury-419699:5786327"
+
+        runtimeOnly "curse.maven:shatterlib-916747:8040848"
+        runtimeOnly "curse.maven:relics-445274:8158315"
 
         runtimeOnly "org.appliedenergistics:appliedenergistics2:${ae2_version}"
 
