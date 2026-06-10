@@ -1,0 +1,666 @@
+{
+  "name": "storage_gui_regressions",
+  "scenarios": [
+    {
+      "name": "small_storage_layout_baseline",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 16 },
+        { "slot": 8, "item": "minecraft:iron_ingot", "count": 4 },
+        { "slot": 17, "item": "minecraft:diamond", "count": 2 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:stick", "count": 12 }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 17 },
+          { "area": "player", "index": 0 }
+        ] },
+        { "type": "assertSlotContents", "slot": { "area": "storage", "index": 0 }, "item": "minecraft:cobblestone", "count": 16 },
+        { "type": "assertSlotContents", "slot": { "area": "player", "index": 0 }, "item": "minecraft:stick", "count": 12 }
+      ]
+    },
+    {
+      "name": "small_storage_no_sort_memory_layout",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 2, "item": "minecraft:dirt", "count": 8 },
+        { "slot": 10, "item": "minecraft:emerald", "count": 1 },
+        { "slot": 17, "item": "minecraft:diamond", "count": 2 }
+      ],
+      "noSortSlots": [2, 17],
+      "memorySlots": [10],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertProtectedStorageSlots", "slots": [2, 10, 17] },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [2, 10, 17] },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "storage", "index": 2 },
+          { "area": "storage", "index": 10 },
+          { "area": "storage", "index": 17 }
+        ] }
+      ]
+    },
+    {
+      "name": "large_storage_scroll_top_hidden_bottom",
+      "inventorySlots": 81,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 0, "item": "minecraft:stone", "count": 8 },
+        { "slot": 40, "item": "minecraft:gold_ingot", "count": 6 },
+        { "slot": 80, "item": "minecraft:lapis_lazuli", "count": 9 }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 8 }
+        ] },
+        { "type": "assertSlotRefsNotFind", "slots": [
+          { "area": "storage", "index": 80 }
+        ] },
+        { "type": "scrollStorage", "count": 20 },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_left_click_matrix",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 2, "item": "minecraft:dirt", "count": 8 },
+        { "slot": 4, "item": "minecraft:stone", "count": 4 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_planks", "count": 2 },
+        { "slot": 10, "item": "minecraft:coal", "count": 6 }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 2 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 2 }, "button": "left" },
+        { "type": "assertCarriedEmpty" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 1 }, "button": "left" },
+        { "type": "assertCarriedEmpty" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 4 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 5 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_right_click_matrix",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 2 },
+        { "slot": 3, "item": "minecraft:stone", "count": 6 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:coal", "count": 2 }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 0 }, "button": "right" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 1 }, "button": "right" },
+        { "type": "assertCarriedEmpty" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 0 }, "button": "right" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 2 }, "button": "right" },
+        { "type": "assertCarriedEmpty" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_shift_click_matrix",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 2, "item": "minecraft:emerald", "count": 1 },
+        { "slot": 10, "item": "minecraft:diamond", "count": 2 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:stick", "count": 12 }
+      ],
+      "noSortSlots": [2],
+      "memorySlots": [10],
+      "actions": [
+        { "type": "assertProtectedStorageSlots", "slots": [2, 10] },
+        { "type": "shiftClickSlot", "slot": { "area": "storage", "index": 2 } },
+        { "type": "shiftClickSlot", "slot": { "area": "storage", "index": 10 } },
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_pickup_all_matrix",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 0, "item": "minecraft:stone", "count": 5 },
+        { "slot": 3, "item": "minecraft:stone", "count": 6 },
+        { "slot": 10, "item": "minecraft:stone", "count": 7 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:stone", "count": 4 }
+      ],
+      "actions": [
+        { "type": "setCarriedStack", "item": "minecraft:stone", "count": 1 },
+        { "type": "pickupAllSlot", "slot": { "area": "storage", "index": 0 } },
+        { "type": "assertCarriedStack", "item": "minecraft:stone", "count": -1 },
+        { "type": "setCarriedStack" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_drag_left_distribution",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "actions": [
+        { "type": "dragCarriedStack", "item": "minecraft:andesite", "count": 12, "button": "left", "slots": [
+          { "area": "storage", "index": 3 },
+          { "area": "storage", "index": 4 },
+          { "area": "storage", "index": 5 },
+          { "area": "player", "index": 3 }
+        ] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "storage_player_drag_right_distribution",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "actions": [
+        { "type": "dragCarriedStack", "item": "minecraft:diorite", "count": 8, "button": "right", "slots": [
+          { "area": "storage", "index": 6 },
+          { "area": "storage", "index": 7 },
+          { "area": "player", "index": 4 }
+        ] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "hotbar_swap_storage_player",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 16 }
+      ],
+      "playerContents": [
+        { "slot": 0, "item": "minecraft:torch", "count": 12 }
+      ],
+      "actions": [
+        { "type": "hotbarSwapSlot", "slot": { "area": "storage", "index": 0 }, "hotbarSlot": 0 },
+        { "type": "hotbarSwapSlot", "slot": { "area": "player", "index": 0 }, "hotbarSlot": 0 },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "throw_storage_player_slots",
+      "inventorySlots": 18,
+      "upgradeSlots": 3,
+      "contents": [
+        { "slot": 2, "item": "minecraft:flint", "count": 3 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:string", "count": 3 }
+      ],
+      "actions": [
+        { "type": "throwSlot", "slot": { "area": "storage", "index": 2 }, "button": "left" },
+        { "type": "throwSlot", "slot": { "area": "player", "index": 0 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "main_upgrade_slot_click_insert_remove",
+      "inventorySlots": 18,
+      "upgradeSlots": 4,
+      "upgradeContents": [
+        { "slot": 1, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "upgrade", "index": 1 }
+        ] },
+        { "type": "clickSlot", "slot": { "area": "upgrade", "index": 1 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgrade", "index": 1 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "main_upgrade_shift_player_to_upgrade",
+      "inventorySlots": 18,
+      "upgradeSlots": 4,
+      "playerContents": [
+        { "slot": 9, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 }
+      ],
+      "actions": [
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "main_upgrade_shift_upgrade_to_player",
+      "inventorySlots": 18,
+      "upgradeSlots": 4,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 }
+      ],
+      "actions": [
+        { "type": "shiftClickSlot", "slot": { "area": "upgrade", "index": 0 } },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "main_upgrade_drag_disallowed",
+      "inventorySlots": 18,
+      "upgradeSlots": 4,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 }
+      ],
+      "actions": [
+        { "type": "dragCarriedStack", "item": "minecraft:dirt", "count": 6, "button": "left", "slots": [
+          { "area": "upgrade", "index": 0 },
+          { "area": "upgrade", "index": 1 },
+          { "area": "storage", "index": 0 }
+        ] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "compacting_upgrade_tab_click_matrix",
+      "inventorySlots": 54,
+      "upgradeSlots": 4,
+      "openTab": 0,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:compacting_upgrade", "count": 1 },
+        { "slot": 1, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 }
+      ],
+      "contents": [
+        { "slot": 7, "item": "minecraft:redstone", "count": 9 },
+        { "slot": 14, "item": "minecraft:iron_ingot", "count": 8 }
+      ],
+      "noSortSlots": [7],
+      "memorySlots": [14],
+      "actions": [
+        { "type": "assertUpgradeTabSlots", "slots": [
+          { "area": "upgradeTab", "upgradeSlot": 0, "index": 0 },
+          { "area": "upgradeTab", "upgradeSlot": 0, "index": 1 }
+        ] },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "upgrade", "index": 0 },
+          { "area": "upgradeTab", "upgradeSlot": 0, "index": 0 },
+          { "area": "storage", "index": 7 }
+        ] },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 0, "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 0, "index": 0 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "compacting_upgrade_tab_shift_drag_matrix",
+      "inventorySlots": 54,
+      "upgradeSlots": 4,
+      "openTab": 0,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:compacting_upgrade", "count": 1 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:gold_ingot", "count": 6 }
+      ],
+      "actions": [
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
+        { "type": "dragCarriedStack", "item": "minecraft:coal", "count": 8, "button": "left", "slots": [
+          { "area": "upgradeTab", "upgradeSlot": 0, "index": 0 },
+          { "area": "upgradeTab", "upgradeSlot": 0, "index": 1 },
+          { "area": "storage", "index": 1 }
+        ] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "advanced_compacting_tab_multi_slot_matrix",
+      "inventorySlots": 81,
+      "upgradeSlots": 5,
+      "openTab": 1,
+      "upgradeContents": [
+        { "slot": 1, "item": "sophisticatedbackpacks:advanced_compacting_upgrade", "count": 1 }
+      ],
+      "actions": [
+        { "type": "assertUpgradeTabSlots", "slots": [
+          { "area": "upgradeTab", "upgradeSlot": 1, "index": 0 }
+        ] },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "upgradeTab", "upgradeSlot": 1, "index": 0 },
+          { "area": "upgrade", "index": 1 }
+        ] },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 1, "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 1, "index": 0 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "compression_with_no_sort_memory_storage",
+      "inventorySlots": 54,
+      "upgradeSlots": 4,
+      "openTab": 0,
+      "contents": [
+        { "slot": 7, "item": "minecraft:redstone", "count": 9 },
+        { "slot": 14, "item": "minecraft:iron_ingot", "count": 8 },
+        { "slot": 20, "item": "minecraft:lapis_lazuli", "count": 16 }
+      ],
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:compacting_upgrade", "count": 1 }
+      ],
+      "noSortSlots": [7],
+      "memorySlots": [14],
+      "actions": [
+        { "type": "assertProtectedStorageSlots", "slots": [7, 14] },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [7, 14, 20] },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 7 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 0 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "mob_catcher_footprint_layout",
+      "inventorySlots": 81,
+      "upgradeSlots": 5,
+      "openTab": 1,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:mob_catcher_upgrade", "count": 1 },
+        { "slot": 1, "item": "sophisticatedbackpacks:advanced_compacting_upgrade", "count": 1 }
+      ],
+      "capturedMobs": [
+        { "slot": 10, "width": 2, "height": 2, "entityType": "minecraft:pig" },
+        { "slot": 33, "width": 1, "height": 1, "entityType": "minecraft:cow" }
+      ],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertMobCatcherSlots" },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [10, 11, 19, 20, 33] },
+        { "type": "assertSlotRefsNotFind", "slots": [
+          { "area": "storage", "index": 10 },
+          { "area": "storage", "index": 33 }
+        ] }
+      ]
+    },
+    {
+      "name": "mob_catcher_click_shift_protected_slots",
+      "inventorySlots": 81,
+      "upgradeSlots": 5,
+      "openTab": 1,
+      "contents": [
+        { "slot": 6, "item": "minecraft:carrot", "count": 14 },
+        { "slot": 30, "item": "minecraft:potato", "count": 22 },
+        { "slot": 44, "item": "minecraft:bone", "count": 5 }
+      ],
+      "playerContents": [
+        { "slot": 14, "item": "minecraft:string", "count": 7 }
+      ],
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:mob_catcher_upgrade", "count": 1 },
+        { "slot": 1, "item": "sophisticatedbackpacks:advanced_compacting_upgrade", "count": 1 }
+      ],
+      "capturedMobs": [
+        { "slot": 10, "width": 2, "height": 2, "entityType": "minecraft:pig" }
+      ],
+      "noSortSlots": [6, 44],
+      "memorySlots": [30],
+      "actions": [
+        { "type": "assertProtectedStorageSlots", "slots": [6, 30, 44] },
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 5 } },
+        { "type": "shiftClickSlot", "slot": { "area": "storage", "index": 44 } },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 6 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 6 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "column_upgrade_remove_boundary_slots",
+      "inventorySlots": 81,
+      "upgradeSlots": 4,
+      "columnsTaken": 2,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 16 },
+        { "slot": 20, "item": "minecraft:dirt", "count": 8 },
+        { "slot": 62, "item": "minecraft:redstone", "count": 12 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_log", "count": 16 },
+        { "slot": 10, "item": "minecraft:copper_ingot", "count": 18 }
+      ],
+      "upgradeContents": [
+        { "slot": 1, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1 }
+      ],
+      "actions": [
+        { "type": "assertColumnState", "expectedColumnsTaken": 2, "expectedStorageSlots": 63 },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnRemove", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 62 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 1 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "remove", "upgradeSlot": 1 },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnRemove" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 0, "expectedStorageSlots": 81 },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [0, 62, 80] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "column_upgrade_insert_boundary_slots",
+      "inventorySlots": 81,
+      "upgradeSlots": 4,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 16 },
+        { "slot": 20, "item": "minecraft:dirt", "count": 8 },
+        { "slot": 62, "item": "minecraft:redstone", "count": 12 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_log", "count": 16 },
+        { "slot": 10, "item": "minecraft:copper_ingot", "count": 18 }
+      ],
+      "actions": [
+        { "type": "assertColumnState", "expectedColumnsTaken": 0, "expectedStorageSlots": 81 },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 62 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 1 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "insert", "upgradeSlot": 1, "item": "sophisticatedbackpacks:tank_upgrade" },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnInsert" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 2, "expectedStorageSlots": 63 },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [0, 20, 62] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "column_upgrade_remove_add_with_protected_and_transfers",
+      "inventorySlots": 81,
+      "upgradeSlots": 4,
+      "columnsTaken": 2,
+      "openTab": 2,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 32 },
+        { "slot": 20, "item": "minecraft:dirt", "count": 16 },
+        { "slot": 35, "item": "minecraft:gold_ingot", "count": 8 },
+        { "slot": 62, "item": "minecraft:redstone", "count": 12 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_log", "count": 16 },
+        { "slot": 10, "item": "minecraft:copper_ingot", "count": 18 }
+      ],
+      "upgradeContents": [
+        { "slot": 1, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1 },
+        { "slot": 2, "item": "sophisticatedbackpacks:compacting_upgrade", "count": 1 }
+      ],
+      "noSortSlots": [20],
+      "memorySlots": [35],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [20, 35] },
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnRemove", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 35 },
+          { "area": "storage", "index": 62 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 1 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "remove", "upgradeSlot": 1 },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnRemove" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 0, "expectedStorageSlots": 81 },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 35 },
+          { "area": "upgradeTab", "upgradeSlot": 2, "index": 0 }
+        ] },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
+          { "area": "storage", "index": 0 },
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 35 },
+          { "area": "storage", "index": 62 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 1 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "insert", "upgradeSlot": 1, "item": "sophisticatedbackpacks:tank_upgrade" },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnInsert" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 2, "expectedStorageSlots": 63 },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [20, 35] },
+        { "type": "dragCarriedStack", "item": "minecraft:granite", "count": 9, "button": "left", "slots": [
+          { "area": "storage", "index": 1 },
+          { "area": "storage", "index": 2 },
+          { "area": "player", "index": 2 }
+        ] }
+      ]
+    },
+    {
+      "name": "column_upgrade_with_scroll_and_protected_slots",
+      "inventorySlots": 81,
+      "upgradeSlots": 4,
+      "contents": [
+        { "slot": 20, "item": "minecraft:apple", "count": 3 },
+        { "slot": 40, "item": "minecraft:gold_ingot", "count": 6 },
+        { "slot": 50, "item": "minecraft:diamond", "count": 2 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_log", "count": 16 },
+        { "slot": 10, "item": "minecraft:copper_ingot", "count": 18 }
+      ],
+      "noSortSlots": [20],
+      "memorySlots": [40],
+      "actions": [
+        { "type": "assertProtectedStorageSlots", "slots": [20, 40] },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
+          { "area": "storage", "index": 20 },
+          { "area": "storage", "index": 40 },
+          { "area": "storage", "index": 50 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 1 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "insert", "upgradeSlot": 1, "item": "sophisticatedbackpacks:tank_upgrade" },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnInsert" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 2, "expectedStorageSlots": 63 },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [20, 40, 50] },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "column_upgrade_after_storage_transfers",
+      "inventorySlots": 81,
+      "upgradeSlots": 4,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 16 },
+        { "slot": 20, "item": "minecraft:dirt", "count": 16 }
+      ],
+      "playerContents": [
+        { "slot": 9, "item": "minecraft:oak_log", "count": 16 }
+      ],
+      "actions": [
+        { "type": "shiftClickSlot", "slot": { "area": "storage", "index": 0 } },
+        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
+        { "type": "dragCarriedStack", "item": "minecraft:granite", "count": 9, "button": "left", "slots": [
+          { "area": "storage", "index": 1 },
+          { "area": "storage", "index": 2 },
+          { "area": "player", "index": 2 }
+        ] },
+        { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
+          { "area": "storage", "index": 1 },
+          { "area": "storage", "index": 2 },
+          { "area": "storage", "index": 20 },
+          { "area": "player", "index": 0 },
+          { "area": "player", "index": 2 }
+        ] },
+        { "type": "clickColumnUpgrade", "operation": "insert", "upgradeSlot": 1, "item": "sophisticatedbackpacks:tank_upgrade" },
+        { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnInsert" },
+        { "type": "assertColumnState", "expectedColumnsTaken": 2, "expectedStorageSlots": 63 },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "mixed_upgrades_tabs_and_main_slots",
+      "inventorySlots": 81,
+      "upgradeSlots": 5,
+      "openTab": 2,
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:stack_upgrade_tier_1", "count": 1 },
+        { "slot": 1, "item": "sophisticatedbackpacks:mob_catcher_upgrade", "count": 1 },
+        { "slot": 2, "item": "sophisticatedbackpacks:compacting_upgrade", "count": 1 },
+        { "slot": 3, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1 }
+      ],
+      "columnsTaken": 2,
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertSlotRefsFind", "slots": [
+          { "area": "upgrade", "index": 0 },
+          { "area": "upgrade", "index": 3 },
+          { "area": "upgradeTab", "upgradeSlot": 2, "index": 0 }
+        ] },
+        { "type": "clickSlot", "slot": { "area": "upgrade", "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgrade", "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 2, "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "upgradeTab", "upgradeSlot": 2, "index": 0 }, "button": "left" },
+        { "type": "assertMenuSlotLayout" }
+      ]
+    },
+    {
+      "name": "trashslot_compatibility_matrix",
+      "inventorySlots": 81,
+      "upgradeSlots": 5,
+      "columnsTaken": 2,
+      "contents": [
+        { "slot": 0, "item": "minecraft:cobblestone", "count": 32 },
+        { "slot": 6, "item": "minecraft:carrot", "count": 14 },
+        { "slot": 20, "item": "minecraft:dirt", "count": 16 },
+        { "slot": 35, "item": "minecraft:gold_ingot", "count": 8 },
+        { "slot": 62, "item": "minecraft:redstone", "count": 12 }
+      ],
+      "upgradeContents": [
+        { "slot": 0, "item": "sophisticatedbackpacks:mob_catcher_upgrade", "count": 1 },
+        { "slot": 1, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1 }
+      ],
+      "capturedMobs": [
+        { "slot": 10, "width": 2, "height": 2, "entityType": "minecraft:pig" }
+      ],
+      "noSortSlots": [6, 20],
+      "memorySlots": [35],
+      "actions": [
+        { "type": "assertMenuSlotLayout" },
+        { "type": "assertProtectedStorageSlots", "slots": [6, 20, 35] },
+        { "type": "assertMobCatcherSlots" },
+        { "type": "assertTrashSlotIndexCompatibility", "slots": [0, 6, 10, 11, 19, 20, 35, 62] }
+      ]
+    }
+  ]
+}
