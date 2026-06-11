@@ -179,8 +179,8 @@ final class StorageGuiRegressionRunner {
             if (menu.getSlot(slotId) != slot) {
                 return "getSlot(" + slotId + ") does not return menu.slots entry";
             }
-            if (slotId < menu.getNumberOfStorageInventorySlots() && slot.getContainerSlot() != slotId) {
-                return "storage menu slot " + slotId + " points to backing slot " + slot.getContainerSlot();
+            if (slotId < menu.getNumberOfStorageInventorySlots() && slot.getSlotIndex() != slotId) {
+                return "storage menu slot " + slotId + " points to backing slot " + slot.getSlotIndex();
             }
         }
 
@@ -616,7 +616,10 @@ final class StorageGuiRegressionRunner {
         int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
         int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-        clickSlot(Minecraft.getInstance().screen, slot, 0);
+        if (!(Minecraft.getInstance().screen instanceof StorageScreenBase<?> storageScreen)) {
+            throw new IllegalStateException("Backpack storage screen is not open");
+        }
+        invokeInventoryMouseClick(storageScreen, slot.index, 0, ContainerInput.PICKUP);
         return new StorageGuiColumnUpgradeExpectation(expectedColumnsTaken, expectedStorageSlots, "remove".equals(action.operation()), "insert".equals(action.operation()));
     }
 

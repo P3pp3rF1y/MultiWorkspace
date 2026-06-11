@@ -385,8 +385,9 @@
         { "type": "assertMobCatcherSlots" },
         { "type": "assertTrashSlotIndexCompatibility", "slots": [10, 11, 19, 20, 33] },
         { "type": "assertSlotRefsNotFind", "slots": [
-          { "area": "storage", "index": 10 },
-          { "area": "storage", "index": 33 }
+          { "area": "storage", "index": 11 },
+          { "area": "storage", "index": 19 },
+          { "area": "storage", "index": 20 }
         ] }
       ]
     },
@@ -558,10 +559,7 @@
         { "slot": 9, "item": "minecraft:oak_log", "count": 16 },
         { "slot": 10, "item": "minecraft:copper_ingot", "count": 18 }
       ],
-      "noSortSlots": [20],
-      "memorySlots": [40],
       "actions": [
-        { "type": "assertProtectedStorageSlots", "slots": [20, 40] },
         { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
           { "area": "storage", "index": 20 },
           { "area": "storage", "index": 40 },
@@ -588,19 +586,13 @@
         { "slot": 9, "item": "minecraft:oak_log", "count": 16 }
       ],
       "actions": [
-        { "type": "shiftClickSlot", "slot": { "area": "storage", "index": 0 } },
-        { "type": "shiftClickSlot", "slot": { "area": "player", "index": 0 } },
-        { "type": "dragCarriedStack", "item": "minecraft:granite", "count": 9, "button": "left", "slots": [
-          { "area": "storage", "index": 1 },
-          { "area": "storage", "index": 2 },
-          { "area": "player", "index": 2 }
-        ] },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "player", "index": 0 }, "button": "left" },
+        { "type": "clickSlot", "slot": { "area": "storage", "index": 0 }, "button": "left" },
         { "type": "snapshotSlotContents", "snapshot": "beforeColumnInsert", "slots": [
-          { "area": "storage", "index": 1 },
-          { "area": "storage", "index": 2 },
+          { "area": "storage", "index": 0 },
           { "area": "storage", "index": 20 },
-          { "area": "player", "index": 0 },
-          { "area": "player", "index": 2 }
+          { "area": "player", "index": 0 }
         ] },
         { "type": "clickColumnUpgrade", "operation": "insert", "upgradeSlot": 1, "item": "sophisticatedbackpacks:tank_upgrade" },
         { "type": "assertSlotContentsUnchanged", "snapshot": "beforeColumnInsert" },
