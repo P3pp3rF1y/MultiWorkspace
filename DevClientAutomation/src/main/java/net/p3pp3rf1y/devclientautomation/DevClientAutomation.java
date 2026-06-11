@@ -173,6 +173,7 @@ public class DevClientAutomation {
                 httpServer.createContext("/world/load", this::loadWorld);
                 httpServer.createContext("/screenshot", this::screenshot);
                 httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
+                httpServer.createContext("/backpack/storage-gui-regressions", this::backpackStorageGuiRegressions);
                 httpServer.createContext("/backpack/quick-move-column-upgrade-regression", this::backpackQuickMoveColumnUpgradeRegression);
                 httpServer.createContext("/backpack/quick-move-column-upgrade-in-regression", this::backpackQuickMoveColumnUpgradeInRegression);
                 httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
@@ -322,6 +323,11 @@ public class DevClientAutomation {
         private void backpackColumnUpgradeRegressions(HttpExchange exchange) throws IOException {
             requireMethod(exchange, "POST");
             sendJson(exchange, runOnServer(this::runBackpackColumnUpgradeRegressions));
+        }
+
+        private void backpackStorageGuiRegressions(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, StorageGuiRegressionRunner::run);
         }
 
         private void backpackQuickMoveColumnUpgradeRegression(HttpExchange exchange) throws IOException {
@@ -1891,8 +1897,8 @@ public class DevClientAutomation {
         }
 
         private int findTankUpgradePlayerSlot(StorageContainerMenuBase<?> menu) {
-            for (int slotIndex = 0; slotIndex < menu.realInventorySlots.size(); slotIndex++) {
-                if (menu.realInventorySlots.get(slotIndex).getItem().is(ModItems.TANK_UPGRADE.get())) {
+            for (int slotIndex = 0; slotIndex < menu.getInventorySlotsSize(); slotIndex++) {
+                if (menu.getSlot(slotIndex).getItem().is(ModItems.TANK_UPGRADE.get())) {
                     return slotIndex;
                 }
             }
