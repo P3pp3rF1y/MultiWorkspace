@@ -163,6 +163,7 @@ public class DevClientAutomation {
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
                 httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
                 httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
+                httpServer.createContext("/backpack/storage-gui-regressions", this::backpackStorageGuiRegressions);
                 httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
                 httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
                 httpServer.setExecutor(executor);
@@ -358,6 +359,11 @@ public class DevClientAutomation {
         private void backpackColumnUpgradeRegressions(HttpExchange exchange) throws IOException {
             requireMethod(exchange, "POST");
             sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
+        }
+
+        private void backpackStorageGuiRegressions(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, StorageGuiRegressionRunner::run);
         }
 
         private void backpackRemoteUpgradeSlotRegression(HttpExchange exchange) throws IOException {
