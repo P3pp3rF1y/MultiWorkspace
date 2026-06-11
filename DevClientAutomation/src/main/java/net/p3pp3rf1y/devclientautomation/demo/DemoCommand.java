@@ -1150,11 +1150,11 @@ public class DemoCommand {
 		}
 
 		CapturedMob capturedMob = capturedMobs.get(0);
-		if (capturedMob.slot() >= backpackContainer.realInventorySlots.size()) {
+		if (capturedMob.slot() >= backpackContainer.getNumberOfStorageInventorySlots()) {
 			throw new IllegalStateException("Captured mob slot is outside the visible backpack inventory");
 		}
 
-		Slot slot = backpackContainer.realInventorySlots.get(capturedMob.slot());
+		Slot slot = backpackContainer.getSlot(capturedMob.slot());
 		int x = containerScreen.getGuiLeft() + slot.x - 1;
 		int y = containerScreen.getGuiTop() + slot.y - 1;
 		int clickX = x + capturedMob.width() * 9;
