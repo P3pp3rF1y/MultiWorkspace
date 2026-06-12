@@ -1,0 +1,17 @@
+def requestedTaskNames = gradle.startParameter.taskNames
+def testPrepTaskNames = []
+
+// NeoGradle 6 can fail to resolve AT-specific mapped Forge artifacts while building the test task graph
+// unless the dependent compile tasks are explicit requested tasks.
+if (requestedTaskNames.any { it == ':SophisticatedCore:test' || it == 'SophisticatedCore:test' }) {
+	testPrepTaskNames.add(':Reliquary:compileJava')
+}
+
+if (requestedTaskNames.any { it == ':SophisticatedStorage:test' || it == 'SophisticatedStorage:test' }) {
+	testPrepTaskNames.addAll([':Reliquary:compileJava', ':SophisticatedBackpacks:compileJava'])
+}
+
+testPrepTaskNames = testPrepTaskNames.unique()
+if (!testPrepTaskNames.isEmpty() && !testPrepTaskNames.every { requestedTaskNames.contains(it) }) {
+	gradle.startParameter.setTaskNames(testPrepTaskNames + requestedTaskNames)
+}
