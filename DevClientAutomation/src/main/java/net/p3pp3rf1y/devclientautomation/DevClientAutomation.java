@@ -91,6 +91,7 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
+import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
@@ -950,6 +951,9 @@ public class DevClientAutomation {
 			if ("subMobCatcherImmediateOpen".equals(type)) {
 				return runSubMobCatcherImmediateOpenRegression(name);
 			}
+			if ("advancedCompactingHighStack".equals(type)) {
+				return runAdvancedCompactingHighStackRegression(name, request);
+			}
 			if (!"columnUpgradeSync".equals(type)) {
 				throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
 			}
@@ -972,18 +976,90 @@ public class DevClientAutomation {
 			return placedColumnUpgradeRegressionJson(name, false, expectation, state, "Timed out waiting for " + context.jsonName() + " backpack column sync");
 		}
 
+		private String runAdvancedCompactingHighStackRegression(String name, JsonObject request) {
+			resetBackpackGuiRegressionState();
+			int firstSlotCount = getInt(request, "firstSlotCount", 16_384);
+			int secondSlotCount = getInt(request, "secondSlotCount", 16_000);
+			int triggerCount = getInt(request, "triggerCount", 8);
+			int expectedNuggets = getInt(request, "expectedNuggets", 12_936);
+			int expectedIngots = getInt(request, "expectedIngots", 4);
+			int expectedBlocks = getInt(request, "expectedBlocks", 1_820);
+
+			AdvancedCompactingHighStackRegressionResult result = runOnServer(player -> runAdvancedCompactingHighStackRegression(player, name, firstSlotCount,
+					secondSlotCount, triggerCount, expectedNuggets, expectedIngots, expectedBlocks));
+			return advancedCompactingHighStackRegressionJson(result);
+		}
+
+		private AdvancedCompactingHighStackRegressionResult runAdvancedCompactingHighStackRegression(ServerPlayer player, String name, int firstSlotCount,
+				int secondSlotCount, int triggerCount, int expectedNuggets, int expectedIngots, int expectedBlocks) {
+			player.getInventory().clearContent();
+
+			ItemStack backpack = createBackpackStack();
+			IBackpackWrapper wrapper = BackpackWrapper.fromStack(backpack);
+			UpgradeHandler upgrades = wrapper.getUpgradeHandler();
+			upgrades.setStackInSlot(0, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+			upgrades.setStackInSlot(1, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+			upgrades.saveInventory();
+
+			InventoryHandler inventory = wrapper.getInventoryHandler();
+			inventory.setStackInSlot(0, new ItemStack(Items.IRON_NUGGET, firstSlotCount));
+			inventory.setStackInSlot(1, new ItemStack(Items.IRON_INGOT, secondSlotCount));
+			// Reserve deterministic destinations: slot 2 for blocks, slot 3 for the trigger nuggets, and no extra ingot slots.
+			inventory.setStackInSlot(2, new ItemStack(Items.IRON_BLOCK));
+			inventory.setStackInSlot(3, new ItemStack(Items.IRON_NUGGET));
+			for (int slot = 4; slot < inventory.getSlots(); slot++) {
+				inventory.setStackInSlot(slot, new ItemStack(Items.STONE));
+			}
+			inventory.saveInventory();
+
+			RecipeHelper.onDataPackSync(null);
+			upgrades.setStackInSlot(2, new ItemStack(ModItems.ADVANCED_COMPACTING_UPGRADE.get()));
+			upgrades.saveInventory();
+
+			ItemStack insertRemainder = inventory.insertItem(new ItemStack(Items.IRON_NUGGET, triggerCount), false);
+
+			int actualNuggets = countItems(inventory, Items.IRON_NUGGET) - 1;
+			int actualIngots = countItems(inventory, Items.IRON_INGOT);
+			int actualBlocks = countItems(inventory, Items.IRON_BLOCK) - 1;
+			boolean passed = insertRemainder.isEmpty() && actualNuggets == expectedNuggets && actualIngots == expectedIngots && actualBlocks == expectedBlocks;
+
+			inventory.saveInventory();
+			player.getInventory().setItem(0, backpack);
+			player.getInventory().setChanged();
+
+			String error = passed ? null : "Unexpected compacting result";
+			return new AdvancedCompactingHighStackRegressionResult(name, passed, firstSlotCount, secondSlotCount, triggerCount, expectedNuggets, actualNuggets,
+					expectedIngots, actualIngots, expectedBlocks, actualBlocks, insertRemainder.getCount(), error);
+		}
+
+		private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
+			return "{\"ok\":" + result.passed()
+					+ "," + jsonProperty("name", result.name())
+					+ ",\"firstSlotCount\":" + result.firstSlotCount()
+					+ ",\"secondSlotCount\":" + result.secondSlotCount()
+					+ ",\"triggerCount\":" + result.triggerCount()
+					+ ",\"expectedNuggets\":" + result.expectedNuggets()
+					+ ",\"actualNuggets\":" + result.actualNuggets()
+					+ ",\"expectedIngots\":" + result.expectedIngots()
+					+ ",\"actualIngots\":" + result.actualIngots()
+					+ ",\"expectedBlocks\":" + result.expectedBlocks()
+					+ ",\"actualBlocks\":" + result.actualBlocks()
+					+ ",\"insertRemainder\":" + result.insertRemainder()
+					+ "," + jsonProperty("error", result.error())
+					+ "}";
+		}
+
 		private String runSubMobCatcherImmediateOpenRegression(String name) {
 			try {
 				resetBackpackGuiRegressionState();
-				runOnServer(this::setupParentMobCatcherBackpackRegression);
-				runOnClient(this::setupClientParentMobCatcherBackpackRegression);
-				runOnServer(this::openParentMobCatcherBackpackRegression);
+				Item parentBackpackItem = runOnServer(this::setupParentMobCatcherBackpackRegression);
+				waitForClientPlayerInventorySlot(0, parentBackpackItem, "mob catcher parent backpack");
+				runOnServer(this::openParentBackpackRegression);
 				waitForOpenParentBackpackMenu();
 
 				runOnServer(this::insertMobCatcherSubBackpackIntoOpenParent);
-				runOnClient(this::insertClientMobCatcherSubBackpackIntoOpenParent);
 
-				SubMobCatcherRegressionState parentState = runOnClient(this::getParentMobCatcherRegressionState);
+				SubMobCatcherRegressionState parentState = waitForParentMobCatcherRegressionState();
 				if (!parentState.parentMatches()) {
 					return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data did not stay separate after inserting sub backpack");
 				}
@@ -1010,15 +1086,21 @@ public class DevClientAutomation {
 			runOnClient(() -> {
 				if (Minecraft.getInstance().player != null) {
 					Minecraft.getInstance().player.containerMenu.setCarried(ItemStack.EMPTY);
-					Minecraft.getInstance().setScreen(null);
 				}
 				return true;
 			});
-			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			long closedSince = 0;
 			do {
 				if (runOnClient(() -> Minecraft.getInstance().screen == null
 						&& (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer)))) {
-					return;
+					if (closedSince == 0) {
+						closedSince = System.nanoTime();
+					} else if (System.nanoTime() - closedSince >= TimeUnit.MILLISECONDS.toNanos(250)) {
+						return;
+					}
+				} else {
+					closedSince = 0;
 				}
 				sleep(50);
 			} while (System.nanoTime() < deadline);
@@ -1052,25 +1134,13 @@ public class DevClientAutomation {
 					runOnServer(this::openCuriosBackpackColumnUpgradeRegression);
 				}
 				case SUB -> {
-					runOnServer(this::setupSubBackpackColumnUpgradeRegression);
-					runOnClient(this::setupClientSubBackpackColumnUpgradeRegression);
-					openSubBackpackColumnUpgradeRegressionWhenReady();
+					Item parentBackpackItem = runOnServer(this::setupSubBackpackColumnUpgradeRegression);
+					waitForClientPlayerInventorySlot(0, parentBackpackItem, "sub backpack parent");
+					runOnServer(this::openParentBackpackRegression);
+					waitForOpenParentBackpackMenu();
+					runOnServer(this::openSubBackpackColumnUpgradeRegression);
 				}
 			}
-		}
-
-		private void openSubBackpackColumnUpgradeRegressionWhenReady() {
-			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-			do {
-				runOnServer(this::openSubBackpackColumnUpgradeRegression);
-				sleep(100);
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
-						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
-						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
-					return;
-				}
-			} while (System.nanoTime() < deadline);
 		}
 
 		private void waitForOpenBackpackGuiRegressionMenu(BackpackGuiRegressionContext context) {
@@ -1163,45 +1233,56 @@ public class DevClientAutomation {
 			return true;
 		}
 
-		private Boolean setupSubBackpackColumnUpgradeRegression(ServerPlayer player) {
-			player.getInventory().setItem(0, createParentBackpackWithColumnUpgradeSubBackpack());
+		private Item setupSubBackpackColumnUpgradeRegression(ServerPlayer player) {
+			ItemStack parentBackpack = createParentBackpackWithColumnUpgradeSubBackpack();
+			player.getInventory().setItem(0, parentBackpack);
 			player.getInventory().setChanged();
-			return true;
+			return parentBackpack.getItem();
 		}
 
-		private Boolean setupParentMobCatcherBackpackRegression(ServerPlayer player) {
-			player.getInventory().setItem(0, createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
+		private Item setupParentMobCatcherBackpackRegression(ServerPlayer player) {
+			ItemStack parentBackpack = createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig");
+			player.getInventory().setItem(0, parentBackpack);
 			player.getInventory().setChanged();
-			return true;
+			return parentBackpack.getItem();
 		}
 
-		private Boolean setupClientSubBackpackColumnUpgradeRegression() {
-			if (Minecraft.getInstance().player == null) {
-				throw new IllegalStateException("Client player is not available");
-			}
-			Minecraft.getInstance().player.getInventory().setItem(0, createParentBackpackWithColumnUpgradeSubBackpack());
-			Minecraft.getInstance().player.getInventory().setChanged();
-			return true;
-		}
+		private void waitForClientPlayerInventorySlot(int slot, Item item, String description) {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			long matchingSince = 0;
+			do {
+				if (runOnClient(() -> {
+					if (Minecraft.getInstance().player == null) {
+						return false;
+					}
+					ItemStack stack = Minecraft.getInstance().player.getInventory().getItem(slot);
+					return !stack.isEmpty() && stack.getItem() == item;
+				})) {
+					if (matchingSince == 0) {
+						matchingSince = System.nanoTime();
+					} else if (System.nanoTime() - matchingSince >= TimeUnit.MILLISECONDS.toNanos(250)) {
+						return;
+					}
+				} else {
+					matchingSince = 0;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
 
-		private Boolean setupClientParentMobCatcherBackpackRegression() {
-			if (Minecraft.getInstance().player == null) {
-				throw new IllegalStateException("Client player is not available");
-			}
-			Minecraft.getInstance().player.getInventory().setItem(0, createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
-			Minecraft.getInstance().player.getInventory().setChanged();
-			return true;
+			throw new IllegalStateException("Timed out waiting for client inventory slot " + slot + " to contain " + description + "; " + runOnClient(this::getClientSubBackpackOpenState));
 		}
 
 		private Boolean openSubBackpackColumnUpgradeRegression(ServerPlayer player) {
 			BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0, true);
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Sub Column Regression")), backpackContext::toBuffer);
+			if (player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Sub Column Regression")), backpackContext::toBuffer).isEmpty()) {
+				throw new IllegalStateException("Server refused to open sub backpack column regression menu");
+			}
 			return true;
 		}
 
-		private Boolean openParentMobCatcherBackpackRegression(ServerPlayer player) {
+		private Boolean openParentBackpackRegression(ServerPlayer player) {
 			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Mob Catcher Parent Regression")), backpackContext::toBuffer);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Parent Backpack Regression")), backpackContext::toBuffer);
 			return true;
 		}
 
@@ -1209,19 +1290,6 @@ public class DevClientAutomation {
 			if (!(player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Parent backpack menu is not open on server");
 			}
-			insertMobCatcherSubBackpack(menu);
-			return true;
-		}
-
-		private Boolean insertClientMobCatcherSubBackpackIntoOpenParent() {
-			if (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
-				throw new IllegalStateException("Parent backpack menu is not open on client");
-			}
-			insertMobCatcherSubBackpack(menu);
-			return true;
-		}
-
-		private void insertMobCatcherSubBackpack(BackpackContainer menu) {
 			if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
 				throw new IllegalStateException("Expected parent item backpack menu before inserting sub backpack");
 			}
@@ -1229,6 +1297,8 @@ public class DevClientAutomation {
 			inventoryHandler.setStackInSlot(0, createMobCatcherRegressionBackpack(144, 7, SUB_MOB_CATCHER_SUB_MOB_ID, 10, "Sub Cow"));
 			inventoryHandler.saveInventory();
 			menu.getStorageWrapper().onContentsNbtUpdated();
+			menu.broadcastChanges();
+			return true;
 		}
 
 		private ItemStack createParentBackpackWithColumnUpgradeSubBackpack() {
@@ -1239,6 +1309,7 @@ public class DevClientAutomation {
 			IBackpackWrapper parentWrapper = BackpackWrapper.fromStack(parentBackpack);
 			parentWrapper.setSlotNumbers(81, 3);
 			parentWrapper.getInventoryHandler().setStackInSlot(0, createColumnUpgradeRegressionBackpack());
+			parentWrapper.getInventoryHandler().saveInventory();
 			parentWrapper.onContentsNbtUpdated();
 			return parentBackpack;
 		}
@@ -1251,6 +1322,7 @@ public class DevClientAutomation {
 			IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
 			backpackWrapper.setSlotNumbers(81, 3);
 			backpackWrapper.getUpgradeHandler().setStackInSlot(1, new ItemStack(ModItems.TANK_UPGRADE.get()));
+			backpackWrapper.getUpgradeHandler().saveInventory();
 			backpackWrapper.setColumnsTaken(2, false);
 			backpackWrapper.onContentsNbtUpdated();
 			return backpack;
@@ -1374,7 +1446,30 @@ public class DevClientAutomation {
 				}
 				sleep(50);
 			} while (System.nanoTime() < deadline);
-			throw new IllegalStateException("Timed out waiting for sub backpack screen to open");
+			throw new IllegalStateException("Timed out waiting for sub backpack screen to open; " + runOnClient(this::getClientSubBackpackOpenState));
+		}
+
+		private String getClientSubBackpackOpenState() {
+			Minecraft minecraft = Minecraft.getInstance();
+			String screen = minecraft.screen == null ? "none" : minecraft.screen.getClass().getSimpleName();
+			String menu = minecraft.player == null ? "none" : minecraft.player.containerMenu.getClass().getSimpleName();
+			String context = "none";
+			int storageSlots = 0;
+			if (minecraft.player != null && minecraft.player.containerMenu instanceof BackpackContainer backpackContainer) {
+				context = backpackContainer.getBackpackContext().getType().name();
+				storageSlots = backpackContainer.getNumberOfStorageInventorySlots();
+			}
+			String slot0Item = "none";
+			String nestedSlot0Item = "none";
+			if (minecraft.player != null) {
+				ItemStack slot0 = minecraft.player.getInventory().getItem(0);
+				slot0Item = BuiltInRegistries.ITEM.getKey(slot0.getItem()).toString();
+				if (slot0.getItem() instanceof BackpackItem) {
+					ItemStack nested = BackpackWrapper.fromStack(slot0).getInventoryHandler().getStackInSlot(0);
+					nestedSlot0Item = BuiltInRegistries.ITEM.getKey(nested.getItem()).toString();
+				}
+			}
+			return "screen=" + screen + ", menu=" + menu + ", context=" + context + ", storageSlots=" + storageSlots + ", slot0=" + slot0Item + ", nestedSlot0=" + nestedSlot0Item;
 		}
 
 		private PlacedColumnUpgradeClickExpectation clickPlacedBackpackColumnUpgrade() {
@@ -1516,6 +1611,20 @@ public class DevClientAutomation {
 			BackpackContainer menu = getOpenParentBackpackMenu();
 			IBackpackWrapper nestedWrapper = getNestedBackpackWrapper(menu);
 			return getSubMobCatcherRegressionState(menu, nestedWrapper);
+		}
+
+		private SubMobCatcherRegressionState waitForParentMobCatcherRegressionState() {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			SubMobCatcherRegressionState state = runOnClient(this::getCurrentMobCatcherRegressionStateSafely);
+			do {
+				state = runOnClient(this::getCurrentMobCatcherRegressionStateSafely);
+				if (state.parentMatches()) {
+					return state;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
+
+			return state;
 		}
 
 		private SubMobCatcherRegressionState getSubMobCatcherRegressionState() {
@@ -2855,6 +2964,17 @@ public class DevClientAutomation {
 			return count;
 		}
 
+		private int countItems(InventoryHandler inventory, Item item) {
+			int count = 0;
+			for (int slot = 0; slot < inventory.getSlots(); slot++) {
+				ItemStack stack = inventory.getStackInSlot(slot);
+				if (stack.is(item)) {
+					count += stack.getCount();
+				}
+			}
+			return count;
+		}
+
 		private static WorldDimensions voidFlatDimensions(RegistryAccess registryAccess) {
 			HolderGetter<Biome> biomes = registryAccess.lookupOrThrow(Registries.BIOME);
 			HolderGetter<PlacedFeature> placedFeatures = registryAccess.lookupOrThrow(Registries.PLACED_FEATURE);
@@ -3369,12 +3489,16 @@ public class DevClientAutomation {
 			}
 		}
 
+		private record AdvancedCompactingHighStackRegressionResult(String name, boolean passed, int firstSlotCount, int secondSlotCount, int triggerCount,
+				int expectedNuggets, int actualNuggets, int expectedIngots, int actualIngots, int expectedBlocks, int actualBlocks, int insertRemainder,
+				String error) {
+		}
+
 		private record SubMobCatcherRegressionState(String context, int storageSlots, boolean slot0Backpack, int currentMobCount, String currentMobId,
 				int nestedMobCount, String nestedMobId) {
 			private boolean parentMatches() {
 				return BackpackContext.ContextType.ITEM_BACKPACK.name().equals(context) && slot0Backpack && storageSlots == 81 && currentMobCount == 1
-						&& SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId) && nestedMobCount == 1
-						&& SUB_MOB_CATCHER_SUB_MOB_ID.toString().equals(nestedMobId);
+						&& SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId);
 			}
 
 			private boolean subMatches() {
@@ -3475,6 +3599,10 @@ public class DevClientAutomation {
 				end++;
 			}
 			return Optional.of(json.substring(start, end).trim());
+		}
+
+		private static int getInt(JsonObject json, String property, int defaultValue) {
+			return json.has(property) ? json.get(property).getAsInt() : defaultValue;
 		}
 
 		private static String jsonProperty(String name, String value) {
