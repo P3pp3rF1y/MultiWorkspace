@@ -73,6 +73,7 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
+import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,6 +157,7 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/backpack/magnet-pickup", this::changeMagnetPickup);
 				httpServer.createContext("/backpack/seed", this::seedBackpack);
 				httpServer.createContext("/backpack/bulk-drop", this::bulkDropFromNestedBackpack);
+				httpServer.createContext("/backpack/gui-regression/run", this::runBackpackGuiRegression);
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
 				httpServer.createContext("/backpack/dropped-items", this::droppedItemsStatus);
 				httpServer.createContext("/backpack/clear-dropped-items", this::clearDroppedItems);
@@ -900,6 +902,18 @@ public class DevClientAutomationClient {
 			sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
 		}
 
+		private void runBackpackGuiRegression(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			String name = extractString(body, "name").orElse("backpack_gui_regression");
+			String type = extractString(body, "type").orElse("columnUpgradeSync");
+			if ("advancedCompactingHighStack".equals(type)) {
+				sendJsonHandling(exchange, () -> runAdvancedCompactingHighStackRegression(name, body));
+				return;
+			}
+			throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
+		}
+
 		private void recipeViewerSearch(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "POST");
 			String body = readBody(exchange);
@@ -957,6 +971,78 @@ public class DevClientAutomationClient {
 			json.append("]}");
 
 			return json.toString();
+		}
+
+		private String runAdvancedCompactingHighStackRegression(String name, String requestBody) {
+			int firstSlotCount = extractInt(requestBody, "firstSlotCount").orElse(16_384);
+			int secondSlotCount = extractInt(requestBody, "secondSlotCount").orElse(16_000);
+			int triggerCount = extractInt(requestBody, "triggerCount").orElse(8);
+			int expectedNuggets = extractInt(requestBody, "expectedNuggets").orElse(12_936);
+			int expectedIngots = extractInt(requestBody, "expectedIngots").orElse(4);
+			int expectedBlocks = extractInt(requestBody, "expectedBlocks").orElse(1_820);
+
+			AdvancedCompactingHighStackRegressionResult result = runOnServer(player -> runAdvancedCompactingHighStackRegression(player, name, firstSlotCount,
+					secondSlotCount, triggerCount, expectedNuggets, expectedIngots, expectedBlocks));
+			return advancedCompactingHighStackRegressionJson(result);
+		}
+
+		private AdvancedCompactingHighStackRegressionResult runAdvancedCompactingHighStackRegression(ServerPlayer player, String name, int firstSlotCount,
+				int secondSlotCount, int triggerCount, int expectedNuggets, int expectedIngots, int expectedBlocks) {
+			player.getInventory().clearContent();
+
+			ItemStack backpack = createBackpackStack();
+			IBackpackWrapper wrapper = new BackpackWrapper(backpack);
+			InventoryHandler inventory = wrapper.getInventoryHandler();
+			UpgradeHandler upgrades = wrapper.getUpgradeHandler();
+			upgrades.setStackInSlot(0, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+			upgrades.setStackInSlot(1, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+			upgrades.saveInventory();
+
+			inventory.setStackInSlot(0, new ItemStack(Items.IRON_NUGGET, firstSlotCount));
+			inventory.setStackInSlot(1, new ItemStack(Items.IRON_INGOT, secondSlotCount));
+			// Reserve deterministic destinations: slot 2 for blocks, slot 3 for the trigger nuggets, and no extra ingot slots.
+			inventory.setStackInSlot(2, new ItemStack(Items.IRON_BLOCK));
+			inventory.setStackInSlot(3, new ItemStack(Items.IRON_NUGGET));
+			for (int slot = 4; slot < inventory.getSlots(); slot++) {
+				inventory.setStackInSlot(slot, new ItemStack(Items.STONE));
+			}
+			inventory.saveInventory();
+
+			RecipeHelper.onRecipesUpdated(null);
+			upgrades.setStackInSlot(2, new ItemStack(ModItems.ADVANCED_COMPACTING_UPGRADE.get()));
+			upgrades.saveInventory();
+
+			ItemStack insertRemainder = inventory.insertItem(new ItemStack(Items.IRON_NUGGET, triggerCount), false);
+
+			int actualNuggets = countItems(inventory, Items.IRON_NUGGET) - 1;
+			int actualIngots = countItems(inventory, Items.IRON_INGOT);
+			int actualBlocks = countItems(inventory, Items.IRON_BLOCK) - 1;
+			boolean passed = insertRemainder.isEmpty() && actualNuggets == expectedNuggets && actualIngots == expectedIngots && actualBlocks == expectedBlocks;
+
+			inventory.saveInventory();
+			player.getInventory().setItem(0, backpack);
+			player.getInventory().setChanged();
+
+			String error = passed ? null : "Unexpected compacting result";
+			return new AdvancedCompactingHighStackRegressionResult(name, passed, firstSlotCount, secondSlotCount, triggerCount, expectedNuggets, actualNuggets,
+					expectedIngots, actualIngots, expectedBlocks, actualBlocks, insertRemainder.getCount(), error);
+		}
+
+		private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
+			return "{\"ok\":" + result.passed()
+					+ "," + jsonProperty("name", result.name())
+					+ ",\"firstSlotCount\":" + result.firstSlotCount()
+					+ ",\"secondSlotCount\":" + result.secondSlotCount()
+					+ ",\"triggerCount\":" + result.triggerCount()
+					+ ",\"expectedNuggets\":" + result.expectedNuggets()
+					+ ",\"actualNuggets\":" + result.actualNuggets()
+					+ ",\"expectedIngots\":" + result.expectedIngots()
+					+ ",\"actualIngots\":" + result.actualIngots()
+					+ ",\"expectedBlocks\":" + result.expectedBlocks()
+					+ ",\"actualBlocks\":" + result.actualBlocks()
+					+ ",\"insertRemainder\":" + result.insertRemainder()
+					+ "," + jsonProperty("error", result.error())
+					+ "}";
 		}
 
 		private ColumnUpgradeRegressionSuite loadColumnUpgradeRegressionSuite() {
@@ -1312,6 +1398,17 @@ public class DevClientAutomationClient {
 			int count = 0;
 			for (int slot = 0; slot < inventory.getSlots(); slot++) {
 				count += inventory.getStackInSlot(slot).getCount();
+			}
+			return count;
+		}
+
+		private int countItems(InventoryHandler inventory, Item item) {
+			int count = 0;
+			for (int slot = 0; slot < inventory.getSlots(); slot++) {
+				ItemStack stack = inventory.getStackInSlot(slot);
+				if (stack.is(item)) {
+					count += stack.getCount();
+				}
 			}
 			return count;
 		}
@@ -1745,6 +1842,11 @@ public class DevClientAutomationClient {
 		}
 
 		private record ColumnUpgradeRegressionResult(String name, boolean passed, boolean expectedFits, boolean actualFits, int beforeStacks, int afterStacks,
+				String error) {
+		}
+
+		private record AdvancedCompactingHighStackRegressionResult(String name, boolean passed, int firstSlotCount, int secondSlotCount, int triggerCount,
+				int expectedNuggets, int actualNuggets, int expectedIngots, int actualIngots, int expectedBlocks, int actualBlocks, int insertRemainder,
 				String error) {
 		}
 

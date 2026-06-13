@@ -6,6 +6,8 @@ param(
     [switch]$ShowLauncherWindow,
     [bool]$LoadWorld = $true,
     [switch]$CloseOnExit,
+    [switch]$SkipRecipeViewerReady,
+    [switch]$MinimalRuntime,
     [ValidateSet("", "emi", "jei", "rei", "none")]
     [string]$RecipeViewer = ""
 )
@@ -28,6 +30,8 @@ $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 $gradleCommand = "gradlew.bat :workspace:runClient"
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
+} elseif ($MinimalRuntime) {
+    $gradleCommand = "$gradleCommand -Pdev_client_minimal_runtime=true -Pdev_client_curios_runtime=true"
 }
 
 $cmdMode = if ($CloseOnExit) { '/c' } else { '/k' }
@@ -100,19 +104,17 @@ if ($LoadWorld -and -not $state.playerLoaded) {
     Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 } | Out-Null
 }
 
-$lastRecipeCount = -1
-$stableRecipePolls = 0
 do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
-    $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
-    if ($viewerState.ok -and $viewerState.recipeCount -gt 0 -and $viewerState.recipeCount -eq $lastRecipeCount) {
-        $stableRecipePolls++
-    } else {
-        $stableRecipePolls = 0
+    if ($SkipRecipeViewerReady) {
+        if (-not $LoadWorld -or $state.playerLoaded) {
+            break
+        }
+        continue
     }
-    $lastRecipeCount = $viewerState.recipeCount
-    if ($viewerState.ok -and $stableRecipePolls -ge 5 -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
+    $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
+    if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
         break
     }
 } while ((Get-Date) -lt $deadline)
@@ -123,5 +125,5 @@ $discovery = Get-BridgeDiscovery
     port = $discovery.port
     baseUrl = "http://$($discovery.host):$($discovery.port)"
     state = Invoke-BridgeJson -Method Get -Path "/state"
-    recipeViewer = $viewerState
+    recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
 }
