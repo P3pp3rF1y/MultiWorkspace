@@ -35,6 +35,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
@@ -55,6 +56,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
@@ -81,6 +84,7 @@ import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
+import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -381,12 +385,15 @@ public class DevClientAutomation {
 			JsonObject request = body == null || body.isBlank() ? new JsonObject() : JsonParser.parseString(body).getAsJsonObject();
 			String name = request.has("name") ? request.get("name").getAsString() : "unnamed";
 			String type = request.has("type") ? request.get("type").getAsString() : "columnUpgradeSync";
-			if ("subMobCatcherImmediateOpen".equals(type)) {
-				return runSubMobCatcherImmediateOpenRegression(name);
-			}
-			if (!"columnUpgradeSync".equals(type)) {
-				throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
-			}
+            if ("subMobCatcherImmediateOpen".equals(type)) {
+                return runSubMobCatcherImmediateOpenRegression(name);
+            }
+            if ("advancedCompactingHighStack".equals(type)) {
+                return runAdvancedCompactingHighStackRegression(name, request);
+            }
+            if (!"columnUpgradeSync".equals(type)) {
+                throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
+            }
 
 			BackpackGuiRegressionContext context = BackpackGuiRegressionContext.fromName(request.has("context") ? request.get("context").getAsString() : "");
 			resetBackpackGuiRegressionState();
@@ -403,10 +410,89 @@ public class DevClientAutomation {
 				sleep(50);
 			} while (System.nanoTime() < deadline);
 
-			return placedColumnUpgradeRegressionJson(name, false, expectation, state, "Timed out waiting for " + context.jsonName() + " backpack column sync");
-		}
+            return placedColumnUpgradeRegressionJson(name, false, expectation, state, "Timed out waiting for " + context.jsonName() + " backpack column sync");
+        }
 
-		private String runSubMobCatcherImmediateOpenRegression(String name) {
+        private String runAdvancedCompactingHighStackRegression(String name, JsonObject request) {
+            resetBackpackGuiRegressionState();
+            int firstSlotCount = getInt(request, "firstSlotCount", 16_384);
+            int secondSlotCount = getInt(request, "secondSlotCount", 16_000);
+            int triggerCount = getInt(request, "triggerCount", 8);
+            int expectedNuggets = getInt(request, "expectedNuggets", 12_936);
+            int expectedIngots = getInt(request, "expectedIngots", 4);
+            int expectedBlocks = getInt(request, "expectedBlocks", 1_820);
+
+            AdvancedCompactingHighStackRegressionResult result = runOnServer(player -> runAdvancedCompactingHighStackRegression(player, name, firstSlotCount,
+                    secondSlotCount, triggerCount, expectedNuggets, expectedIngots, expectedBlocks));
+            return advancedCompactingHighStackRegressionJson(result);
+        }
+
+        private AdvancedCompactingHighStackRegressionResult runAdvancedCompactingHighStackRegression(ServerPlayer player, String name, int firstSlotCount,
+                int secondSlotCount, int triggerCount, int expectedNuggets, int expectedIngots, int expectedBlocks) {
+            player.getInventory().clearContent();
+
+			ItemStack backpack = createBackpackStack(80);
+			IBackpackWrapper wrapper = BackpackWrapper.fromStackNoCache(backpack);
+			wrapper.setSlotNumbers(80, 5);
+			wrapper.getInventoryHandler();
+			wrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+            wrapper.getUpgradeHandler().setStackInSlot(1, new ItemStack(ModItems.STACK_UPGRADE_TIER_4.get()));
+            wrapper.getUpgradeHandler().saveInventory();
+
+            InventoryHandler inventory = wrapper.getInventoryHandler();
+            inventory.setStackInSlot(0, new ItemStack(Items.IRON_NUGGET, firstSlotCount));
+            inventory.setStackInSlot(1, new ItemStack(Items.IRON_INGOT, secondSlotCount));
+            // Reserve deterministic destinations: slot 2 for blocks, slot 3 for the trigger nuggets, and no extra ingot slots.
+            inventory.setStackInSlot(2, new ItemStack(Items.IRON_BLOCK));
+            inventory.setStackInSlot(3, new ItemStack(Items.IRON_NUGGET));
+            for (int slot = 4; slot < inventory.size(); slot++) {
+                inventory.setStackInSlot(slot, new ItemStack(Items.STONE));
+            }
+            inventory.saveInventory();
+
+			RecipeHelper.onRecipesUpdated(null);
+            wrapper.getUpgradeHandler().setStackInSlot(2, new ItemStack(ModItems.ADVANCED_COMPACTING_UPGRADE.get()));
+            wrapper.getUpgradeHandler().saveInventory();
+
+            int inserted;
+            try (Transaction tx = Transaction.openRoot()) {
+                inserted = inventory.insert(ItemResource.of(new ItemStack(Items.IRON_NUGGET)), triggerCount, tx);
+                tx.commit();
+            }
+            int insertRemainder = triggerCount - inserted;
+
+            int actualNuggets = countItems(inventory, Items.IRON_NUGGET) - 1;
+            int actualIngots = countItems(inventory, Items.IRON_INGOT);
+            int actualBlocks = countItems(inventory, Items.IRON_BLOCK) - 1;
+            boolean passed = insertRemainder == 0 && actualNuggets == expectedNuggets && actualIngots == expectedIngots && actualBlocks == expectedBlocks;
+
+            inventory.saveInventory();
+            player.getInventory().setItem(0, backpack);
+            player.getInventory().setChanged();
+
+            String error = passed ? null : "Unexpected compacting result";
+            return new AdvancedCompactingHighStackRegressionResult(name, passed, firstSlotCount, secondSlotCount, triggerCount, expectedNuggets, actualNuggets,
+                    expectedIngots, actualIngots, expectedBlocks, actualBlocks, insertRemainder, error);
+        }
+
+        private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
+            return "{\"ok\":" + result.passed()
+                    + "," + jsonProperty("name", result.name())
+                    + ",\"firstSlotCount\":" + result.firstSlotCount()
+                    + ",\"secondSlotCount\":" + result.secondSlotCount()
+                    + ",\"triggerCount\":" + result.triggerCount()
+                    + ",\"expectedNuggets\":" + result.expectedNuggets()
+                    + ",\"actualNuggets\":" + result.actualNuggets()
+                    + ",\"expectedIngots\":" + result.expectedIngots()
+                    + ",\"actualIngots\":" + result.actualIngots()
+                    + ",\"expectedBlocks\":" + result.expectedBlocks()
+                    + ",\"actualBlocks\":" + result.actualBlocks()
+                    + ",\"insertRemainder\":" + result.insertRemainder()
+                    + "," + jsonProperty("error", result.error())
+                    + "}";
+        }
+
+        private String runSubMobCatcherImmediateOpenRegression(String name) {
 			try {
 				resetBackpackGuiRegressionState();
 				runRegressionStep("setup parent mob-catcher backpack on server", () -> runOnServer(this::setupParentMobCatcherBackpackRegression));
@@ -1436,6 +1522,17 @@ public class DevClientAutomation {
             return backpack;
         }
 
+        private int countItems(InventoryHandler inventory, Item item) {
+            int count = 0;
+            for (int slot = 0; slot < inventory.size(); slot++) {
+                ItemStack stack = inventory.getStackInSlot(slot);
+                if (stack.is(item)) {
+                    count += stack.getCount();
+                }
+            }
+            return count;
+        }
+
         private static int[] firstSlots(int count) {
             int[] slots = new int[count];
             for (int slot = 0; slot < count; slot++) {
@@ -1799,7 +1896,12 @@ public class DevClientAutomation {
             }
         }
 
-		private enum BackpackGuiRegressionContext {
+        private record AdvancedCompactingHighStackRegressionResult(String name, boolean passed, int firstSlotCount, int secondSlotCount, int triggerCount,
+                int expectedNuggets, int actualNuggets, int expectedIngots, int actualIngots, int expectedBlocks, int actualBlocks, int insertRemainder,
+                String error) {
+        }
+
+        private enum BackpackGuiRegressionContext {
 			PLACED("placed"),
 			CURIOS("curios"),
 			SUB("sub");
@@ -1887,6 +1989,10 @@ public class DevClientAutomation {
                 end++;
             }
             return Optional.of(json.substring(start, end).trim());
+        }
+
+        private static int getInt(JsonObject json, String property, int defaultValue) {
+            return json.has(property) ? json.get(property).getAsInt() : defaultValue;
         }
 
         private static String jsonProperty(String name, String value) {
