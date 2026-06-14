@@ -49,3 +49,24 @@ Suites live under `scripts/dev-client/backpack-suites`. The Java bridge performs
 the in-game setup and interaction for each declarative scenario through
 `POST /backpack/gui-regression/run`; the script owns suite loading, startup,
 assertions, and result aggregation.
+
+## Storage Controller Filter Regression
+
+Run the controller filter routing regression with:
+
+```powershell
+.\scripts\dev-client\run-storage-controller-filter-regression.ps1 -MinimalRuntime
+.\scripts\dev-client\run-storage-controller-filter-regression.ps1 -MinimalRuntime -Jfr
+.\scripts\dev-client\run-storage-controller-filter-regression.ps1 -MinimalRuntime -Jfr -Runs 200
+```
+
+The suite creates a controller with about 60 connected storages, including locked
+seeded barrels, input-filtered barrels, a deny-list filter barrel, and nearby
+overflow barrels. It performs many controller inserts and asserts that items land
+in the expected storages. The `-Jfr` option dispatches Minecraft's `jfr start`
+and `jfr stop` commands around the insert-routing profile. JFR mode performs
+setup before recording, profiles repeated real controller inserts against that
+fixed setup, then runs full verification after recording. The fixed JFR setup
+adds storage stack upgrades for profiling capacity. JFR runs default to 1000
+profile repetitions so most inserts have room while later inserts can exercise
+full/no-space paths; use `-Runs` to override the repetition count.
