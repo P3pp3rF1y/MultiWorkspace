@@ -49,6 +49,8 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
@@ -66,6 +68,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
@@ -102,6 +105,8 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.filter.FilterUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
+import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -193,6 +198,8 @@ public class DevClientAutomation {
                 httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
                 httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
                 httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
+                httpServer.createContext("/storage/controller-ae2-profile-setup", this::storageControllerAe2ProfileSetup);
+                httpServer.createContext("/storage/controller-ae2-profile-simulate-query", this::storageControllerAe2ProfileSimulateQuery);
                 httpServer.createContext("/recipe-viewer/state", this::recipeViewerState);
                 httpServer.createContext("/recipe-viewer/search", this::recipeViewerSearch);
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
@@ -385,6 +392,31 @@ public class DevClientAutomation {
                 return;
             }
             sendJsonHandling(exchange, () -> runOnServer(player -> runStorageControllerFilterRegressions(player, !"setup".equals(mode), profileCapacity)));
+        }
+
+        private void storageControllerAe2ProfileSetup(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            String body = readBody(exchange);
+            String preset = extractString(body, "preset").orElse("lagworld").toLowerCase(Locale.ROOT);
+            int columns = Math.max(1, Math.min(16, extractInt(body, "columns").orElse(12)));
+            int rows = Math.max(1, Math.min(12, extractInt(body, "rows").orElse(9)));
+            int fillSlotsPerStorage = Math.max(1, extractInt(body, "fillSlotsPerStorage").orElse(81));
+            String distribution = extractString(body, "distribution").orElse("scattered").toLowerCase(Locale.ROOT);
+            int sharedPoolSize = Math.max(1, Math.min(512, extractInt(body, "sharedPoolSize").orElse("hotspot".equals(distribution) ? 32 : 64)));
+            boolean includeCrafting = extractBoolean(body, "includeCrafting").orElse(true);
+            boolean giveItems = extractBoolean(body, "giveItems").orElse(true);
+            sendJsonHandling(exchange, () -> runOnServer(player -> setupControllerAe2Profile(player, preset, columns, rows, fillSlotsPerStorage, distribution, sharedPoolSize, includeCrafting, giveItems)));
+        }
+
+        private void storageControllerAe2ProfileSimulateQuery(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            String body = readBody(exchange);
+            int iterations = Math.max(1, Math.min(20, extractInt(body, "iterations").orElse(1)));
+            int maxSimulations = Math.max(1, Math.min(10_000, extractInt(body, "maxSimulations").orElse(512)));
+            Optional<Integer> controllerX = extractInt(body, "controllerX");
+            Optional<Integer> controllerY = extractInt(body, "controllerY");
+            Optional<Integer> controllerZ = extractInt(body, "controllerZ");
+            sendJsonHandling(exchange, () -> runOnServer(player -> simulateControllerAe2ProfileQuery(player, iterations, maxSimulations, controllerX, controllerY, controllerZ)));
         }
 
         private String runBackpackGuiRegression(String body) {
@@ -2220,6 +2252,189 @@ public class DevClientAutomation {
             }
         }
 
+        private String setupControllerAe2Profile(ServerPlayer player, String preset, int columns, int rows, int fillSlotsPerStorage, String distribution,
+                int sharedPoolSize, boolean includeCrafting, boolean giveItems) {
+            if (!List.of("lagworld", "matrix").contains(preset)) {
+                throw new IllegalArgumentException("Unknown controller AE2 profile preset " + preset);
+            }
+            if (!List.of("sorted", "scattered", "hotspot").contains(distribution)) {
+                throw new IllegalArgumentException("Unknown controller AE2 profile distribution " + distribution);
+            }
+
+            ServerLevel level = (ServerLevel) player.level();
+            BlockPos controllerPos = player.blockPosition().offset(0, 0, 18);
+            List<String> warnings = new ArrayList<>();
+
+            List<BlockPos> storagePositions = "lagworld".equals(preset) ? createControllerAe2LagWorldStoragePositions(controllerPos) : createControllerAe2StoragePositions(controllerPos, columns, rows);
+            clearStorageControllerAe2ProfileArea(level, controllerPos, storagePositions);
+            placeController(level, player, controllerPos);
+
+            List<Item> seedItems = createControllerAe2SeedItems();
+            List<Item> lagWorldSpreadItems = createControllerAe2LagWorldSpreadItems(seedItems);
+            int filledSlots = 0;
+            int nonEmptyStorages = 0;
+            int actualStorageSlots = 0;
+            for (int storageIndex = 0; storageIndex < storagePositions.size(); storageIndex++) {
+                BlockPos storagePos = storagePositions.get(storageIndex);
+                if ("lagworld".equals(preset)) {
+                    placeDoubleChest(level, player, storagePos);
+                } else {
+                    placeBarrel(level, player, storagePos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get());
+                }
+                StorageBlockEntity storage = getStorage(level, storagePos);
+                InventoryHandler inventory = storage.getStorageWrapper().getInventoryHandler();
+                int slotsToFill = "lagworld".equals(preset) ? getLagWorldFillSlotsForStorage(storageIndex) : fillSlotsPerStorage;
+                actualStorageSlots += inventory.size();
+                for (int slot = 0; slot < Math.min(slotsToFill, inventory.size()); slot++) {
+                    Item item = "lagworld".equals(preset) ? getControllerAe2LagWorldSeedItem(seedItems, lagWorldSpreadItems, storageIndex, slot)
+                            : getControllerAe2SeedItem(seedItems, distribution, storageIndex, slot, fillSlotsPerStorage, sharedPoolSize);
+                    int count = "lagworld".equals(preset) ? Math.min(new ItemStack(item).getMaxStackSize(), 8 + Math.floorMod(storageIndex * 11 + slot, 57))
+                            : Math.min(new ItemStack(item).getMaxStackSize(), 16 + Math.floorMod(storageIndex + slot, 49));
+                    insertStackIntoStorage(storage, new ItemStack(item, count));
+                }
+                int actualFilledThisStorage = getFilledInventorySlotCount(inventory);
+                filledSlots += actualFilledThisStorage;
+                if (actualFilledThisStorage > 0) {
+                    nonEmptyStorages++;
+                }
+                inventory.saveInventory();
+                storage.getStorageWrapper().refreshInventoryForInputOutput();
+            }
+
+            ControllerBlockEntity controllerForRegistration = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+            if (controllerForRegistration != null) {
+                storagePositions.forEach(controllerForRegistration::addStorage);
+            }
+
+            BlockPos storageBusPos;
+            BlockPos craftingTerminalTarget;
+            if ("lagworld".equals(preset)) {
+                BlockPos cablePos = controllerPos.above();
+                BlockPos cableExtensionPos = cablePos.east();
+                BlockPos energyCellPos = cablePos.east(2);
+                storageBusPos = cablePos;
+                craftingTerminalTarget = cableExtensionPos;
+                placeAe2ItemAsBlock(level, player, cablePos, "ae2:fluix_glass_cable", warnings);
+                placeAe2ItemOnBlockFace(level, player, controllerPos, Direction.UP, "ae2:storage_bus", warnings);
+                placeAe2ItemOnBlockFace(level, player, cablePos, Direction.NORTH, "ae2:terminal", warnings);
+                placeAe2ItemOnBlockFace(level, player, cablePos, Direction.SOUTH, "ae2:pattern_encoding_terminal", warnings);
+                placeAe2ItemAsBlock(level, player, cableExtensionPos, "ae2:fluix_glass_cable", warnings);
+                placeAe2ItemOnBlockFace(level, player, cableExtensionPos, Direction.SOUTH, "ae2:crafting_terminal", warnings);
+                placeAe2ItemAsBlock(level, player, energyCellPos, "ae2:creative_energy_cell", warnings);
+                if (includeCrafting) {
+                    BlockPos patternProviderPos = cableExtensionPos.north();
+                    BlockPos molecularAssemblerPos = patternProviderPos.north();
+                    placeAe2ItemAsBlock(level, player, cableExtensionPos.above(), "ae2:1k_crafting_storage", warnings);
+                    placeAe2ItemAsBlock(level, player, cableExtensionPos.above(2), "ae2:crafting_accelerator", warnings);
+                    placeAe2ItemAsBlock(level, player, patternProviderPos, "ae2:pattern_provider", warnings);
+                    placeAe2ItemAsBlock(level, player, molecularAssemblerPos, "ae2:molecular_assembler", warnings);
+                }
+            } else {
+                BlockPos cablePos = controllerPos.west(2);
+                BlockPos cableExtensionPos = controllerPos.west(3);
+                BlockPos energyCellPos = controllerPos.west(4);
+                storageBusPos = controllerPos.west();
+                craftingTerminalTarget = cablePos;
+                placeAe2ItemOnBlockFace(level, player, controllerPos, Direction.WEST, "ae2:storage_bus", warnings);
+                placeAe2ItemAsBlock(level, player, cablePos, "ae2:fluix_glass_cable", warnings);
+                placeAe2ItemAsBlock(level, player, cableExtensionPos, "ae2:fluix_glass_cable", warnings);
+                placeAe2ItemAsBlock(level, player, energyCellPos, "ae2:creative_energy_cell", warnings);
+                placeAe2ItemOnBlockFace(level, player, cablePos, Direction.NORTH, "ae2:crafting_terminal", warnings);
+                placeAe2ItemOnBlockFace(level, player, cablePos, Direction.SOUTH, "ae2:pattern_encoding_terminal", warnings);
+                if (includeCrafting) {
+                    BlockPos patternProviderPos = cableExtensionPos.north();
+                    BlockPos molecularAssemblerPos = patternProviderPos.north();
+                    placeAe2ItemAsBlock(level, player, cableExtensionPos.above(), "ae2:1k_crafting_storage", warnings);
+                    placeAe2ItemAsBlock(level, player, cableExtensionPos.above(2), "ae2:crafting_accelerator", warnings);
+                    placeAe2ItemAsBlock(level, player, patternProviderPos, "ae2:pattern_provider", warnings);
+                    placeAe2ItemAsBlock(level, player, molecularAssemblerPos, "ae2:molecular_assembler", warnings);
+                }
+            }
+            if (giveItems) {
+                giveControllerAe2ProfileItems(player, warnings);
+            }
+
+            ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+            int connectedStorages = controller == null ? 0 : controller.getStoragePositions().size();
+            int actualControllerSlots = controller == null ? 0 : controller.size();
+            if (controller == null) {
+                warnings.add("controller block entity missing at " + controllerPos);
+            } else if (connectedStorages != storagePositions.size()) {
+                warnings.add("expected " + storagePositions.size() + " connected storages, got " + connectedStorages + ": " + controller.getStoragePositions());
+            }
+            warnIfAir(level, storageBusPos, "AE2 storage bus/cable bus", warnings);
+            warnIfAir(level, craftingTerminalTarget, "AE2 crafting terminal cable", warnings);
+
+            StringBuilder json = new StringBuilder("{\"ok\":true")
+                    .append(",\"preset\":\"").append(escapeJson(preset)).append("\"")
+                    .append(",\"controllerPos\":\"").append(controllerPos.toShortString()).append("\"")
+                    .append(",\"storageBusPos\":\"").append(storageBusPos.toShortString()).append("\"")
+                    .append(",\"craftingTerminalTarget\":\"").append(craftingTerminalTarget.toShortString()).append("\"")
+                    .append(",\"storageCount\":").append(storagePositions.size())
+                    .append(",\"connectedStorages\":").append(connectedStorages)
+                    .append(",\"nonEmptyStorages\":").append(nonEmptyStorages)
+                    .append(",\"actualStorageSlots\":").append(actualStorageSlots)
+                    .append(",\"actualControllerSlots\":").append(actualControllerSlots)
+                    .append(",\"filledSlots\":").append(filledSlots)
+                    .append(",\"warnings\":[");
+            for (int i = 0; i < warnings.size(); i++) {
+                if (i > 0) {
+                    json.append(',');
+                }
+                json.append('"').append(escapeJson(warnings.get(i))).append('"');
+            }
+            json.append("]}");
+            return json.toString();
+        }
+
+        private String simulateControllerAe2ProfileQuery(ServerPlayer player, int iterations, int maxSimulations,
+                Optional<Integer> controllerX, Optional<Integer> controllerY, Optional<Integer> controllerZ) {
+            ServerLevel level = (ServerLevel) player.level();
+            BlockPos controllerPos = controllerX.isPresent() && controllerY.isPresent() && controllerZ.isPresent()
+                    ? new BlockPos(controllerX.get(), controllerY.get(), controllerZ.get())
+                    : player.blockPosition().offset(0, 0, 18);
+            ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get())
+                    .orElseThrow(() -> new IllegalStateException("Missing controller at " + controllerPos));
+            ResourceHandler<ItemResource> handler = controller;
+
+            int nonEmptySlots = 0;
+            int simulations = 0;
+            int extracted = 0;
+            long startedAt = System.nanoTime();
+            for (int iteration = 0; iteration < iterations && simulations < maxSimulations; iteration++) {
+                for (int slot = 0; slot < handler.size() && simulations < maxSimulations; slot++) {
+                    ItemResource resource = handler.getResource(slot);
+                    if (resource.isEmpty()) {
+                        continue;
+                    }
+                    if (iteration == 0) {
+                        nonEmptySlots++;
+                    }
+                    try (Transaction transaction = Transaction.openRoot()) {
+                        int amount = Math.min(handler.getAmountAsInt(slot), 1);
+                        int simulatedExtract = handler.extract(slot, resource, amount, transaction);
+                        if (simulatedExtract > 0) {
+                            extracted += simulatedExtract;
+                        }
+                    }
+                    simulations++;
+                }
+            }
+            long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+
+            return new StringBuilder("{\"ok\":true")
+                    .append(",\"scenario\":\"storage_controller_ae2_profile_simulate_query\"")
+                    .append(",\"controllerPos\":\"").append(controllerPos.toShortString()).append("\"")
+                    .append(",\"controllerSlots\":").append(controller.size())
+                    .append(",\"nonEmptySlots\":").append(nonEmptySlots)
+                    .append(",\"iterations\":").append(iterations)
+                    .append(",\"maxSimulations\":").append(maxSimulations)
+                    .append(",\"simulations\":").append(simulations)
+                    .append(",\"simulatedExtractedItems\":").append(extracted)
+                    .append(",\"elapsedMillis\":").append(elapsedMillis)
+                    .append("}").toString();
+        }
+
         private String runStorageControllerFilterRegressions(ServerPlayer player, boolean runInserts, boolean profileCapacity) {
             ServerLevel level = (ServerLevel) player.level();
             BlockPos controllerPos = player.blockPosition().offset(0, 0, 12);
@@ -2387,6 +2602,147 @@ public class DevClientAutomation {
                     overflowPositions.size(), insertCalls, itemsInserted, failures);
         }
 
+        private void clearStorageControllerAe2ProfileArea(ServerLevel level, BlockPos controllerPos, List<BlockPos> storagePositions) {
+            discardStorageControllerAe2ProfileItemEntities(level, controllerPos);
+            int minX = controllerPos.getX() - 6;
+            int maxX = controllerPos.getX() + 10;
+            int minY = controllerPos.getY() - 1;
+            int maxY = controllerPos.getY() + 8;
+            int minZ = controllerPos.getZ() - 9;
+            int maxZ = controllerPos.getZ() + 4;
+            for (BlockPos storagePos : storagePositions) {
+                minX = Math.min(minX, storagePos.getX() - 1);
+                maxX = Math.max(maxX, storagePos.getX() + 1);
+                minY = Math.min(minY, storagePos.getY() - 1);
+                maxY = Math.max(maxY, storagePos.getY() + 2);
+                minZ = Math.min(minZ, storagePos.getZ() - 1);
+                maxZ = Math.max(maxZ, storagePos.getZ() + 1);
+            }
+            for (int x = minX; x <= maxX; x++) {
+                for (int y = minY; y <= maxY; y++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        BlockPos pos = new BlockPos(x, y, z);
+                        if (level.getBlockEntity(pos) instanceof StorageBlockEntity storage) {
+                            storage.clearContent();
+                        }
+                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                    }
+                }
+            }
+            discardStorageControllerAe2ProfileItemEntities(level, controllerPos);
+        }
+
+        private void discardStorageControllerAe2ProfileItemEntities(ServerLevel level, BlockPos controllerPos) {
+            AABB area = new AABB(controllerPos.getX() - 8, controllerPos.getY() - 3, controllerPos.getZ() - 11, controllerPos.getX() + 13, controllerPos.getY() + 10,
+                    controllerPos.getZ() + 6);
+            for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, area)) {
+                itemEntity.discard();
+            }
+        }
+
+        private List<BlockPos> createControllerAe2StoragePositions(BlockPos controllerPos, int columns, int rows) {
+            List<BlockPos> positions = new ArrayList<>();
+            for (int column = 1; column <= columns; column++) {
+                for (int row = 0; row < rows; row++) {
+                    positions.add(controllerPos.offset(column, 0, row - rows / 2));
+                }
+            }
+            return positions;
+        }
+
+        private List<BlockPos> createControllerAe2LagWorldStoragePositions(BlockPos controllerPos) {
+            int[][] offsets = {
+                    {0, 0, -6}, {2, 0, -6}, {6, 0, -5}, {6, 0, -3}, {6, 0, -1}, {6, 1, -1}, {6, 1, -3}, {6, 2, -1}, {6, 2, -3}, {6, 3, -3},
+                    {6, 3, -1}, {6, 4, -1}, {6, 4, -3}, {6, 4, -5}, {4, 4, -6}, {4, 3, -6}, {4, 2, -6}, {4, 1, -6}, {4, 0, -6}, {2, 1, -6},
+                    {2, 2, -6}, {2, 3, -6}, {2, 4, -6}, {0, 4, -6}, {0, 3, -6}, {0, 2, -6}, {0, 1, -6}, {6, 1, -5}, {6, 2, -5}, {6, 3, -5}
+            };
+            List<BlockPos> positions = new ArrayList<>();
+            for (int[] offset : offsets) {
+                positions.add(controllerPos.offset(offset[0], offset[1], offset[2]));
+            }
+            return positions;
+        }
+
+        private int getLagWorldFillSlotsForStorage(int storageIndex) {
+            return switch (storageIndex) {
+                case 0 -> 236;
+                case 4 -> 244;
+                case 5 -> 64;
+                case 11 -> 6;
+                case 12 -> 28;
+                case 14 -> 124;
+                case 22 -> 79;
+                case 23 -> 37;
+                case 26 -> 384;
+                default -> 0;
+            };
+        }
+
+        private List<Item> createControllerAe2SeedItems() {
+            List<Item> items = BuiltInRegistries.ITEM.stream()
+                    .filter(item -> item != Items.AIR && new ItemStack(item).getMaxStackSize() > 1)
+                    .toList();
+            if (items.isEmpty()) {
+                throw new IllegalStateException("No stackable items available for AE2 profile setup");
+            }
+            return items;
+        }
+
+        private Item getControllerAe2SeedItem(List<Item> seedItems, String distribution, int storageIndex, int slot, int slotsPerStorage, int sharedPoolSize) {
+            int poolSize = Math.min(sharedPoolSize, seedItems.size());
+            return switch (distribution) {
+                case "sorted" -> seedItems.get(Math.floorMod(storageIndex * slotsPerStorage + slot, seedItems.size()));
+                case "hotspot" -> seedItems.get(Math.floorMod(slot, poolSize));
+                case "scattered" -> seedItems.get(Math.floorMod(storageIndex * 17 + slot, poolSize));
+                default -> throw new IllegalArgumentException("Unknown controller AE2 profile distribution " + distribution);
+            };
+        }
+
+        private List<Item> createControllerAe2LagWorldSpreadItems(List<Item> seedItems) {
+            List<Item> spreadItems = new ArrayList<>();
+            List.of("minecraft:coal", "minecraft:cobblestone", "minecraft:emerald", "minecraft:spider_eye", "minecraft:coal_ore", "minecraft:arrow", "minecraft:netherite_scrap",
+                    "minecraft:diamond", "minecraft:iron_ingot", "minecraft:stick", "minecraft:carrot", "minecraft:golden_apple", "minecraft:redstone", "minecraft:lapis_lazuli")
+                    .forEach(itemName -> getOptionalItem(itemName).filter(item -> new ItemStack(item).getMaxStackSize() > 1).ifPresent(spreadItems::add));
+            if (spreadItems.isEmpty()) {
+                spreadItems.add(seedItems.get(0));
+            }
+            return spreadItems;
+        }
+
+        private Item getControllerAe2LagWorldSeedItem(List<Item> seedItems, List<Item> spreadItems, int storageIndex, int slot) {
+            if (slot % 11 == 0 || Math.floorMod(storageIndex + slot, 17) == 0) {
+                return spreadItems.get(Math.floorMod(storageIndex + slot, spreadItems.size()));
+            }
+            return seedItems.get(Math.floorMod(storageIndex * 263 + slot, seedItems.size()));
+        }
+
+        private void giveControllerAe2ProfileItems(ServerPlayer player, List<String> warnings) {
+            List.of("ae2:fluix_glass_cable", "ae2:storage_bus", "ae2:creative_energy_cell", "ae2:crafting_terminal", "ae2:pattern_encoding_terminal", "ae2:pattern_provider",
+                    "ae2:molecular_assembler", "ae2:1k_crafting_storage", "ae2:crafting_accelerator", "ae2:blank_pattern", "ae2:crafting_pattern")
+                    .forEach(itemName -> getOptionalItem(itemName).ifPresentOrElse(item -> player.getInventory().add(new ItemStack(item, 16)),
+                            () -> warnings.add("missing AE2 item " + itemName)));
+            player.getInventory().add(new ItemStack(Items.COAL, 64));
+            player.getInventory().add(new ItemStack(Items.COAL_BLOCK, 16));
+        }
+
+        private void placeAe2ItemAsBlock(ServerLevel level, ServerPlayer player, BlockPos pos, String itemName, List<String> warnings) {
+            getOptionalItem(itemName).ifPresentOrElse(item -> placeBlockWithItem(level, player, pos, new ItemStack(item)), () -> warnings.add("missing AE2 item " + itemName));
+        }
+
+        private void placeAe2ItemOnBlockFace(ServerLevel level, ServerPlayer player, BlockPos targetPos, Direction side, String itemName, List<String> warnings) {
+            getOptionalItem(itemName).ifPresentOrElse(item -> placeItemOnBlockFace(level, player, targetPos, side, new ItemStack(item)), () -> warnings.add("missing AE2 item " + itemName));
+        }
+
+        private Optional<Item> getOptionalItem(String itemName) {
+            return BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName));
+        }
+
+        private void warnIfAir(ServerLevel level, BlockPos pos, String description, List<String> warnings) {
+            if (level.isEmptyBlock(pos)) {
+                warnings.add(description + " appears to be missing at " + pos);
+            }
+        }
+
         private List<ControllerFilterInsertExpectation> createControllerFilterInsertExpectations(BlockPos controllerPos, List<BlockPos> overflowPositions,
                 Map<Item, Set<BlockPos>> lockedPositionsByItem) {
             List<ControllerFilterInsertExpectation> expectations = new ArrayList<>();
@@ -2469,9 +2825,44 @@ public class DevClientAutomation {
             placeBlockWithItem(level, player, pos, new ItemStack(barrelItem));
         }
 
+        private void placeChest(ServerLevel level, ServerPlayer player, BlockPos pos) {
+            placeBlockWithItem(level, player, pos, new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_CHEST_ITEM.get()));
+        }
+
+        private void placeDoubleChest(ServerLevel level, ServerPlayer player, BlockPos mainPos) {
+            BlockState mainState = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_CHEST.get().defaultBlockState()
+                    .setValue(ChestBlock.FACING, Direction.NORTH)
+                    .setValue(ChestBlock.TYPE, ChestType.RIGHT);
+            BlockState otherState = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_CHEST.get().defaultBlockState()
+                    .setValue(ChestBlock.FACING, Direction.NORTH)
+                    .setValue(ChestBlock.TYPE, ChestType.LEFT);
+            level.setBlock(mainPos, mainState, 3);
+            level.setBlock(mainPos.west(), otherState, 3);
+            ensureDoubleChest(level, mainPos);
+        }
+
+        private void ensureDoubleChest(ServerLevel level, BlockPos mainPos) {
+            BlockPos otherPos = mainPos.west();
+            ChestBlockEntity mainChest = level.getBlockEntity(mainPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).orElse(null);
+            ChestBlockEntity otherChest = level.getBlockEntity(otherPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).orElse(null);
+            if (mainChest == null || otherChest == null) {
+                throw new IllegalStateException("Missing double chest storage at " + mainPos + " / " + otherPos);
+            }
+            if (!mainChest.getMainPos().equals(mainPos) || !otherChest.getMainPos().equals(mainPos)) {
+                throw new IllegalStateException("Double chest main position mismatch at " + mainPos + " / " + otherPos + ": main=" + mainChest.getMainPos() + ", other=" + otherChest.getMainPos());
+            }
+            int expectedSlots = mainChest.getBlockState().getBlock() instanceof ChestBlock chestBlock ? chestBlock.getNumberOfInventorySlots() * 2 : 0;
+            if (expectedSlots > 0 && mainChest.getStorageWrapper().getInventoryHandler().size() < expectedSlots) {
+                otherChest.joinWithChest(mainChest);
+            }
+            mainChest.tryToAddToController();
+        }
+
         private void placeBlockWithItem(ServerLevel level, ServerPlayer player, BlockPos pos, ItemStack stack) {
             BlockPos supportPos = pos.below();
-            level.setBlock(supportPos, Blocks.DIRT.defaultBlockState(), 3);
+            if (level.isEmptyBlock(supportPos)) {
+                level.setBlock(supportPos, Blocks.DIRT.defaultBlockState(), 3);
+            }
             player.setYRot(0);
             player.setXRot(0);
             player.setItemInHand(InteractionHand.MAIN_HAND, stack);
@@ -2479,10 +2870,48 @@ public class DevClientAutomation {
             player.gameMode.useItemOn(player, level, stack, InteractionHand.MAIN_HAND, hitResult);
         }
 
+        private void placeItemOnBlockFace(ServerLevel level, ServerPlayer player, BlockPos targetPos, Direction side, ItemStack stack) {
+            player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+            BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(targetPos), side, targetPos, false);
+            player.gameMode.useItemOn(player, level, stack, InteractionHand.MAIN_HAND, hitResult);
+        }
+
         private StorageBlockEntity getBarrelStorage(ServerLevel level, BlockPos pos) {
             return level.getBlockEntity(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get())
                     .map(storage -> (StorageBlockEntity) storage)
                     .orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
+        }
+
+        private StorageBlockEntity getStorage(ServerLevel level, BlockPos pos) {
+            if (level.getBlockEntity(pos) instanceof StorageBlockEntity storage) {
+                return storage;
+            }
+            throw new IllegalStateException("Missing storage at " + pos);
+        }
+
+        private boolean insertStackIntoStorage(StorageBlockEntity storage, ItemStack stack) {
+            ResourceHandler<ItemResource> handler = storage.getExternalItemHandler(null);
+            if (handler == null || stack.isEmpty()) {
+                return false;
+            }
+            try (Transaction transaction = Transaction.openRoot()) {
+                int inserted = handler.insert(ItemResource.of(stack), stack.getCount(), transaction);
+                if (inserted == stack.getCount()) {
+                    transaction.commit();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private int getFilledInventorySlotCount(InventoryHandler inventory) {
+            int filledSlots = 0;
+            for (int slot = 0; slot < inventory.size(); slot++) {
+                if (!inventory.getStackInSlot(slot).isEmpty()) {
+                    filledSlots++;
+                }
+            }
+            return filledSlots;
         }
 
         private void configureControllerFilterStorage(StorageBlockEntity storage, ControllerFilterStorageSpec spec, boolean profileCapacity) {
