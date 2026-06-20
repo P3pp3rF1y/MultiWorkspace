@@ -233,7 +233,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static Boolean assertScreenFindSlots(int[] slots) {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen screen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
             throw new IllegalStateException("Backpack screen is not open");
         }
         BackpackContainer menu = getOpenPlacedBackpackMenu();
@@ -248,7 +248,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static Boolean assertSlotRefsFind(SlotRef[] slotRefs) {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen screen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
             throw new IllegalStateException("Backpack screen is not open");
         }
         BackpackContainer menu = getOpenPlacedBackpackMenu();
@@ -263,7 +263,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static Boolean assertSlotRefsNotFind(SlotRef[] slotRefs) {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen screen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
             throw new IllegalStateException("Backpack screen is not open");
         }
         BackpackContainer menu = getOpenPlacedBackpackMenu();
@@ -399,7 +399,7 @@ final class StorageGuiRegressionRunner {
     private static Boolean clickStorageGuiSlot(StorageGuiRegressionScenario scenario, StorageGuiAction action) {
         BackpackContainer menu = getOpenPlacedBackpackMenu();
         Slot slot = resolveStorageGuiSlot(menu, action.slot());
-        clickSlot(Minecraft.getInstance().screen, slot, action.button());
+        clickSlot(Minecraft.getInstance().gui.screen(), slot, action.button());
         assertStorageGuiMenuSlotLayout(scenario);
         return true;
     }
@@ -426,7 +426,7 @@ final class StorageGuiRegressionRunner {
 
     private static void handleStorageGuiClickType(StorageGuiRegressionScenario scenario, StorageGuiAction action, int data, ContainerInput clickType) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!(minecraft.screen instanceof StorageScreenBase<?> storageScreen)) {
+        if (!(minecraft.gui.screen() instanceof StorageScreenBase<?> storageScreen)) {
             throw new IllegalStateException("Backpack storage screen is not open");
         }
         BackpackContainer menu = getOpenPlacedBackpackMenu();
@@ -452,7 +452,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static Boolean scrollStorageGui(StorageGuiAction action) {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen screen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
             throw new IllegalStateException("Backpack screen is not open");
         }
         double x = screen.getGuiLeft() + 20.0;
@@ -473,7 +473,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static Boolean dragStorageGuiCarriedStack(StorageGuiRegressionScenario scenario, StorageGuiAction action) {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen screen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
             throw new IllegalStateException("Backpack screen is not open");
         }
         BackpackContainer menu = getOpenPlacedBackpackMenu();
@@ -500,8 +500,11 @@ final class StorageGuiRegressionRunner {
     private static void runStorageGuiColumnUpgradeAction(StorageGuiAction action) {
         if ("insert".equals(action.operation())) {
             Item item = action.item().orElseThrow(() -> new IllegalArgumentException("Column upgrade insert action needs an item"));
+            // Let any preceding slot-click sync settle before replacing the carried stack directly.
+            sleep(100);
             runOnServer(player -> setStorageGuiCarriedStack(player, item));
             runOnClient(() -> setStorageGuiClientCarriedStack(item));
+            sleep(100);
         }
 
         StorageGuiColumnUpgradeExpectation expectation = runOnClient(() -> clickStorageGuiColumnUpgrade(action));
@@ -616,7 +619,7 @@ final class StorageGuiRegressionRunner {
         int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
         int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-        if (!(Minecraft.getInstance().screen instanceof StorageScreenBase<?> storageScreen)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof StorageScreenBase<?> storageScreen)) {
             throw new IllegalStateException("Backpack storage screen is not open");
         }
         invokeInventoryMouseClick(storageScreen, slot.index, 0, ContainerInput.PICKUP);
@@ -874,7 +877,7 @@ final class StorageGuiRegressionRunner {
             if (Minecraft.getInstance().player != null) {
                 Minecraft.getInstance().player.containerMenu.setCarried(ItemStack.EMPTY);
             }
-            Minecraft.getInstance().setScreen(null);
+            Minecraft.getInstance().gui.setScreen(null);
             return true;
         });
         sleep(100);
@@ -884,7 +887,7 @@ final class StorageGuiRegressionRunner {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < deadline) {
             if (runOnClient(() -> {
-                if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+                if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
                     return false;
                 }
                 return menu.getBlockPosition().isPresent();
@@ -897,7 +900,7 @@ final class StorageGuiRegressionRunner {
     }
 
     private static BackpackContainer getOpenPlacedBackpackMenu() {
-        if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+        if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
             throw new IllegalStateException("Placed backpack screen is not open");
         }
         if (menu.getBlockPosition().isEmpty()) {

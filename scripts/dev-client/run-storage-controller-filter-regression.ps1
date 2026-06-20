@@ -36,8 +36,38 @@ function Invoke-BridgeJson {
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress -Depth 16) -TimeoutSec $TimeoutSeconds
 }
 
+function Stop-ProcessTree {
+    param([int]$ProcessId)
+
+    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
+        return
+    }
+    try {
+        & taskkill.exe /PID $ProcessId /T /F | Out-Null
+    } catch {
+        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
+    }
+}
+
+function Wait-ThenStopProcessTree {
+    param([int]$ProcessId)
+
+    if ($ProcessId -le 0) {
+        return
+    }
+
+    $deadline = (Get-Date).AddSeconds(10)
+    while ((Get-Date) -lt $deadline -and $null -ne (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
+        Start-Sleep -Milliseconds 250
+    }
+    Stop-ProcessTree -ProcessId $ProcessId
+}
+
 function Stop-AutomationClient {
+    param([int]$ProcessId = 0)
+
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+        Wait-ThenStopProcessTree -ProcessId $ProcessId
         return
     }
     try {
@@ -45,10 +75,12 @@ function Stop-AutomationClient {
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
+    Wait-ThenStopProcessTree -ProcessId $ProcessId
 }
 
 $startedClient = $false
 $jfrStarted = $false
+$clientProcessId = 0
 
 if ($Runs -le 0) {
     $Runs = if ($Jfr) { 1000 } else { 1 }
@@ -66,6 +98,7 @@ try {
         }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
+        $clientProcessId = $ready.processId
         $startedClient = $true
     }
 
@@ -126,6 +159,6 @@ try {
         }
     }
     if ($startedClient) {
-        Stop-AutomationClient
+        Stop-AutomationClient -ProcessId $clientProcessId
     }
 }

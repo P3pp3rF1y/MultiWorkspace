@@ -1,0 +1,29 @@
+{
+  "name": "sophisticatedbackpacks-no-curios",
+  "tests": [
+    {
+      "name": "placed_column_upgrade_removal_syncs_columns",
+      "type": "columnUpgradeSync",
+      "context": "placed"
+    },
+    {
+      "name": "sub_backpack_column_upgrade_removal_syncs_columns",
+      "type": "columnUpgradeSync",
+      "context": "sub"
+    },
+    {
+      "name": "sub_backpack_immediate_open_keeps_mob_catcher_data_separate",
+      "type": "subMobCatcherImmediateOpen"
+    },
+    {
+      "name": "advanced_compacting_high_stack_partially_compacts_into_near_full_ingot_slot",
+      "type": "advancedCompactingHighStack",
+      "firstSlotCount": 16384,
+      "secondSlotCount": 16000,
+      "triggerCount": 8,
+      "expectedNuggets": 12936,
+      "expectedIngots": 4,
+      "expectedBlocks": 1820
+    }
+  ]
+}

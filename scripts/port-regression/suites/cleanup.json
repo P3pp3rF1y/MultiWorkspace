@@ -1,0 +1,13 @@
+{
+  "name": "cleanup",
+  "description": "Checks that automated dev-client runs did not leave workspace process trees behind.",
+  "tests": [
+    {
+      "id": "cleanup.no_workspace_process_leaks",
+      "name": "No leaked workspace cmd/java processes",
+      "type": "processCheck",
+      "priority": "critical",
+      "timeoutSeconds": 30
+    }
+  ]
+}

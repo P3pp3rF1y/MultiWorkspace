@@ -32,7 +32,7 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 
     @Override
     public String stateJson() {
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         return "{\"ok\":true,"
                 + JsonUtil.property("viewer", id()) + ","
                 + JsonUtil.property("searchText", EmiApi.getSearchText()) + ","
@@ -66,7 +66,7 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
         } else {
             return "{\"ok\":false," + JsonUtil.property("error", "Unknown mode: " + mode) + "}";
         }
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         return "{\"ok\":true,"
                 + JsonUtil.property("viewer", id()) + ","
                 + JsonUtil.property("item", emiStackId(stack.get())) + ","
@@ -142,7 +142,7 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
         } else {
             EmiApi.displayRecipes(stack);
         }
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         if (!(screen instanceof RecipeScreen)) {
             return matchingRecipes(manager, stack, usages);
         }

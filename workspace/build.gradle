@@ -137,6 +137,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 def recipeViewer = (findProperty("recipe_viewer") ?: "jei").toString()
 def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "false").toString().toBoolean()
 
 neoForge {
     version = project.neo_version
@@ -257,6 +258,10 @@ dependencies {
         implementation project(':DevClientAutomation')
     }
 
+    // if (curiosDevClientRuntime) {
+    //     runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    // }
+
     // Drop extra test mods into workspace/local-mods to load them in dev runs.
     if (!minimalDevClientRuntime) {
         runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
@@ -302,7 +307,9 @@ dependencies {
     runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
-    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    // if (!curiosDevClientRuntime) {
+    //     runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    // }
     runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
     runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
 /*
@@ -325,9 +332,9 @@ dependencies {
     runtimeOnly "curse.maven:twilightforest-227639:6472889"
 
 */
-        runtimeOnly "curse.maven:guideme-1173950:8129704"
-        runtimeOnly "curse.maven:AE2-223794:8129795"
-        runtimeOnly "curse.maven:constructionsticks-1156098:8049310"
+//        runtimeOnly "curse.maven:guideme-1173950:8129704"
+//        runtimeOnly "curse.maven:AE2-223794:8129795"
+        runtimeOnly "maven.modrinth:construction-sticks:${constructionsticks_version}"
 
 //    runtimeOnly "curse.maven:spark-361579:5971514"
 
@@ -338,7 +345,7 @@ dependencies {
 
 */
     runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
-    runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
+    // runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"
 /*

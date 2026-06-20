@@ -44,7 +44,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
     @Override
     public String stateJson() {
         IJeiRuntime jeiRuntime = runtime;
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         if (jeiRuntime == null) {
             return runtimeUnavailableJson(screen);
         }
@@ -62,7 +62,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
     public String searchJson(String query) {
         IJeiRuntime jeiRuntime = runtime;
         if (jeiRuntime == null) {
-            return runtimeUnavailableJson(Minecraft.getInstance().screen);
+            return runtimeUnavailableJson(Minecraft.getInstance().gui.screen());
         }
         jeiRuntime.getIngredientFilter().setFilterText(query);
         return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("searchText", jeiRuntime.getIngredientFilter().getFilterText()) + "}";
@@ -74,7 +74,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
         String itemId = RecipeViewerRequest.itemId(request);
         IJeiRuntime jeiRuntime = runtime;
         if (jeiRuntime == null) {
-            return runtimeUnavailableJson(Minecraft.getInstance().screen);
+            return runtimeUnavailableJson(Minecraft.getInstance().gui.screen());
         }
         Optional<ItemStack> stack = findStack(jeiRuntime.getIngredientManager(), request);
         if (stack.isEmpty()) {
@@ -92,7 +92,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
         }
         IFocus<ItemStack> focus = jeiRuntime.getJeiHelpers().getFocusFactory().createFocus(role, VanillaTypes.ITEM_STACK, stack.get());
         jeiRuntime.getRecipesGui().show(focus);
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         return "{\"ok\":true,"
                 + JsonUtil.property("viewer", id()) + ","
                 + JsonUtil.property("item", itemId(stack.get())) + ","
@@ -108,7 +108,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
         String itemId = RecipeViewerRequest.itemId(request);
         IJeiRuntime jeiRuntime = runtime;
         if (jeiRuntime == null) {
-            return runtimeUnavailableJson(Minecraft.getInstance().screen);
+            return runtimeUnavailableJson(Minecraft.getInstance().gui.screen());
         }
         Optional<ItemStack> stack = findStack(jeiRuntime.getIngredientManager(), request);
         if (stack.isEmpty()) {
@@ -173,7 +173,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
     private static List<RecipeEntry> openedRecipes(IJeiRuntime jeiRuntime, ItemStack stack, RecipeIngredientRole role) {
         IFocus<ItemStack> focus = jeiRuntime.getJeiHelpers().getFocusFactory().createFocus(role, VanillaTypes.ITEM_STACK, stack);
         jeiRuntime.getRecipesGui().show(focus);
-        Screen screen = Minecraft.getInstance().screen;
+        Screen screen = Minecraft.getInstance().gui.screen();
         if (!isRecipeScreenOpen(screen)) {
             return List.of();
         }
