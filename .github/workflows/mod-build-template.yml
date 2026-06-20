@@ -1,6 +1,12 @@
 name: Mod Build (Reusable)
 
 on:
+  workflow_dispatch:
+    inputs:
+      changelog_range:
+        required: false
+        type: string
+        default: ""
   workflow_call:
     inputs:
       changelog_range:
