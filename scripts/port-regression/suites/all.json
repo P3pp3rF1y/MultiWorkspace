@@ -1,0 +1,11 @@
+{
+  "name": "all",
+  "description": "All currently automated reusable port regression suites.",
+  "includeSuites": [
+    "critical",
+    "render",
+    "recipe-viewers",
+    "dependency-gates",
+    "cleanup"
+  ]
+}

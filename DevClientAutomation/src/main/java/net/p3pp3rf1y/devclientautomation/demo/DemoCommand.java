@@ -1318,7 +1318,7 @@ public class DemoCommand {
 
 	private static void releaseFirstCapturedMobOnClient(CommandSourceStack source) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (!(minecraft.screen instanceof AbstractContainerScreen<?> containerScreen)
+		if (!(minecraft.gui.screen() instanceof AbstractContainerScreen<?> containerScreen)
 				|| !(containerScreen.getMenu() instanceof BackpackContainer backpackContainer)) {
 			throw new IllegalStateException("Open a backpack screen before releasing captured mobs");
 		}
@@ -1833,7 +1833,7 @@ public class DemoCommand {
 	}
 
 	private static int closeScreen(CommandSourceStack source, boolean record) {
-		Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(null));
+		Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(null));
 		if (record) {
 			DemoSession.get().record("step closeScreen");
 		}

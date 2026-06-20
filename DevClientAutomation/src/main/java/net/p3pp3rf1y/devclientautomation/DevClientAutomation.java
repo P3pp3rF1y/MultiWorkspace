@@ -14,6 +14,7 @@ import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -34,12 +35,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -65,6 +73,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -86,6 +95,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.network.BackpackOpenPayload;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
@@ -108,6 +118,9 @@ import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageBoat;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageMinecart;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -200,6 +213,13 @@ public class DevClientAutomation {
                 httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
                 httpServer.createContext("/storage/controller-ae2-profile-setup", this::storageControllerAe2ProfileSetup);
                 httpServer.createContext("/storage/controller-ae2-profile-simulate-query", this::storageControllerAe2ProfileSimulateQuery);
+                httpServer.createContext("/creative-tabs/render-check", this::creativeTabsRenderCheck);
+                httpServer.createContext("/backpack/mob-catcher-capture-effect-check", this::mobCatcherCaptureEffectCheck);
+                httpServer.createContext("/storage/block-gui-smoke", this::storageBlockGuiSmoke);
+                httpServer.createContext("/storage/paintbrush-smoke", this::storagePaintbrushSmoke);
+                httpServer.createContext("/storage/stash-left-click-regression", this::storageStashLeftClickRegression);
+                httpServer.createContext("/storage-in-motion/entity-open-check", this::storageInMotionEntityOpenCheck);
+                httpServer.createContext("/port/content-registry-check", this::portContentRegistryCheck);
                 httpServer.createContext("/recipe-viewer/state", this::recipeViewerState);
                 httpServer.createContext("/recipe-viewer/search", this::recipeViewerSearch);
                 httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
@@ -309,7 +329,7 @@ public class DevClientAutomation {
             requireMethod(exchange, "GET");
             CompletableFuture<byte[]> screenshot = runOnClient(() -> {
                 CompletableFuture<byte[]> future = new CompletableFuture<>();
-                Screenshot.takeScreenshot(Minecraft.getInstance().getMainRenderTarget(), image -> {
+                Screenshot.takeScreenshot(Minecraft.getInstance().gameRenderer.mainRenderTarget(), image -> {
                     try (NativeImage nativeImage = image) {
                         Path screenshotPath = Files.createTempFile("dev-client-automation-screenshot", ".png");
                         try {
@@ -417,6 +437,475 @@ public class DevClientAutomation {
             Optional<Integer> controllerY = extractInt(body, "controllerY");
             Optional<Integer> controllerZ = extractInt(body, "controllerZ");
             sendJsonHandling(exchange, () -> runOnServer(player -> simulateControllerAe2ProfileQuery(player, iterations, maxSimulations, controllerX, controllerY, controllerZ)));
+        }
+
+        private void creativeTabsRenderCheck(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, this::runCreativeTabsRenderCheck);
+        }
+
+        private String runCreativeTabsRenderCheck() {
+            List<CreativeTabRenderTarget> targets = runOnClient(this::openCreativeScreenForRenderCheck);
+            JsonArray results = new JsonArray();
+            for (CreativeTabRenderTarget target : targets) {
+                CreativeTabRenderSelection selection = runOnClient(() -> selectCreativeTabForRenderCheck(target.tab()));
+                sleep(200);
+                for (int row = 0; row <= selection.scrollRows(); row++) {
+                    int rowIndex = row;
+                    runOnClient(() -> scrollCreativeTabForRenderCheck(rowIndex, selection.scrollRows()));
+                    sleep(100);
+                }
+
+                JsonObject result = new JsonObject();
+                result.addProperty("id", target.id().toString());
+                result.addProperty("title", target.title());
+                result.addProperty("items", selection.itemCount());
+                result.addProperty("scrollRows", selection.scrollRows());
+                results.add(result);
+            }
+
+            return "{\"ok\":true,\"tabs\":" + results + "}";
+        }
+
+        private List<CreativeTabRenderTarget> openCreativeScreenForRenderCheck() {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player == null || minecraft.player.connection == null) {
+                throw new IllegalStateException("Client player is not available for creative tab render check");
+            }
+
+            CreativeModeInventoryScreen screen = new CreativeModeInventoryScreen(minecraft.player, minecraft.player.connection.enabledFeatures(), false);
+            minecraft.gui.setScreen(screen);
+
+            Set<String> targetNamespaces = Set.of("sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion", "reliquary");
+            List<CreativeTabRenderTarget> targets = new ArrayList<>();
+            for (CreativeModeTab tab : net.neoforged.neoforge.common.CreativeModeTabRegistry.getSortedCreativeModeTabs()) {
+                Identifier id = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(tab);
+                if (id != null && targetNamespaces.contains(id.getNamespace()) && tab.hasAnyItems()) {
+                    targets.add(new CreativeTabRenderTarget(id, tab.getDisplayName().getString(), tab));
+                }
+            }
+
+            if (targets.isEmpty()) {
+                throw new IllegalStateException("No Sophisticated/Reliquary creative tabs with items were found");
+            }
+            return targets;
+        }
+
+        private CreativeTabRenderSelection selectCreativeTabForRenderCheck(CreativeModeTab tab) {
+            CreativeModeInventoryScreen screen = currentCreativeScreen();
+            try {
+                Method selectTab = CreativeModeInventoryScreen.class.getDeclaredMethod("selectTab", CreativeModeTab.class);
+                selectTab.setAccessible(true);
+                selectTab.invoke(screen, tab);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Failed to select creative tab " + tab.getDisplayName().getString(), e);
+            }
+            CreativeModeInventoryScreen.ItemPickerMenu menu = screen.getMenu();
+            menu.scrollTo(0);
+            int itemCount = menu.items.size();
+            int scrollRows = Math.max(0, (itemCount + 8) / 9 - 5);
+            return new CreativeTabRenderSelection(itemCount, scrollRows);
+        }
+
+        private Boolean scrollCreativeTabForRenderCheck(int rowIndex, int scrollRows) {
+            CreativeModeInventoryScreen screen = currentCreativeScreen();
+            screen.getMenu().scrollTo(scrollRows == 0 ? 0 : rowIndex / (float) scrollRows);
+            return true;
+        }
+
+        private CreativeModeInventoryScreen currentCreativeScreen() {
+            Screen screen = Minecraft.getInstance().gui.screen();
+            if (!(screen instanceof CreativeModeInventoryScreen creativeModeInventoryScreen)) {
+                throw new IllegalStateException("Creative inventory screen is not open");
+            }
+            return creativeModeInventoryScreen;
+        }
+
+        private record CreativeTabRenderTarget(Identifier id, String title, CreativeModeTab tab) {}
+
+        private record CreativeTabRenderSelection(int itemCount, int scrollRows) {}
+
+        private void mobCatcherCaptureEffectCheck(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, () -> runOnServer(this::runMobCatcherCaptureEffectCheck));
+        }
+
+        private void storageBlockGuiSmoke(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, this::runStorageBlockGuiSmoke);
+        }
+
+        private void storagePaintbrushSmoke(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, () -> runOnServer(this::runStoragePaintbrushSmoke));
+        }
+
+        private void storageStashLeftClickRegression(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, () -> runOnServer(this::runStorageStashLeftClickRegression));
+        }
+
+        private void storageInMotionEntityOpenCheck(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, this::runStorageInMotionEntityOpenCheck);
+        }
+
+        private void portContentRegistryCheck(HttpExchange exchange) throws IOException {
+            requireMethod(exchange, "POST");
+            sendJsonHandling(exchange, this::runPortContentRegistryCheck);
+        }
+
+        private String runMobCatcherCaptureEffectCheck(ServerPlayer player) {
+            player.getInventory().clearContent();
+
+            ItemStack backpack = new ItemStack(ModItems.GOLD_BACKPACK.get());
+            IBackpackWrapper wrapper = BackpackWrapper.fromStackNoCache(backpack);
+            wrapper.setSlotNumbers(81, 3);
+            wrapper.getInventoryHandler().saveInventory();
+            wrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.MOB_CATCHER_UPGRADE.get()));
+            wrapper.getUpgradeHandler().saveInventory();
+
+            player.getInventory().setItem(0, backpack);
+            player.getInventory().setSelectedSlot(0);
+            player.getInventory().setChanged();
+
+			ServerLevel level = (ServerLevel) player.level();
+            LivingEntity chicken = EntityTypes.CHICKEN.create(level, EntitySpawnReason.EVENT);
+            if (chicken == null) {
+                throw new IllegalStateException("Failed to create chicken for mob catcher capture effect check");
+            }
+
+            Vec3 spawnPosition = player.position().add(player.getLookAngle().normalize().scale(2D));
+            chicken.snapTo(spawnPosition.x, player.getY(), spawnPosition.z, player.getYRot() + 180F, 0F);
+            if (!level.addFreshEntity(chicken)) {
+                throw new IllegalStateException("Failed to spawn chicken for mob catcher capture effect check");
+            }
+
+            MobCatcherHandler.tryCapture(player, InteractionHand.MAIN_HAND, chicken);
+            boolean captured = !MobCatcherStorage.getCapturedMobs(BackpackWrapper.fromStackNoCache(player.getInventory().getItem(0))).isEmpty();
+            return "{\"ok\":" + captured + ",\"entity\":\"minecraft:chicken\"}";
+        }
+
+        private String runStorageBlockGuiSmoke() {
+            StorageBlockGuiSpec[] specs = new StorageBlockGuiSpec[] {
+                    new StorageBlockGuiSpec("diamond_barrel", net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get())
+            };
+
+            JsonArray results = new JsonArray();
+            for (int i = 0; i < specs.length; i++) {
+                StorageBlockGuiSpec spec = specs[i];
+                int index = i;
+                StorageBlockGuiExpected expected = runOnServer(player -> openStorageBlockGuiSmoke(player, spec, index));
+                StorageBlockGuiState state = waitForStorageBlockGuiSmoke(spec.name(), expected.storageSlots());
+                closeCurrentContainer();
+
+                JsonObject result = new JsonObject();
+                result.addProperty("name", spec.name());
+                result.addProperty("expectedStorageSlots", expected.storageSlots());
+                result.addProperty("storageSlots", state.storageSlots());
+                result.addProperty("upgradeSlots", state.upgradeSlots());
+                result.addProperty("screen", state.screenClass());
+                results.add(result);
+            }
+
+            return "{\"ok\":true,\"storages\":" + results + "}";
+        }
+
+        private StorageBlockGuiExpected openStorageBlockGuiSmoke(ServerPlayer player, StorageBlockGuiSpec spec, int index) {
+            ServerLevel level = (ServerLevel) player.level();
+            BlockPos pos = regressionBasePos(player).offset(index * 2, 0, 0);
+            cleanupBlockArea(level, pos);
+            placeBlockWithItem(level, player, pos, new ItemStack(spec.item()));
+
+            StorageBlockEntity storage = getStorage(level, pos);
+            InventoryHandler inventory = storage.getStorageWrapper().getInventoryHandler();
+            if (inventory.size() <= 0) {
+                throw new IllegalStateException("Storage " + spec.name() + " has no inventory slots");
+            }
+            inventory.setStackInSlot(0, new ItemStack(Items.DIAMOND, 3));
+            inventory.saveInventory();
+
+            int expectedStorageSlots = inventory.size();
+            player.openMenu(new SimpleMenuProvider((windowId, playerInventory, openPlayer) ->
+                    new net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu(windowId, openPlayer, pos), Component.literal("Storage smoke " + spec.name())), pos);
+            return new StorageBlockGuiExpected(expectedStorageSlots, storage.getStorageWrapper().getUpgradeHandler().size());
+        }
+
+        private StorageBlockGuiState waitForStorageBlockGuiSmoke(String name, int expectedStorageSlots) {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            StorageBlockGuiState lastState = null;
+            while (System.nanoTime() < deadline) {
+                lastState = runOnClient(this::getStorageBlockGuiState);
+                if (lastState.matches(expectedStorageSlots)) {
+                    return lastState;
+                }
+                sleep(50);
+            }
+            throw new IllegalStateException("Storage GUI did not open for " + name + "; last=" + lastState);
+        }
+
+        private StorageBlockGuiState getStorageBlockGuiState() {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player == null || !(minecraft.player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
+                return new StorageBlockGuiState(0, 0, "");
+            }
+            Screen screen = minecraft.gui.screen();
+            return new StorageBlockGuiState(menu.getNumberOfStorageInventorySlots(), menu.getNumberOfUpgradeSlots(), screen == null ? "" : screen.getClass().getSimpleName());
+        }
+
+        private String runStoragePaintbrushSmoke(ServerPlayer player) {
+            ServerLevel level = (ServerLevel) player.level();
+            BlockPos pos = regressionBasePos(player).offset(0, 0, 8);
+            cleanupBlockArea(level, pos);
+            placeBlockWithItem(level, player, pos, new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get()));
+
+            StorageBlockEntity storage = getStorage(level, pos);
+            int mainColor = DyeColor.RED.getTextureDiffuseColor();
+            int accentColor = DyeColor.BLUE.getTextureDiffuseColor();
+            ItemStack paintbrush = new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModItems.PAINTBRUSH.get());
+            net.p3pp3rf1y.sophisticatedstorage.item.PaintbrushItem.setMainColor(paintbrush, mainColor);
+            net.p3pp3rf1y.sophisticatedstorage.item.PaintbrushItem.setAccentColor(paintbrush, accentColor);
+
+            player.getInventory().clearContent();
+            player.getInventory().setSelectedSlot(0);
+            player.getInventory().setItem(0, paintbrush);
+            player.getInventory().add(new ItemStack(Items.DYE.red(), 64));
+            player.getInventory().add(new ItemStack(Items.DYE.green(), 64));
+            player.getInventory().add(new ItemStack(Items.DYE.blue(), 64));
+            player.getInventory().setChanged();
+
+            boolean painted = net.p3pp3rf1y.sophisticatedstorage.item.PaintbrushItem.setColors(player, paintbrush, storage.getStorageWrapper(), null);
+
+            int actualMainColor = storage.getStorageWrapper().getMainColor();
+            int actualAccentColor = storage.getStorageWrapper().getAccentColor();
+            boolean ok = painted && actualMainColor == mainColor && actualAccentColor == accentColor;
+            return "{\"ok\":" + ok + ",\"painted\":" + painted + ",\"mainColor\":" + actualMainColor + ",\"accentColor\":" + actualAccentColor + "}";
+        }
+
+        private String runStorageStashLeftClickRegression(ServerPlayer player) {
+            JsonArray results = new JsonArray();
+            results.add(runStorageStashLeftClickCase(player, "backpack", () -> new ItemStack(ModItems.GOLD_BACKPACK.get())));
+            results.add(runStorageStashLeftClickCase(player, "shulker_box", () -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_SHULKER_BOX_ITEM.get())));
+            results.add(runStorageStashLeftClickCase(player, "moving_shulker_box", () -> {
+                ItemStack movingStorage = new ItemStack(net.p3pp3rf1y.sophisticatedstorageinmotion.init.ModItems.STORAGE_MINECART.get());
+                net.p3pp3rf1y.sophisticatedstorageinmotion.item.MovingStorageItem.setStorageItem(movingStorage,
+                        new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_SHULKER_BOX_ITEM.get()));
+                return movingStorage;
+            }));
+
+            JsonObject response = new JsonObject();
+            response.addProperty("ok", true);
+            response.add("cases", results);
+            return response.toString();
+        }
+
+        private JsonObject runStorageStashLeftClickCase(ServerPlayer player, String name, Supplier<ItemStack> storageStackSupplier) {
+            assertStorageInCursorLeftClickStashesSlotItem(player, name, storageStackSupplier.get());
+            assertStorageInCursorRightClickDoesNotStashSlotItem(player, name, storageStackSupplier.get());
+            assertCarriedItemLeftClickStashesIntoSlottedStorage(player, name, storageStackSupplier.get());
+            assertCarriedItemRightClickDoesNotStashIntoSlottedStorage(player, name, storageStackSupplier.get());
+
+            JsonObject result = new JsonObject();
+            result.addProperty("name", name);
+            result.addProperty("passed", true);
+            return result;
+        }
+
+        private void assertStorageInCursorLeftClickStashesSlotItem(ServerPlayer player, String name, ItemStack storageStack) {
+            Slot slot = slotWith(new ItemStack(Items.DIAMOND, 3));
+            if (!storageStack.overrideStackedOnOther(slot, ClickAction.PRIMARY, player)) {
+                throw new IllegalStateException(name + " did not handle left-click slot stashing with storage in cursor");
+            }
+            if (!slot.getItem().isEmpty()) {
+                throw new IllegalStateException(name + " left-click slot stashing left items in clicked slot: " + slot.getItem());
+            }
+        }
+
+        private void assertStorageInCursorRightClickDoesNotStashSlotItem(ServerPlayer player, String name, ItemStack storageStack) {
+            Slot slot = slotWith(new ItemStack(Items.DIAMOND, 3));
+            boolean handled = storageStack.overrideStackedOnOther(slot, ClickAction.SECONDARY, player);
+            if (handled || slot.getItem().getCount() != 3) {
+                throw new IllegalStateException(name + " still stashed slot item on right-click with storage in cursor");
+            }
+        }
+
+        private void assertCarriedItemLeftClickStashesIntoSlottedStorage(ServerPlayer player, String name, ItemStack storageStack) {
+            Slot slot = slotWith(storageStack);
+            ItemStack[] carried = new ItemStack[] {new ItemStack(Items.EMERALD, 4)};
+            if (!slot.getItem().overrideOtherStackedOnMe(carried[0], slot, ClickAction.PRIMARY, player, SlotAccess.of(() -> carried[0], stack -> carried[0] = stack))) {
+                throw new IllegalStateException(name + " did not handle left-click cursor stashing into slotted storage");
+            }
+            if (!carried[0].isEmpty()) {
+                throw new IllegalStateException(name + " left-click cursor stashing left carried items: " + carried[0]);
+            }
+        }
+
+        private void assertCarriedItemRightClickDoesNotStashIntoSlottedStorage(ServerPlayer player, String name, ItemStack storageStack) {
+            Slot slot = slotWith(storageStack);
+            ItemStack[] carried = new ItemStack[] {new ItemStack(Items.EMERALD, 4)};
+            boolean handled = slot.getItem().overrideOtherStackedOnMe(carried[0], slot, ClickAction.SECONDARY, player, SlotAccess.of(() -> carried[0], stack -> carried[0] = stack));
+            if (handled || carried[0].getCount() != 4) {
+                throw new IllegalStateException(name + " still stashed carried item on right-click into slotted storage");
+            }
+        }
+
+        private Slot slotWith(ItemStack stack) {
+            SimpleContainer container = new SimpleContainer(1);
+            container.setItem(0, stack);
+            return new Slot(container, 0, 0, 0);
+        }
+
+        private String runStorageInMotionEntityOpenCheck() {
+            runOnServer(this::openStorageMinecartRegression);
+            MovingStorageRegressionState minecartState = waitForMovingStorageMenu("StorageMinecart");
+            closeCurrentContainer();
+
+            runOnServer(this::openStorageBoatRegression);
+            MovingStorageRegressionState boatState = waitForMovingStorageMenu("StorageBoat");
+            closeCurrentContainer();
+
+            return "{\"ok\":true,\"minecartSlots\":" + minecartState.storageSlots() + ",\"boatSlots\":" + boatState.storageSlots() + ","
+                    + jsonProperty("minecartEntity", minecartState.entityClass()) + "," + jsonProperty("boatEntity", boatState.entityClass()) + "}";
+        }
+
+        private String runPortContentRegistryCheck() {
+            String[] requiredMods = new String[] {
+                    "devclientautomation",
+                    "sophisticatedbackpacks",
+                    "sophisticatedcore",
+                    "sophisticatedstorage",
+                    "sophisticatedstorageinmotion",
+                    "sophisticateditemactions",
+                    "sophisticatedinventoryinteractions",
+                    "reliquary"
+            };
+            String[] requiredItems = new String[] {
+                    "sophisticatedbackpacks:backpack",
+                    "sophisticatedbackpacks:gold_backpack",
+                    "sophisticatedbackpacks:mob_catcher_upgrade",
+                    "sophisticatedstorage:paintbrush",
+                    "sophisticatedstorage:diamond_barrel",
+                    "sophisticatedstorage:limited_copper_barrel_1",
+                    "sophisticatedstorageinmotion:storage_minecart",
+                    "sophisticatedstorageinmotion:storage_boat",
+                    "reliquary:sojourner_staff",
+                    "reliquary:potion",
+                    "reliquary:mob_charm_belt"
+            };
+
+            JsonArray missingMods = new JsonArray();
+            for (String modId : requiredMods) {
+                if (!ModList.get().isLoaded(modId)) {
+                    missingMods.add(modId);
+                }
+            }
+
+            JsonArray missingItems = new JsonArray();
+            JsonArray checkedItems = new JsonArray();
+            for (String itemId : requiredItems) {
+                Identifier id = Identifier.parse(itemId);
+                Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
+                if (item.isEmpty() || new ItemStack(item.get()).isEmpty()) {
+                    missingItems.add(itemId);
+                } else {
+                    checkedItems.add(itemId);
+                }
+            }
+
+            JsonObject namespaceCounts = new JsonObject();
+            for (String namespace : List.of("sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion", "reliquary")) {
+                int count = 0;
+                for (Item item : BuiltInRegistries.ITEM) {
+                    Identifier id = BuiltInRegistries.ITEM.getKey(item);
+                    if (id != null && namespace.equals(id.getNamespace())) {
+                        count++;
+                    }
+                }
+                namespaceCounts.addProperty(namespace, count);
+            }
+
+            boolean ok = missingMods.isEmpty() && missingItems.isEmpty();
+            return "{\"ok\":" + ok + ",\"missingMods\":" + missingMods + ",\"missingItems\":" + missingItems + ",\"checkedItems\":" + checkedItems + ",\"itemCounts\":" + namespaceCounts + "}";
+        }
+
+        private Boolean openStorageMinecartRegression(ServerPlayer player) {
+            ServerLevel level = (ServerLevel) player.level();
+            clearMovingStorageRegressionEntities(level, player);
+            Vec3 pos = player.position().add(player.getLookAngle().normalize().scale(3D));
+            StorageMinecart minecart = new StorageMinecart(level, pos.x(), player.getY(), pos.z());
+            minecart.getStorageHolder().setStorageItemFrom(new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get()), true);
+            level.addFreshEntity(minecart);
+            minecart.getStorageHolder().openContainerMenu(player);
+            return true;
+        }
+
+        private Boolean openStorageBoatRegression(ServerPlayer player) {
+            ServerLevel level = (ServerLevel) player.level();
+            clearMovingStorageRegressionEntities(level, player);
+            Vec3 pos = player.position().add(player.getLookAngle().normalize().scale(3D)).add(1D, 0D, 0D);
+            StorageBoat boat = new StorageBoat(level, pos.x(), player.getY(), pos.z());
+            boat.getStorageHolder().setStorageItemFrom(new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_COPPER_BARREL_1_ITEM.get()), true);
+            level.addFreshEntity(boat);
+            boat.getStorageHolder().openContainerMenu(player);
+            return true;
+        }
+
+        private void clearMovingStorageRegressionEntities(ServerLevel level, ServerPlayer player) {
+            AABB area = player.getBoundingBox().inflate(8D);
+            level.getEntities(player, area, entity -> entity instanceof StorageMinecart || entity instanceof StorageBoat).forEach(entity -> entity.discard());
+            player.closeContainer();
+        }
+
+        private BlockPos regressionBasePos(ServerPlayer player) {
+            return player.blockPosition().offset(5, 0, 5);
+        }
+
+        private void cleanupBlockArea(ServerLevel level, BlockPos pos) {
+            for (BlockPos cleanupPos : BlockPos.betweenClosed(pos.offset(-1, 0, -1), pos.offset(1, 2, 1))) {
+                level.setBlock(cleanupPos, Blocks.AIR.defaultBlockState(), 3);
+            }
+        }
+
+        private MovingStorageRegressionState waitForMovingStorageMenu(String expectedEntityClass) {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            MovingStorageRegressionState lastState = null;
+            while (System.nanoTime() < deadline) {
+                lastState = runOnClient(this::getMovingStorageRegressionState);
+                if (lastState.matches(expectedEntityClass)) {
+                    return lastState;
+                }
+                sleep(50);
+            }
+            throw new IllegalStateException("Moving storage menu did not open for " + expectedEntityClass + "; last=" + lastState);
+        }
+
+        private MovingStorageRegressionState getMovingStorageRegressionState() {
+            if (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof MovingStorageContainerMenu<?> menu)) {
+                return new MovingStorageRegressionState("", 0, false);
+            }
+            String entityClass = menu.getStorageEntity().map(entity -> entity.getClass().getSimpleName()).orElse("");
+            return new MovingStorageRegressionState(entityClass, menu.getNumberOfStorageInventorySlots(), menu.getStorageEntity().isPresent());
+        }
+
+        private void closeCurrentContainer() {
+            runOnServer(player -> {
+                player.closeContainer();
+                return true;
+            });
+            runOnClient(() -> {
+                if (Minecraft.getInstance().player != null) {
+                    Minecraft.getInstance().player.closeContainer();
+                }
+                Minecraft.getInstance().gui.setScreen(null);
+                return true;
+            });
+            sleep(100);
+        }
+
+        private record MovingStorageRegressionState(String entityClass, int storageSlots, boolean hasEntity) {
+            private boolean matches(String expectedEntityClass) {
+                return hasEntity && entityClass.equals(expectedEntityClass) && storageSlots > 0;
+            }
         }
 
         private String runBackpackGuiRegression(String body) {
@@ -538,13 +1027,12 @@ public class DevClientAutomation {
                 runOnServer(this::openParentMobCatcherBackpackRegression);
                 waitForOpenParentBackpackMenu();
 
-                runOnServer(this::insertMobCatcherSubBackpackIntoOpenParent);
-                runOnClient(this::insertClientMobCatcherSubBackpackIntoOpenParent);
+			runOnServer(this::insertMobCatcherSubBackpackIntoOpenParent);
 
-                SubMobCatcherRegressionState parentState = runOnClient(this::getParentMobCatcherRegressionState);
-                if (!parentState.parentMatches()) {
-                    return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data did not stay separate after inserting sub backpack");
-                }
+			SubMobCatcherRegressionState parentState = waitForParentMobCatcherRegressionState();
+			if (!parentState.parentContainerMatchesBeforeSubOpen()) {
+				return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data changed after inserting sub backpack");
+			}
 
                 openSubBackpackColumnUpgradeRegressionWhenReady();
 
@@ -567,7 +1055,7 @@ public class DevClientAutomation {
             runOnClient(() -> {
                 if (Minecraft.getInstance().player != null) {
                     Minecraft.getInstance().player.containerMenu.setCarried(ItemStack.EMPTY);
-                    Minecraft.getInstance().setScreen(null);
+                    Minecraft.getInstance().gui.setScreen(null);
                 }
                 return true;
             });
@@ -616,7 +1104,7 @@ public class DevClientAutomation {
             do {
                 runOnClient(this::openSubBackpackColumnUpgradeRegressionFromClient);
                 sleep(100);
-                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                if (runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen
                         && Minecraft.getInstance().player != null
                         && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
                         && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
@@ -630,15 +1118,37 @@ public class DevClientAutomation {
             return true;
         }
 
-        private void waitForOpenBackpackGuiRegressionMenu(BackpackGuiRegressionContext context) {
-            switch (context) {
-                case PLACED -> waitForOpenPlacedBackpackMenu();
-                case CURIOS -> waitForOpenCuriosBackpackMenu();
-                case SUB -> waitForOpenSubBackpackMenu();
-            }
-        }
+	private void waitForOpenBackpackGuiRegressionMenu(BackpackGuiRegressionContext context) {
+		switch (context) {
+			case PLACED -> waitForOpenPlacedBackpackMenu();
+			case CURIOS -> waitForOpenCuriosBackpackMenu();
+			case SUB -> waitForOpenSubBackpackMenu();
+		}
+	}
 
-        private PlacedColumnUpgradeClickExpectation clickBackpackGuiRegressionColumnUpgrade(BackpackGuiRegressionContext context) {
+	private SubMobCatcherRegressionState waitForParentMobCatcherRegressionState() {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		SubMobCatcherRegressionState lastState = null;
+		RuntimeException lastError = null;
+		do {
+			try {
+				lastState = runOnClient(this::getParentMobCatcherRegressionState);
+				if (lastState.parentContainerMatchesBeforeSubOpen()) {
+					return lastState;
+				}
+			} catch (RuntimeException e) {
+				lastError = e;
+			}
+			sleep(50);
+		} while (System.nanoTime() < deadline);
+
+		if (lastState != null) {
+			return lastState;
+		}
+		throw lastError == null ? new IllegalStateException("Timed out waiting for parent backpack mob catcher data to sync") : lastError;
+	}
+
+	private PlacedColumnUpgradeClickExpectation clickBackpackGuiRegressionColumnUpgrade(BackpackGuiRegressionContext context) {
             return switch (context) {
                 case PLACED -> clickPlacedBackpackColumnUpgrade();
                 case CURIOS -> clickCuriosBackpackColumnUpgrade();
@@ -885,7 +1395,7 @@ public class DevClientAutomation {
         private void waitForOpenPlacedBackpackMenu() {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             do {
-                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                if (runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen
                         && Minecraft.getInstance().player != null
                         && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
                         && menu.getBlockPosition().isPresent())) {
@@ -899,7 +1409,7 @@ public class DevClientAutomation {
         private void waitForOpenCuriosBackpackMenu() {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             do {
-                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                if (runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen
                         && Minecraft.getInstance().player != null
                         && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
                         && menu.getBlockPosition().isEmpty())) {
@@ -913,7 +1423,7 @@ public class DevClientAutomation {
         private void waitForOpenParentBackpackMenu() {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             do {
-                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                if (runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen
                         && Minecraft.getInstance().player != null
                         && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
                         && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK)) {
@@ -927,7 +1437,7 @@ public class DevClientAutomation {
         private void waitForOpenSubBackpackMenu() {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             do {
-                if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
+                if (runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen
                         && Minecraft.getInstance().player != null
                         && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
                         && menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
@@ -962,14 +1472,14 @@ public class DevClientAutomation {
             int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
             int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-            Screen screen = Minecraft.getInstance().screen;
+            Screen screen = Minecraft.getInstance().gui.screen();
             clickSlot(screen, slot);
 
             return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
         }
 
         private BackpackContainer getOpenPlacedBackpackMenu() {
-            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
                 throw new IllegalStateException("Placed backpack screen is not open");
             }
             if (menu.getBlockPosition().isEmpty()) {
@@ -1002,14 +1512,14 @@ public class DevClientAutomation {
             int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
             int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-            Screen screen = Minecraft.getInstance().screen;
+            Screen screen = Minecraft.getInstance().gui.screen();
             clickSlot(screen, slot);
 
             return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
         }
 
         private BackpackContainer getOpenCuriosBackpackMenu() {
-            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
                 throw new IllegalStateException("Curios backpack screen is not open");
             }
             if (menu.getBlockPosition().isPresent()) {
@@ -1042,14 +1552,14 @@ public class DevClientAutomation {
             int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
             int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-            Screen screen = Minecraft.getInstance().screen;
+            Screen screen = Minecraft.getInstance().gui.screen();
             clickSlot(screen, slot);
 
             return new PlacedColumnUpgradeClickExpectation(expectedColumnsTaken, expectedStorageSlots);
         }
 
         private BackpackContainer getOpenSubBackpackMenu() {
-            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
                 throw new IllegalStateException("Sub backpack screen is not open");
             }
             if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_SUB_BACKPACK) {
@@ -1142,7 +1652,7 @@ public class DevClientAutomation {
         }
 
         private BackpackContainer getOpenParentBackpackMenu() {
-            if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
                 throw new IllegalStateException("Parent backpack screen is not open");
             }
             if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
@@ -1273,12 +1783,12 @@ public class DevClientAutomation {
         private void recipeViewerQuery(HttpExchange exchange) throws IOException {
             requireMethod(exchange, "POST");
             String body = readBody(exchange);
-            sendJson(exchange, runOnClient(() -> RecipeViewerAutomationManager.queryJson(body)));
+            sendJsonHandling(exchange, () -> runOnClient(() -> RecipeViewerAutomationManager.queryJson(body)));
         }
 
         private String buildStateJson() {
             Minecraft minecraft = Minecraft.getInstance();
-            Screen screen = minecraft.screen;
+            Screen screen = minecraft.gui.screen();
             return "{"
                     + jsonProperty("screenClass", screen == null ? null : screen.getClass().getName()) + ","
                     + jsonProperty("screenSimpleName", screen == null ? null : screen.getClass().getSimpleName()) + ","
@@ -1294,7 +1804,7 @@ public class DevClientAutomation {
 
         private String buildScreenJson() {
             Minecraft minecraft = Minecraft.getInstance();
-            Screen screen = minecraft.screen;
+            Screen screen = minecraft.gui.screen();
             StringBuilder json = new StringBuilder("{");
             json.append(jsonProperty("screenClass", screen == null ? null : screen.getClass().getName())).append(',');
             json.append(jsonProperty("screenSimpleName", screen == null ? null : screen.getClass().getSimpleName())).append(',');
@@ -1330,7 +1840,7 @@ public class DevClientAutomation {
 
         private String clickWidget(String text, boolean contains, int button) {
             Minecraft minecraft = Minecraft.getInstance();
-            Screen screen = minecraft.screen;
+            Screen screen = minecraft.gui.screen();
             if (screen == null) {
                 return "{\"ok\":false,\"error\":\"No screen is open\"}";
             }
@@ -1348,7 +1858,7 @@ public class DevClientAutomation {
         }
 
         private boolean confirmExperimentalWarningIfPresent() {
-            Screen screen = Minecraft.getInstance().screen;
+            Screen screen = Minecraft.getInstance().gui.screen();
             if (screen == null || !screen.getClass().getSimpleName().equals("BackupConfirmScreen")) {
                 return false;
             }
@@ -1371,14 +1881,14 @@ public class DevClientAutomation {
             if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
                 return "{\"ok\":false,\"error\":\"Unknown key\"}";
             }
-            if (keyCode == GLFW.GLFW_KEY_E && minecraft.screen == null && minecraft.player != null) {
-                minecraft.setScreen(new InventoryScreen(minecraft.player));
+            if (keyCode == GLFW.GLFW_KEY_E && minecraft.gui.screen() == null && minecraft.player != null) {
+                minecraft.gui.setScreen(new InventoryScreen(minecraft.player));
                 return "{\"ok\":true,\"handled\":true}";
             }
-			if (minecraft.screen != null) {
-				boolean handled = minecraft.screen.keyPressed(new KeyEvent(keyCode, 0, 0));
+			if (minecraft.gui.screen() != null) {
+				boolean handled = minecraft.gui.screen().keyPressed(new KeyEvent(keyCode, 0, 0));
 				if (!handled && keyCode == GLFW.GLFW_KEY_ESCAPE) {
-					minecraft.screen.onClose();
+					minecraft.gui.screen().onClose();
 					handled = true;
 				}
 				return "{\"ok\":true,\"handled\":" + handled + "}";
@@ -1393,8 +1903,8 @@ public class DevClientAutomation {
 				return "{\"ok\":false,\"error\":\"Unknown key\"}";
 			}
 			minecraft.options.pauseOnLostFocus = false;
-			if (minecraft.screen != null) {
-				minecraft.setScreen(null);
+			if (minecraft.gui.screen() != null) {
+				minecraft.gui.setScreen(null);
 			}
 			KeyMapping.click(InputConstants.Type.KEYSYM.getOrCreate(keyCode));
 			return "{\"ok\":true}";
@@ -1403,8 +1913,8 @@ public class DevClientAutomation {
 		private String useGameKey() {
 			Minecraft minecraft = Minecraft.getInstance();
 			minecraft.options.pauseOnLostFocus = false;
-			if (minecraft.screen != null) {
-				minecraft.setScreen(null);
+			if (minecraft.gui.screen() != null) {
+				minecraft.gui.setScreen(null);
 			}
 			if (minecraft.level == null || minecraft.player == null || minecraft.hitResult == null || minecraft.hitResult.getType() != HitResult.Type.BLOCK) {
 				return "{\"ok\":false,\"error\":\"Not looking at a block\"}";
@@ -1421,8 +1931,8 @@ public class DevClientAutomation {
 		private String unpauseGame() {
 			Minecraft minecraft = Minecraft.getInstance();
 			minecraft.options.pauseOnLostFocus = false;
-			if (minecraft.screen != null) {
-				minecraft.setScreen(null);
+			if (minecraft.gui.screen() != null) {
+				minecraft.gui.setScreen(null);
 			}
 			return "{\"ok\":true}";
 		}
@@ -1905,11 +2415,11 @@ public class DevClientAutomation {
                 return minecraft.level != null && minecraft.player != null;
             }
             if ("screen".equals(condition)) {
-                Screen screen = minecraft.screen;
+                Screen screen = minecraft.gui.screen();
                 return screen != null && (screen.getClass().getName().equals(screenName) || screen.getClass().getSimpleName().equals(screenName));
             }
             if ("noScreen".equals(condition)) {
-                return minecraft.screen == null;
+                return minecraft.gui.screen() == null;
             }
             return false;
         }
@@ -2011,7 +2521,7 @@ public class DevClientAutomation {
         private Optional<String> waitForBackpackScreen() {
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             while (System.nanoTime() < deadline) {
-                Optional<String> error = runOnClient(() -> Minecraft.getInstance().screen instanceof StorageScreenBase<?> && Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer ? Optional.empty() : Optional.of("backpack screen is not open"));
+                Optional<String> error = runOnClient(() -> Minecraft.getInstance().gui.screen() instanceof StorageScreenBase<?> && Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer ? Optional.empty() : Optional.of("backpack screen is not open"));
                 if (error.isEmpty()) {
                     return Optional.empty();
                 }
@@ -2060,7 +2570,7 @@ public class DevClientAutomation {
 
         private Optional<String> quickMoveTankUpgradeFromPlayerInventory() {
             Minecraft minecraft = Minecraft.getInstance();
-            if (!(minecraft.screen instanceof StorageScreenBase<?> storageScreen) || !(minecraft.player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
+            if (!(minecraft.gui.screen() instanceof StorageScreenBase<?> storageScreen) || !(minecraft.player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
                 return Optional.of("backpack storage screen is not open");
             }
 
@@ -2082,7 +2592,7 @@ public class DevClientAutomation {
 
         private Optional<String> quickMoveTankUpgradeFromUpgradeSlot() {
             Minecraft minecraft = Minecraft.getInstance();
-            if (!(minecraft.screen instanceof StorageScreenBase<?> storageScreen) || !(minecraft.player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
+            if (!(minecraft.gui.screen() instanceof StorageScreenBase<?> storageScreen) || !(minecraft.player.containerMenu instanceof StorageContainerMenuBase<?> menu)) {
                 return Optional.of("backpack storage screen is not open");
             }
 
@@ -2131,7 +2641,7 @@ public class DevClientAutomation {
             if (Minecraft.getInstance().player == null || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer backpackContainer)) {
                 return Optional.of(phase + " client backpack container is not open");
             }
-            if (!(Minecraft.getInstance().screen instanceof StorageScreenBase<?> storageScreen)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof StorageScreenBase<?> storageScreen)) {
                 return Optional.of(phase + " backpack screen is not open");
             }
             IBackpackWrapper wrapper = backpackContainer.getStorageWrapper();
@@ -3106,6 +3616,18 @@ public class DevClientAutomation {
         private record ControllerFilterInsertStats(int calls, long items) {
         }
 
+        private record StorageBlockGuiSpec(String name, Item item) {
+        }
+
+        private record StorageBlockGuiExpected(int storageSlots, int upgradeSlots) {
+        }
+
+        private record StorageBlockGuiState(int storageSlots, int upgradeSlots, String screenClass) {
+            private boolean matches(int expectedStorageSlots) {
+                return storageSlots == expectedStorageSlots && upgradeSlots >= 0 && !screenClass.isBlank();
+            }
+        }
+
         private record ColumnUpgradeSimulationResult(boolean fits) {
         }
 
@@ -3119,11 +3641,16 @@ public class DevClientAutomation {
             }
         }
 
-        private record SubMobCatcherRegressionState(String context, int storageSlots, boolean slot0Backpack, int currentMobCount, @Nullable String currentMobId,
-                int nestedMobCount, @Nullable String nestedMobId) {
-            private boolean parentMatches() {
-                return BackpackContext.ContextType.ITEM_BACKPACK.name().equals(context) && slot0Backpack && storageSlots == 81 && currentMobCount == 1
-                        && SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId) && nestedMobCount == 1
+		private record SubMobCatcherRegressionState(String context, int storageSlots, boolean slot0Backpack, int currentMobCount, @Nullable String currentMobId,
+				int nestedMobCount, @Nullable String nestedMobId) {
+			private boolean parentContainerMatchesBeforeSubOpen() {
+				return BackpackContext.ContextType.ITEM_BACKPACK.name().equals(context) && slot0Backpack && storageSlots == 81 && currentMobCount == 1
+						&& SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId);
+			}
+
+			private boolean parentMatches() {
+				return BackpackContext.ContextType.ITEM_BACKPACK.name().equals(context) && slot0Backpack && storageSlots == 81 && currentMobCount == 1
+						&& SUB_MOB_CATCHER_PARENT_MOB_ID.toString().equals(currentMobId) && nestedMobCount == 1
                         && SUB_MOB_CATCHER_SUB_MOB_ID.toString().equals(nestedMobId);
             }
 

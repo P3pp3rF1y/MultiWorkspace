@@ -1,0 +1,118 @@
+{
+  "name": "render",
+  "description": "Rendering-focused port checks for creative tabs and entity/item preview paths.",
+  "tests": [
+    {
+      "id": "creative_tabs.render_all_items",
+      "name": "Render every target mod creative tab item",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/creative-tabs/render-check",
+      "screenshot": "creative-tabs-render-check.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "backpacks.mob_catcher.capture_effect",
+      "name": "Mob catcher capture effect render path",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/backpack/mob-catcher-capture-effect-check",
+      "screenshot": "mob-catcher-capture-effect.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "Unable to render mob catcher capture effect",
+        "Tried to access entity ID before ID assignment",
+        "Extracting render state"
+      ]
+    },
+    {
+      "id": "storage.block_gui_smoke",
+      "name": "Storage block GUI open/sync smoke",
+      "type": "endpoint",
+      "priority": "high",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage/block-gui-smoke",
+      "screenshot": "storage-block-gui-smoke.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage.paintbrush_smoke",
+      "name": "Storage paintbrush color application smoke",
+      "type": "endpoint",
+      "priority": "high",
+      "timeoutSeconds": 360,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage/paintbrush-smoke",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage_in_motion.entity_open",
+      "name": "Storage In Motion entity render/open smoke",
+      "type": "endpoint",
+      "priority": "high",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage-in-motion/entity-open-check",
+      "screenshot": "storage-in-motion-entity-open.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    }
+  ]
+}

@@ -79,11 +79,6 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 neoForge {
     version = project.neo_version
 
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
-
     mods {
         "${mod_id}" {
             sourceSet(sourceSets.main)
@@ -117,6 +112,7 @@ dependencies {
     compileOnly project(':SophisticatedCore')
     compileOnly project(':SophisticatedBackpacks')
     compileOnly project(':SophisticatedStorage')
+    compileOnly project(':SophisticatedStorageInMotion')
     compileOnly "dev.emi:emi-neoforge:${emi_version}"
     compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}"
     compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"

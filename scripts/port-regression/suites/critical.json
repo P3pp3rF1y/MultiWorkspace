@@ -1,0 +1,241 @@
+{
+  "name": "critical",
+  "description": "Critical reusable checks that should pass on every new Minecraft/NeoForge port.",
+  "tests": [
+    {
+      "id": "build.full",
+      "name": "Full Gradle build",
+      "type": "gradle",
+      "priority": "critical",
+      "args": ["--no-daemon", "--continue", "build"],
+      "timeoutSeconds": 1200
+    },
+    {
+      "id": "startup.default_run_client",
+      "name": "Default workspace runClient reaches loaded dev world",
+      "type": "startup",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "assertions": {
+        "playerLoaded": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen",
+        "Tried to access entity ID before ID assignment",
+        "NoClassDefFoundError: (?!org/jetbrains/java/decompiler/main/extern/IResultSaver)"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "creative_tabs.render_all_items",
+      "name": "Render every target mod creative tab item",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/creative-tabs/render-check",
+      "screenshot": "creative-tabs-render-check.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "port.content_registry",
+      "name": "Ported mods and representative content are registered",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 360,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/port/content-registry-check",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "NoClassDefFoundError: (?!org/jetbrains/java/decompiler/main/extern/IResultSaver)"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "backpacks.gui.no_curios",
+      "name": "Backpack GUI regression suite without Curios",
+      "type": "script",
+      "priority": "critical",
+      "script": "scripts/dev-client/run-backpack-regression.ps1",
+      "args": ["-Suite", "sophisticatedbackpacks-no-curios", "-MinimalRuntime"],
+      "timeoutSeconds": 600,
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Tried to access entity ID before ID assignment"
+      ]
+    },
+    {
+      "id": "backpacks.storage_gui.matrix",
+      "name": "Backpack storage GUI interaction matrix",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 600,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/backpack/storage-gui-regressions",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Tried to access entity ID before ID assignment",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage.block_gui_smoke",
+      "name": "Storage block GUI open/sync smoke",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage/block-gui-smoke",
+      "screenshot": "storage-block-gui-smoke.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage.paintbrush_smoke",
+      "name": "Storage paintbrush color application smoke",
+      "type": "endpoint",
+      "priority": "high",
+      "timeoutSeconds": 360,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage/paintbrush-smoke",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage.stash_left_click",
+      "name": "Backpack and shulker left-click stash regression",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 360,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage/stash-left-click-regression",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage.controller_filter",
+      "name": "Storage controller filter regression",
+      "type": "script",
+      "priority": "critical",
+      "script": "scripts/dev-client/run-storage-controller-filter-regression.ps1",
+      "args": ["-MinimalRuntime"],
+      "timeoutSeconds": 600,
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "storage_in_motion.entity_open",
+      "name": "Storage In Motion entity render/open smoke",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/storage-in-motion/entity-open-check",
+      "screenshot": "storage-in-motion-entity-open.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "FATAL",
+        "Reported exception",
+        "Extracting render state",
+        "Tried to access entity ID before ID assignment",
+        "Rendering screen"
+      ],
+      "allowedLogContextPatterns": [
+        "FramerateLimitTracker\\.onInputReceived"
+      ]
+    },
+    {
+      "id": "backpacks.mob_catcher.capture_effect",
+      "name": "Mob catcher capture effect render path",
+      "type": "endpoint",
+      "priority": "critical",
+      "timeoutSeconds": 480,
+      "skipRecipeViewerReady": true,
+      "method": "POST",
+      "path": "/backpack/mob-catcher-capture-effect-check",
+      "screenshot": "mob-catcher-capture-effect.png",
+      "assertions": {
+        "ok": true
+      },
+      "noLogPatterns": [
+        "Unable to render mob catcher capture effect",
+        "Tried to access entity ID before ID assignment",
+        "Extracting render state"
+      ]
+    }
+  ]
+}

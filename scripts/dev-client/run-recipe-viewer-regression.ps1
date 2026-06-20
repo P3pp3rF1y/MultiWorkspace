@@ -288,6 +288,9 @@ function Test-RecipeMatch {
     if (-not [string]::IsNullOrWhiteSpace($Expectation.categoryPattern) -and $Recipe.category -notmatch $Expectation.categoryPattern -and $Recipe.categoryName -notmatch $Expectation.categoryPattern) {
         return $false
     }
+    if (-not [string]::IsNullOrWhiteSpace($Expectation.notCategoryPattern) -and ($Recipe.category -match $Expectation.notCategoryPattern -or $Recipe.categoryName -match $Expectation.notCategoryPattern)) {
+        return $false
+    }
     foreach ($input in @($Expectation.inputs)) {
         if (-not (Test-RecipeContainsStack -Recipe $Recipe -Side inputs -Expectation $input)) {
             return $false
@@ -373,7 +376,10 @@ function Invoke-Query {
 }
 
 function Stop-AutomationClient {
+    param([int]$ProcessId = 0)
+
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+        Wait-ThenStopProcessTree -ProcessId $ProcessId
         return
     }
     try {
@@ -381,6 +387,34 @@ function Stop-AutomationClient {
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
+    Wait-ThenStopProcessTree -ProcessId $ProcessId
+}
+
+function Stop-ProcessTree {
+    param([int]$ProcessId)
+
+    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
+        return
+    }
+    try {
+        & taskkill.exe /PID $ProcessId /T /F | Out-Null
+    } catch {
+        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
+    }
+}
+
+function Wait-ThenStopProcessTree {
+    param([int]$ProcessId)
+
+    if ($ProcessId -le 0) {
+        return
+    }
+
+    $deadline = (Get-Date).AddSeconds(10)
+    while ((Get-Date) -lt $deadline -and $null -ne (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
+        Start-Sleep -Milliseconds 250
+    }
+    Stop-ProcessTree -ProcessId $ProcessId
 }
 
 function Test-RecipeExpectation {
@@ -436,6 +470,7 @@ function Test-ChainExpectation {
 }
 
 $startedClient = $false
+$clientProcessId = 0
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
@@ -449,6 +484,7 @@ try {
         }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
+        $clientProcessId = $ready.processId
         $startedClient = $true
     }
 
@@ -493,6 +529,6 @@ try {
     }
 } finally {
     if ($startedClient) {
-        Stop-AutomationClient
+        Stop-AutomationClient -ProcessId $clientProcessId
     }
 }

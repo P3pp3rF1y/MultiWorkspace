@@ -1,0 +1,24 @@
+{
+  "name": "recipe-viewers",
+  "description": "Recipe viewer compatibility regressions for viewers available on the target port.",
+  "tests": [
+    {
+      "id": "recipe_viewer.jei.sophisticatedbackpacks",
+      "name": "JEI Sophisticated Backpacks recipes and uses",
+      "type": "recipeViewer",
+      "priority": "critical",
+      "viewer": "jei",
+      "suite": "sophisticatedbackpacks",
+      "timeoutSeconds": 600
+    },
+    {
+      "id": "recipe_viewer.rei.sophisticatedbackpacks",
+      "name": "REI Sophisticated Backpacks recipes and uses",
+      "type": "recipeViewer",
+      "priority": "critical",
+      "viewer": "rei",
+      "suite": "sophisticatedbackpacks",
+      "timeoutSeconds": 600
+    }
+  ]
+}

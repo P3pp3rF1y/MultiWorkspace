@@ -45,8 +45,8 @@ public class DemoMouseMotion {
 	public static void setCursor(Minecraft minecraft, double x, double y) {
 		double scale = minecraft.getWindow().getGuiScale();
 		GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), x * scale, y * scale);
-		if (minecraft.screen != null) {
-			minecraft.screen.mouseMoved(x, y);
+		if (minecraft.gui.screen() != null) {
+			minecraft.gui.screen().mouseMoved(x, y);
 		}
 	}
 

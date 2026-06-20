@@ -1,0 +1,20 @@
+{
+  "name": "dependency-gates",
+  "description": "Optional integrations that should be reported as blocked until target-version runtime dependencies exist.",
+  "tests": [
+    {
+      "id": "dependency.curios.runtime",
+      "name": "Curios runtime integration",
+      "type": "blocked",
+      "priority": "high",
+      "blockedReason": "No NeoForge 26.2-compatible Curios artifact has been verified yet. Latest checked 26.1.2 artifact crashes on 26.2."
+    },
+    {
+      "id": "dependency.refined_storage.runtime",
+      "name": "Refined Storage runtime integration",
+      "type": "blocked",
+      "priority": "high",
+      "blockedReason": "Latest checked Refined Storage runtime still references removed 26.1 data provider classes on 26.2."
+    }
+  ]
+}
