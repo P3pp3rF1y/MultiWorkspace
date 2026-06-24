@@ -1,5 +1,6 @@
 def requestedTaskNames = gradle.startParameter.taskNames
 def testPrepTaskNames = []
+def pmdReportProjects = [] as Set
 
 // NeoGradle 6 can fail to resolve AT-specific mapped Forge artifacts while building the test task graph
 // unless the dependent compile tasks are explicit requested tasks.
@@ -14,4 +15,31 @@ if (requestedTaskNames.any { it == ':SophisticatedStorage:test' || it == 'Sophis
 testPrepTaskNames = testPrepTaskNames.unique()
 if (!testPrepTaskNames.isEmpty() && !testPrepTaskNames.every { requestedTaskNames.contains(it) }) {
 	gradle.startParameter.setTaskNames(testPrepTaskNames + requestedTaskNames)
+}
+
+tasks.register('codeQualityReport') {
+    group = 'verification'
+    description = 'Runs advisory PMD reports for all modules and prints report locations.'
+
+    doLast {
+        pmdReportProjects.toList().sort { it.path }.each { subproject ->
+            def htmlReport = subproject.layout.buildDirectory.file('reports/pmd/main.html').get().asFile
+            def xmlReport = subproject.layout.buildDirectory.file('reports/pmd/main.xml').get().asFile
+            if (htmlReport.isFile()) {
+                println "${subproject.path} PMD HTML: ${htmlReport.toURI()}"
+            }
+            if (xmlReport.isFile()) {
+                println "${subproject.path} PMD XML: ${xmlReport.toURI()}"
+            }
+        }
+    }
+}
+
+subprojects { subproject ->
+    subproject.plugins.withId('pmd') {
+        pmdReportProjects << subproject
+        rootProject.tasks.named('codeQualityReport') {
+            dependsOn subproject.tasks.named('pmdMain')
+        }
+    }
 }

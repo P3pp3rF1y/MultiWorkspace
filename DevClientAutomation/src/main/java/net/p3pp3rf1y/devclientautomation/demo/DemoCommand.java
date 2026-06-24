@@ -99,8 +99,9 @@ public class DemoCommand {
 						.then(Commands.argument("slot", IntegerArgumentType.integer(0))
 								.then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
 										.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-												.executes(context -> setLookedAtContainerSlot(context.getSource(), IntegerArgumentType.getInteger(context, "slot"),
-														ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true))))));
+												.executes(context -> setLookedAtContainerSlot(context.getSource(),
+														IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"),
+														IntegerArgumentType.getInteger(context, "count"), true, true))))));
 
 		var blockContainer = Commands.literal("block")
 				.then(Commands.argument("pos", BlockPosArgument.blockPos())
@@ -110,42 +111,53 @@ public class DemoCommand {
 						.then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-										.executes(context -> setContainerSlot(context.getSource(), context.getSource().getLevel().dimension().location().toString(),
+										.executes(context -> setContainerSlot(
+												context.getSource(), context.getSource().getLevel().dimension().location().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), false, true))))))
 						.then(Commands.literal("only").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-										.executes(context -> setContainerSlot(context.getSource(), context.getSource().getLevel().dimension().location().toString(),
+										.executes(context -> setContainerSlot(context.getSource(),
+												context.getSource().getLevel().dimension().location().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))));
 
 		var nearbyStorageTarget = Commands.literal("nearby").then(Commands.literal("list").executes(context -> listNearbyStorageTargets(context.getSource())))
 				.then(Commands.argument("index", IntegerArgumentType.integer(0))
-						.then(Commands.literal("clear").executes(context -> clearNearbyStorageTarget(context.getSource(), IntegerArgumentType.getInteger(context, "index"), true)))
+						.then(Commands.literal("clear")
+								.executes(context -> clearNearbyStorageTarget(context.getSource(), IntegerArgumentType.getInteger(context, "index"), true)))
 						.then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setNearbyStorageTargetSlot(context.getSource(), IntegerArgumentType.getInteger(context, "index"),
-												IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), false, true))))))
+												IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"),
+												IntegerArgumentType.getInteger(context, "count"), false, true))))))
 						.then(Commands.literal("only").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setNearbyStorageTargetSlot(context.getSource(), IntegerArgumentType.getInteger(context, "index"),
-												IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))));
+												IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"),
+												IntegerArgumentType.getInteger(context, "count"), true, true)))))));
 
 		var nearestStorageTarget = Commands.literal("nearest")
-				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg()).then(Commands
-						.argument("z", DoubleArgumentType.doubleArg())
-						.then(Commands.literal("clear").executes(context -> clearNearestStorageTarget(context.getSource(), positionArg(context), true)))
-						.then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
-								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-										.executes(context -> setNearestStorageTargetSlot(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "slot"),
-												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), false, true))))))
-						.then(Commands.literal("only").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
-								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-										.executes(context -> setNearestStorageTargetSlot(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "slot"),
-												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))))));
+				.then(Commands.argument("x", DoubleArgumentType.doubleArg())
+						.then(Commands.argument("y", DoubleArgumentType.doubleArg()).then(Commands.argument("z", DoubleArgumentType.doubleArg())
+								.then(Commands.literal("clear").executes(context -> clearNearestStorageTarget(context.getSource(), positionArg(context), true)))
+								.then(Commands.literal("set")
+										.then(Commands.argument("slot", IntegerArgumentType.integer(0))
+												.then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
+														.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+																.executes(context -> setNearestStorageTargetSlot(context.getSource(), positionArg(context),
+																		IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"),
+																		IntegerArgumentType.getInteger(context, "count"), false, true))))))
+								.then(Commands.literal("only")
+										.then(Commands.argument("slot", IntegerArgumentType.integer(0))
+												.then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
+														.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+																.executes(context -> setNearestStorageTargetSlot(context.getSource(), positionArg(context),
+																		IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"),
+																		IntegerArgumentType.getInteger(context, "count"), true, true)))))))));
 
 		var mobCatcher = Commands.literal("mobCatcher")
 				.then(Commands.literal("catchNearest")
@@ -163,12 +175,11 @@ public class DemoCommand {
 												IntegerArgumentType.getInteger(context, "count"), DoubleArgumentType.getDouble(context, "range"), true))))))
 				.then(Commands.literal("releaseFirst").executes(context -> releaseFirstCapturedMob(context.getSource(), true)));
 
-		var playerLookAt = Commands.literal("lookAt")
-				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
-						.then(Commands.argument("z", DoubleArgumentType.doubleArg())
-								.executes(context -> lookAt(context.getSource(), positionArg(context), 20, true))
-								.then(Commands.argument("ticks", IntegerArgumentType.integer(1, 200))
-										.executes(context -> lookAt(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "ticks"), true))))));
+		var playerLookAt = Commands.literal("lookAt").then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands
+				.argument("y", DoubleArgumentType.doubleArg())
+				.then(Commands.argument("z", DoubleArgumentType.doubleArg()).executes(context -> lookAt(context.getSource(), positionArg(context), 20, true))
+						.then(Commands.argument("ticks", IntegerArgumentType.integer(1, 200)).executes(
+								context -> lookAt(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "ticks"), true))))));
 
 		var playerLookAtEntity = Commands.literal("lookAtEntity")
 				.then(Commands.argument("selector", StringArgumentType.word())
@@ -180,12 +191,11 @@ public class DemoCommand {
 										.executes(context -> lookAtEntity(context.getSource(), StringArgumentType.getString(context, "selector"),
 												DoubleArgumentType.getDouble(context, "range"), IntegerArgumentType.getInteger(context, "ticks"), true)))));
 
-		var playerMoveTo = Commands.literal("moveTo")
-				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
-						.then(Commands.argument("z", DoubleArgumentType.doubleArg())
-								.executes(context -> moveTo(context.getSource(), positionArg(context), 200, true))
-								.then(Commands.argument("maxTicks", IntegerArgumentType.integer(1, 1000))
-										.executes(context -> moveTo(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "maxTicks"), true))))));
+		var playerMoveTo = Commands.literal("moveTo").then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands
+				.argument("y", DoubleArgumentType.doubleArg())
+				.then(Commands.argument("z", DoubleArgumentType.doubleArg()).executes(context -> moveTo(context.getSource(), positionArg(context), 200, true))
+						.then(Commands.argument("maxTicks", IntegerArgumentType.integer(1, 1000)).executes(
+								context -> moveTo(context.getSource(), positionArg(context), IntegerArgumentType.getInteger(context, "maxTicks"), true))))));
 
 		var playerMoveToLookingAt = Commands.literal("moveToLookingAt")
 				.then(Commands.argument("x", DoubleArgumentType.doubleArg()).then(Commands.argument("y", DoubleArgumentType.doubleArg())
@@ -194,46 +204,71 @@ public class DemoCommand {
 										.then(Commands.argument("maxTicks", IntegerArgumentType.integer(1, 1000))
 												.executes(context -> moveToLookingAt(context.getSource(), positionArg(context),
 														new Vec3(DoubleArgumentType.getDouble(context, "lookX"), DoubleArgumentType.getDouble(context, "lookY"),
-																DoubleArgumentType.getDouble(context, "lookZ")), IntegerArgumentType.getInteger(context, "maxTicks"), true)))))))));
+																DoubleArgumentType.getDouble(context, "lookZ")),
+														IntegerArgumentType.getInteger(context, "maxTicks"), true)))))))));
 
 		var playerCommands = Commands.literal("player").then(Commands.literal("clearInventory").executes(context -> clearInventory(context.getSource(), true)))
-				.then(Commands.literal("hotbar").then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8))
-						.then(Commands.argument("item", ItemArgument.item(event.getBuildContext())).then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-								.executes(context -> setHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true))))))
-						.then(Commands.literal("select").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8)).executes(context -> selectHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), true)))))
+				.then(Commands.literal("hotbar")
+						.then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0, 8))
+								.then(Commands.argument("item", ItemArgument.item(event.getBuildContext()))
+										.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+												.executes(context -> setHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"),
+														ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true))))))
+						.then(Commands.literal("select")
+								.then(Commands.argument("slot", IntegerArgumentType.integer(0, 8))
+										.executes(context -> selectHotbar(context.getSource(), IntegerArgumentType.getInteger(context, "slot"), true)))))
 				.then(playerLookAt).then(playerLookAtEntity)
-				.then(Commands.literal("walkForward").then(Commands.argument("ticks", IntegerArgumentType.integer(1, 400))
-						.executes(context -> walkForward(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
+				.then(Commands.literal("walkForward")
+						.then(Commands.argument("ticks", IntegerArgumentType.integer(1, 400))
+								.executes(context -> walkForward(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
 				.then(playerMoveTo).then(playerMoveToLookingAt);
 
 		var segmentCommands = Commands.literal("segment")
-				.then(Commands.literal("record").then(Commands.argument("name", StringArgumentType.word()).executes(context -> recordOnly(context.getSource(), "segment record " + StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("record")
+						.then(Commands.argument("name", StringArgumentType.word())
+								.executes(context -> recordOnly(context.getSource(), "segment record " + StringArgumentType.getString(context, "name")))))
 				.then(Commands.literal("stop").executes(context -> recordOnly(context.getSource(), "segment stop")));
 
 		var motionCommands = Commands.literal("motion").then(Commands.literal("status").executes(context -> motionRecordingStatus(context.getSource())))
-				.then(Commands.literal("record").then(Commands.argument("name", StringArgumentType.word()).executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("record")
+						.then(Commands.argument("name", StringArgumentType.word())
+								.executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name")))))
 				.then(Commands.literal("recording").then(Commands.literal("stop").executes(context -> stopMotionRecording(context.getSource())))
-						.then(Commands.literal("start").then(Commands.argument("name", StringArgumentType.word()).executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name"))))))
+						.then(Commands.literal("start")
+								.then(Commands.argument("name", StringArgumentType.word())
+										.executes(context -> startMotionRecording(context.getSource(), StringArgumentType.getString(context, "name"))))))
 				.then(Commands.literal("stop").executes(context -> stopMotionRecording(context.getSource())));
 
 		dispatcher.register(Commands.literal("demo")
-				.then(Commands.literal("new").then(Commands.argument("name", StringArgumentType.word()).executes(context -> newDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("new")
+						.then(Commands.argument("name", StringArgumentType.word())
+								.executes(context -> newDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
 				.then(Commands.literal("save").executes(context -> saveDemo(context.getSource())))
 				.then(Commands.literal("quiet").then(Commands.literal("on").executes(context -> setQuiet(context.getSource(), true)))
 						.then(Commands.literal("off").executes(context -> setQuiet(context.getSource(), false))))
-				.then(Commands.literal("wait").then(Commands.argument("ticks", IntegerArgumentType.integer(0)).executes(context -> wait(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
-				.then(Commands.literal("run").then(Commands.argument("name", StringArgumentType.word()).suggests((context, builder) -> suggestDemoNames(builder)).executes(context -> runDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
-				.then(Commands.literal("marker").then(Commands.literal("set").then(Commands.argument("name", StringArgumentType.word()).executes(context -> recordOnly(context.getSource(), "marker set " + StringArgumentType.getString(context, "name"))))))
-				.then(playerCommands)
-				.then(Commands.literal("container").then(lookedAtContainer).then(blockContainer))
+				.then(Commands.literal("wait")
+						.then(Commands.argument("ticks", IntegerArgumentType.integer(0))
+								.executes(context -> wait(context.getSource(), IntegerArgumentType.getInteger(context, "ticks"), true))))
+				.then(Commands.literal("run")
+						.then(Commands.argument("name", StringArgumentType.word()).suggests((context, builder) -> suggestDemoNames(builder))
+								.executes(context -> runDemo(context.getSource(), StringArgumentType.getString(context, "name")))))
+				.then(Commands.literal("marker")
+						.then(Commands.literal("set")
+								.then(Commands.argument("name", StringArgumentType.word())
+										.executes(context -> recordOnly(context.getSource(), "marker set " + StringArgumentType.getString(context, "name"))))))
+				.then(playerCommands).then(Commands.literal("container").then(lookedAtContainer).then(blockContainer))
 				.then(Commands.literal("storageTarget").then(nearbyStorageTarget).then(nearestStorageTarget)).then(mobCatcher)
 				.then(Commands.literal("backpack").then(Commands.literal("giveConfigured").then(Commands.argument("mode", StringArgumentType.word())
 						.executes(context -> giveConfiguredBackpack(context.getSource(), StringArgumentType.getString(context, "mode"), List.of(), true))
-						.then(Commands.literal("items").then(Commands.argument("items", StringArgumentType.greedyString())
-								.executes(context -> giveConfiguredBackpack(context.getSource(), StringArgumentType.getString(context, "mode"), parseItemSeeds(StringArgumentType.getString(context, "items")), true))))))
+						.then(Commands.literal("items")
+								.then(Commands.argument("items", StringArgumentType.greedyString())
+										.executes(context -> giveConfiguredBackpack(context.getSource(), StringArgumentType.getString(context, "mode"),
+												parseItemSeeds(StringArgumentType.getString(context, "items")), true))))))
 						.then(Commands.literal("open").executes(context -> openBackpack(context.getSource(), true))))
 				.then(Commands.literal("step").then(Commands.literal("closeScreen").executes(context -> closeScreen(context.getSource(), true)))
-						.then(Commands.literal("keybind").then(Commands.argument("action", StringArgumentType.word()).executes(context -> triggerKeybindAction(context.getSource(), StringArgumentType.getString(context, "action"), true)))))
+						.then(Commands.literal("keybind")
+								.then(Commands.argument("action", StringArgumentType.word()).executes(
+										context -> triggerKeybindAction(context.getSource(), StringArgumentType.getString(context, "action"), true)))))
 				.then(segmentCommands).then(motionCommands));
 	}
 
@@ -370,22 +405,27 @@ public class DemoCommand {
 						new Vec3(Double.parseDouble(parts[5]), Double.parseDouble(parts[6]), Double.parseDouble(parts[7])), Integer.parseInt(parts[8]), false);
 			}
 			if (parts.length == 7 && parts[0].equals("container") && parts[1].equals("block") && parts[6].equals("clear")) {
-				return clearContainer(source, parts[2], new BlockPos(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5])), false);
+				return clearContainer(source, parts[2], new BlockPos(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5])),
+						false);
 			}
 			if (parts.length == 10 && parts[0].equals("container") && parts[1].equals("block") && (parts[6].equals("set") || parts[6].equals("only"))) {
-				return setContainerSlot(source, parts[2], new BlockPos(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5])), Integer.parseInt(parts[7]), parts[8], Integer.parseInt(parts[9]), parts[6].equals("only"), false);
+				return setContainerSlot(source, parts[2], new BlockPos(Integer.parseInt(parts[3]), Integer.parseInt(parts[4]), Integer.parseInt(parts[5])),
+						Integer.parseInt(parts[7]), parts[8], Integer.parseInt(parts[9]), parts[6].equals("only"), false);
 			}
 			if (parts.length == 4 && parts[0].equals("storageTarget") && parts[1].equals("nearby") && parts[3].equals("clear")) {
 				return clearNearbyStorageTarget(source, Integer.parseInt(parts[2]), false);
 			}
 			if (parts.length == 7 && parts[0].equals("storageTarget") && parts[1].equals("nearby") && (parts[3].equals("set") || parts[3].equals("only"))) {
-				return setNearbyStorageTargetSlot(source, Integer.parseInt(parts[2]), Integer.parseInt(parts[4]), parts[5], Integer.parseInt(parts[6]), parts[3].equals("only"), false);
+				return setNearbyStorageTargetSlot(source, Integer.parseInt(parts[2]), Integer.parseInt(parts[4]), parts[5], Integer.parseInt(parts[6]),
+						parts[3].equals("only"), false);
 			}
 			if (parts.length == 6 && parts[0].equals("storageTarget") && parts[1].equals("nearest") && parts[5].equals("clear")) {
-				return clearNearestStorageTarget(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])), false);
+				return clearNearestStorageTarget(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])),
+						false);
 			}
 			if (parts.length == 9 && parts[0].equals("storageTarget") && parts[1].equals("nearest") && (parts[5].equals("set") || parts[5].equals("only"))) {
-				return setNearestStorageTargetSlot(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])), Integer.parseInt(parts[6]), parts[7], Integer.parseInt(parts[8]), parts[5].equals("only"), false);
+				return setNearestStorageTargetSlot(source, new Vec3(Double.parseDouble(parts[2]), Double.parseDouble(parts[3]), Double.parseDouble(parts[4])),
+						Integer.parseInt(parts[6]), parts[7], Integer.parseInt(parts[8]), parts[5].equals("only"), false);
 			}
 			if (parts.length == 3 && parts[0].equals("backpack") && parts[1].equals("giveConfigured")) {
 				return giveConfiguredBackpack(source, parts[2], List.of(), false);
@@ -646,13 +686,16 @@ public class DemoCommand {
 		}
 	}
 
-	private static int setLookedAtContainerSlot(CommandSourceStack source, int slot, ItemInput itemInput, int count, boolean clearFirst, boolean record) throws CommandSyntaxException {
+	private static int setLookedAtContainerSlot(CommandSourceStack source, int slot, ItemInput itemInput, int count, boolean clearFirst, boolean record)
+			throws CommandSyntaxException {
 		ServerPlayer player = source.getPlayerOrException();
 		ItemStack stack = itemInput.createItemStack(count, false);
-		return setContainerSlot(source, player.level().dimension().location().toString(), getLookedAtBlock(player), slot, ForgeRegistries.ITEMS.getKey(stack.getItem()).toString(), count, clearFirst, record);
+		return setContainerSlot(source, player.level().dimension().location().toString(), getLookedAtBlock(player), slot,
+				ForgeRegistries.ITEMS.getKey(stack.getItem()).toString(), count, clearFirst, record);
 	}
 
-	private static int setContainerSlot(CommandSourceStack source, String dimension, BlockPos pos, int slot, ItemInput itemInput, int count, boolean clearFirst, boolean record) throws CommandSyntaxException {
+	private static int setContainerSlot(CommandSourceStack source, String dimension, BlockPos pos, int slot, ItemInput itemInput, int count, boolean clearFirst,
+			boolean record) throws CommandSyntaxException {
 		ItemStack stack = itemInput.createItemStack(count, false);
 		return setContainerSlot(source, dimension, pos, slot, ForgeRegistries.ITEMS.getKey(stack.getItem()).toString(), count, clearFirst, record);
 	}
@@ -674,7 +717,8 @@ public class DemoCommand {
 		}
 	}
 
-	private static int setContainerSlot(CommandSourceStack source, String dimension, BlockPos pos, int slot, String itemName, int count, boolean clearFirst, boolean record) {
+	private static int setContainerSlot(CommandSourceStack source, String dimension, BlockPos pos, int slot, String itemName, int count, boolean clearFirst,
+			boolean record) {
 		try {
 			ServerLevel level = getLevel(source, dimension);
 			IItemHandler itemHandler = getContainerHandler(level, pos);
@@ -689,7 +733,8 @@ public class DemoCommand {
 			if (record) {
 				DemoSession.get().record(containerCommand(dimension, pos, clearFirst ? "only" : "set") + " " + slot + " " + itemName + " " + count);
 			}
-			success(source, () -> Component.literal("Set container at " + pos.toShortString() + " slot " + slot + " to " + count + "x " + itemName + (remaining.isEmpty() ? "" : " with " + remaining.getCount() + " remaining")));
+			success(source, () -> Component.literal("Set container at " + pos.toShortString() + " slot " + slot + " to " + count + "x " + itemName
+					+ (remaining.isEmpty() ? "" : " with " + remaining.getCount() + " remaining")));
 			return remaining.isEmpty() ? 1 : 0;
 		} catch (Exception e) {
 			source.sendFailure(Component.literal(e.getMessage()));
@@ -705,7 +750,8 @@ public class DemoCommand {
 				return 0;
 			}
 			for (StorageTarget target : targets) {
-				success(source, () -> Component.literal("[" + target.index() + "] " + target.kind() + " at " + formatPosition(target.position()) + " with " + target.itemHandler().getSlots() + " slots"));
+				success(source, () -> Component.literal("[" + target.index() + "] " + target.kind() + " at " + formatPosition(target.position()) + " with "
+						+ target.itemHandler().getSlots() + " slots"));
 			}
 			return targets.size();
 		} catch (Exception e) {
@@ -743,37 +789,44 @@ public class DemoCommand {
 		return 1;
 	}
 
-	private static int setNearbyStorageTargetSlot(CommandSourceStack source, int index, int slot, ItemInput itemInput, int count, boolean clearFirst, boolean record) throws CommandSyntaxException {
+	private static int setNearbyStorageTargetSlot(CommandSourceStack source, int index, int slot, ItemInput itemInput, int count, boolean clearFirst,
+			boolean record) throws CommandSyntaxException {
 		ItemStack stack = itemInput.createItemStack(count, false);
 		return setNearbyStorageTargetSlot(source, index, slot, ForgeRegistries.ITEMS.getKey(stack.getItem()).toString(), count, clearFirst, record);
 	}
 
-	private static int setNearestStorageTargetSlot(CommandSourceStack source, Vec3 position, int slot, ItemInput itemInput, int count, boolean clearFirst, boolean record) throws CommandSyntaxException {
+	private static int setNearestStorageTargetSlot(CommandSourceStack source, Vec3 position, int slot, ItemInput itemInput, int count, boolean clearFirst,
+			boolean record) throws CommandSyntaxException {
 		ItemStack stack = itemInput.createItemStack(count, false);
 		return setNearestStorageTargetSlot(source, position, slot, ForgeRegistries.ITEMS.getKey(stack.getItem()).toString(), count, clearFirst, record);
 	}
 
-	private static int setNearbyStorageTargetSlot(CommandSourceStack source, int index, int slot, String itemName, int count, boolean clearFirst, boolean record) {
+	private static int setNearbyStorageTargetSlot(CommandSourceStack source, int index, int slot, String itemName, int count, boolean clearFirst,
+			boolean record) {
 		try {
 			StorageTarget target = getNearbyStorageTarget(source, index);
-			return setStorageTargetSlot(source, target, slot, itemName, count, clearFirst, record ? targetCommand(target.position(), clearFirst ? "only" : "set") + " " + slot + " " + itemName + " " + count : null);
+			return setStorageTargetSlot(source, target, slot, itemName, count, clearFirst,
+					record ? targetCommand(target.position(), clearFirst ? "only" : "set") + " " + slot + " " + itemName + " " + count : null);
 		} catch (Exception e) {
 			source.sendFailure(Component.literal(e.getMessage()));
 			return 0;
 		}
 	}
 
-	private static int setNearestStorageTargetSlot(CommandSourceStack source, Vec3 position, int slot, String itemName, int count, boolean clearFirst, boolean record) {
+	private static int setNearestStorageTargetSlot(CommandSourceStack source, Vec3 position, int slot, String itemName, int count, boolean clearFirst,
+			boolean record) {
 		try {
 			StorageTarget target = getNearestStorageTarget(source, position);
-			return setStorageTargetSlot(source, target, slot, itemName, count, clearFirst, record ? targetCommand(position, clearFirst ? "only" : "set") + " " + slot + " " + itemName + " " + count : null);
+			return setStorageTargetSlot(source, target, slot, itemName, count, clearFirst,
+					record ? targetCommand(position, clearFirst ? "only" : "set") + " " + slot + " " + itemName + " " + count : null);
 		} catch (Exception e) {
 			source.sendFailure(Component.literal(e.getMessage()));
 			return 0;
 		}
 	}
 
-	private static int setStorageTargetSlot(CommandSourceStack source, StorageTarget target, int slot, String itemName, int count, boolean clearFirst, String recordedCommand) {
+	private static int setStorageTargetSlot(CommandSourceStack source, StorageTarget target, int slot, String itemName, int count, boolean clearFirst,
+			String recordedCommand) {
 		try {
 			IItemHandler itemHandler = target.itemHandler();
 			if (slot >= itemHandler.getSlots()) {
@@ -786,7 +839,8 @@ public class DemoCommand {
 			if (recordedCommand != null) {
 				DemoSession.get().record(recordedCommand);
 			}
-			success(source, () -> Component.literal("Set storage target [" + target.index() + "] " + target.kind() + " slot " + slot + " to " + count + "x " + itemName + (remaining.isEmpty() ? "" : " with " + remaining.getCount() + " remaining")));
+			success(source, () -> Component.literal("Set storage target [" + target.index() + "] " + target.kind() + " slot " + slot + " to " + count + "x "
+					+ itemName + (remaining.isEmpty() ? "" : " with " + remaining.getCount() + " remaining")));
 			return remaining.isEmpty() ? 1 : 0;
 		} catch (Exception e) {
 			source.sendFailure(Component.literal(e.getMessage()));
@@ -803,7 +857,9 @@ public class DemoCommand {
 	}
 
 	private static StorageTarget getNearestStorageTarget(CommandSourceStack source, Vec3 position) throws CommandSyntaxException {
-		return getNearbyStorageTargets(source.getPlayerOrException()).stream().min(Comparator.comparingDouble(target -> target.position().distanceToSqr(position))).orElseThrow(() -> new IllegalArgumentException("No SIA storage targets found nearby"));
+		return getNearbyStorageTargets(source.getPlayerOrException()).stream()
+				.min(Comparator.comparingDouble(target -> target.position().distanceToSqr(position)))
+				.orElseThrow(() -> new IllegalArgumentException("No SIA storage targets found nearby"));
 	}
 
 	private static List<StorageTarget> getNearbyStorageTargets(ServerPlayer player) {
@@ -816,15 +872,18 @@ public class DemoCommand {
 					continue;
 				}
 				Level storageLevel = blockEntity.getLevel() == null ? player.level() : blockEntity.getLevel();
-				Optional<?> handlerOptional = (Optional<?>) sia.getBlockHandlerFor.invoke(null, storageLevel, blockEntity.getBlockPos(), blockEntity, sia.depositAction);
+				Optional<?> handlerOptional = (Optional<?>) sia.getBlockHandlerFor.invoke(null, storageLevel, blockEntity.getBlockPos(), blockEntity,
+						sia.depositAction);
 				if (handlerOptional.isEmpty() || !(boolean) sia.mayInteract.invoke(null, player, player.level(), blockEntity.getBlockPos())) {
 					continue;
 				}
 				Object handler = handlerOptional.get();
-				BlockPos interactionPos = (BlockPos) sia.getInteractionPosToActOn.invoke(handler, storageLevel, blockEntity.getBlockPos(), blockEntity, sia.depositAction);
+				BlockPos interactionPos = (BlockPos) sia.getInteractionPosToActOn.invoke(handler, storageLevel, blockEntity.getBlockPos(), blockEntity,
+						sia.depositAction);
 				addStorageTargets(targets, sia, sia.getBlockStorageItemHandlerTargets.invoke(handler, player, interactionPos), "block");
 			}
-			player.level().getEntities(player, player.getBoundingBox().inflate(10), entity -> true).forEach(entity -> addEntityStorageTargets(targets, sia, entity));
+			player.level().getEntities(player, player.getBoundingBox().inflate(10), entity -> true)
+					.forEach(entity -> addEntityStorageTargets(targets, sia, entity));
 			targets.sort(Comparator.comparingDouble(target -> distanceToPlayer(sia, player, target.position())));
 			List<StorageTarget> indexedTargets = new ArrayList<>();
 			for (int i = 0; i < targets.size(); i++) {
@@ -855,7 +914,8 @@ public class DemoCommand {
 		}
 	}
 
-	private static void addStorageTargets(List<StorageTarget> targets, SiaReflection sia, Object storageTargets, String kind) throws ReflectiveOperationException {
+	private static void addStorageTargets(List<StorageTarget> targets, SiaReflection sia, Object storageTargets, String kind)
+			throws ReflectiveOperationException {
 		if (!(storageTargets instanceof List<?> list)) {
 			return;
 		}
@@ -1188,7 +1248,8 @@ public class DemoCommand {
 		if (blockEntity == null) {
 			throw new IllegalArgumentException("No block entity at " + pos.toShortString());
 		}
-		return blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(() -> new IllegalArgumentException("No item handler at " + pos.toShortString()));
+		return blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER)
+				.orElseThrow(() -> new IllegalArgumentException("No item handler at " + pos.toShortString()));
 	}
 
 	private static int clearItemHandler(IItemHandler itemHandler) {
@@ -1365,7 +1426,8 @@ public class DemoCommand {
 			return List.of();
 		}
 		int count = mode.equalsIgnoreCase("restock") ? 16 : 32;
-		return List.of(new ItemSeed("minecraft:diamond", count), new ItemSeed("minecraft:emerald", count), new ItemSeed("minecraft:copper_ingot", count), new ItemSeed("minecraft:redstone", count), new ItemSeed("minecraft:gold_ingot", count));
+		return List.of(new ItemSeed("minecraft:diamond", count), new ItemSeed("minecraft:emerald", count), new ItemSeed("minecraft:copper_ingot", count),
+				new ItemSeed("minecraft:redstone", count), new ItemSeed("minecraft:gold_ingot", count));
 	}
 
 	private static String itemSeedsCommand(List<ItemSeed> itemSeeds) {
@@ -1446,7 +1508,8 @@ public class DemoCommand {
 			return render(player, event, targetRotation, ticks, maxTicks, false);
 		}
 
-		private Rotation render(ServerPlayer player, ViewportEvent.ComputeCameraAngles event, Rotation targetRotation, int ticks, int maxTicks, boolean freezeTarget) {
+		private Rotation render(ServerPlayer player, ViewportEvent.ComputeCameraAngles event, Rotation targetRotation, int ticks, int maxTicks,
+				boolean freezeTarget) {
 			if (startYaw == null || startPitch == null) {
 				startYaw = event.getYaw();
 				startPitch = event.getPitch();
@@ -1766,7 +1829,8 @@ public class DemoCommand {
 					subLevelCompatHelper.getMethod("mayInteract", net.minecraft.world.entity.player.Player.class, Level.class, BlockPos.class),
 					subLevelCompatHelper.getMethod("distanceSquared", Level.class, Vec3.class, Vec3.class),
 					itemActionHandlerRegistry.getMethod("getBlockHandlerFor", Level.class, BlockPos.class, BlockEntity.class, blockItemAction),
-					itemActionHandlerRegistry.getMethod("getEntityHandlerIdFor", Entity.class), itemActionHandlerRegistry.getMethod("getEntityHandler", ResourceLocation.class),
+					itemActionHandlerRegistry.getMethod("getEntityHandlerIdFor", Entity.class),
+					itemActionHandlerRegistry.getMethod("getEntityHandler", ResourceLocation.class),
 					blockItemActionHandler.getMethod("getInteractionPosToActOn", Level.class, BlockPos.class, BlockEntity.class, blockItemAction),
 					blockItemActionHandler.getMethod("getStorageItemHandlerTargets", ServerPlayer.class, BlockPos.class),
 					entityItemActionHandler.getMethod("getStorageItemHandlerTargets", Entity.class), storageItemHandlerTarget.getMethod("position"),
