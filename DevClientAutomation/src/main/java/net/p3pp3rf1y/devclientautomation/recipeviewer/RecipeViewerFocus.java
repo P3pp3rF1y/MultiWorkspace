@@ -8,12 +8,11 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 
 public final class RecipeViewerFocus {
-    private RecipeViewerFocus() {}
+	private RecipeViewerFocus() {
+	}
 
-    public static Optional<ItemStack> encodedStack(JsonObject request) {
-        return RecipeViewerRequest.focus(request)
-                .filter(focus -> focus.has("encoded") && focus.get("encoded").isJsonObject())
-                .flatMap(focus -> ItemStack.CODEC.parse(Minecraft.getInstance().level.registryAccess().createSerializationContext(JsonOps.INSTANCE), focus.get("encoded"))
-                        .result());
-    }
+	public static Optional<ItemStack> encodedStack(JsonObject request) {
+		return RecipeViewerRequest.focus(request).filter(focus -> focus.has("encoded") && focus.get("encoded").isJsonObject()).flatMap(focus -> ItemStack.CODEC
+				.parse(Minecraft.getInstance().level.registryAccess().createSerializationContext(JsonOps.INSTANCE), focus.get("encoded")).result());
+	}
 }

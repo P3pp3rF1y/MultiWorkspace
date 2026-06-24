@@ -14,6 +14,8 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
@@ -27,6 +29,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleMenuProvider;
@@ -61,6 +64,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.demo.DemoMouseMotion;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
@@ -70,9 +74,9 @@ import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
-import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
+import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
@@ -97,8 +101,13 @@ import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.DecorationTableBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.ISimpleMaterialHolder;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
+import net.p3pp3rf1y.sophisticatedstorage.init.ModDataComponents;
+import net.p3pp3rf1y.sophisticatedstorage.item.SimpleMaterialBlockItem;
+import net.p3pp3rf1y.sophisticatedstorage.item.StorageToolItem;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,6 +211,11 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
 				httpServer.createContext("/storage/controller-double-chest-regressions", this::storageControllerDoubleChestRegressions);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
+				httpServer.createContext("/storage/simple-material-decoration-verification", this::simpleMaterialDecorationVerification);
+				httpServer.createContext("/storage/simple-material-render-setup", this::simpleMaterialRenderSetup);
+				httpServer.createContext("/storage/simple-material-overlay-comparison-setup", this::simpleMaterialOverlayComparisonSetup);
+				httpServer.createContext("/model/item-diagnostics", this::itemModelDiagnostics);
+				httpServer.createContext("/model/hotbar-item-diagnostics", this::hotbarItemModelDiagnostics);
 				httpServer.createContext("/backpack/dropped-items", this::droppedItemsStatus);
 				httpServer.createContext("/backpack/clear-dropped-items", this::clearDroppedItems);
 				httpServer.createContext("/screenshot", this::screenshot);
@@ -448,7 +462,7 @@ public class DevClientAutomation {
 
 		private void backpackStorageGuiRegressions(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "POST");
-			sendJsonHandling(exchange, () -> runBackpackStorageGuiRegressions());
+			sendJsonHandling(exchange, this::runBackpackStorageGuiRegressions);
 		}
 
 		private void backpackRemoteUpgradeSlotRegression(HttpExchange exchange) throws IOException {
@@ -479,8 +493,40 @@ public class DevClientAutomation {
 				if (mode.equals("profile")) {
 					return profileStorageControllerFilterRegressions(player, runs);
 				}
+				if (mode.equals("manualDepositProfile")) {
+					return profileStorageControllerFilterManualDeposit(player, runs);
+				}
 				return runStorageControllerFilterRegressions(player, !mode.equals("setup"), profileCapacity);
 			}));
+		}
+
+		private void simpleMaterialDecorationVerification(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::verifySimpleMaterialDecoration));
+		}
+
+		private void simpleMaterialRenderSetup(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::setupSimpleMaterialRenderVerification));
+		}
+
+		private void simpleMaterialOverlayComparisonSetup(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::setupSimpleMaterialOverlayComparison));
+		}
+
+		private void itemModelDiagnostics(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			String itemName = extractString(body, "item").orElse("sophisticatedstorage:controller");
+			sendJsonHandling(exchange, () -> runOnClient(() -> itemModelDiagnostics(itemName)));
+		}
+
+		private void hotbarItemModelDiagnostics(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			int slot = extractInt(body, "slot").orElse(0);
+			sendJsonHandling(exchange, () -> runOnClient(() -> itemModelDiagnostics(Minecraft.getInstance().player.getInventory().getItem(slot))));
 		}
 
 		private void droppedItemsStatus(HttpExchange exchange) throws IOException {
@@ -588,6 +634,56 @@ public class DevClientAutomation {
 			String normalizedCommand = command.startsWith("/") ? command.substring(1) : command;
 			player.server.getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(4), normalizedCommand);
 			return "{\"ok\":true," + jsonProperty("command", normalizedCommand) + ",\"dispatched\":true}";
+		}
+
+		private String itemModelDiagnostics(String itemName) {
+			Minecraft minecraft = Minecraft.getInstance();
+			Item item = getItem(itemName);
+			return itemModelDiagnostics(new ItemStack(item));
+		}
+
+		private String itemModelDiagnostics(ItemStack stack) {
+			Minecraft minecraft = Minecraft.getInstance();
+			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+			BakedModel model = minecraft.getItemRenderer().getModel(stack, minecraft.level, minecraft.player, 0);
+			List<BakedModel> passes = model.getRenderPasses(stack, false);
+			StringBuilder json = new StringBuilder("{\"ok\":true,");
+			json.append(jsonProperty("item", itemName)).append(',');
+			json.append(jsonProperty("simpleMaterial", SimpleMaterialBlockItem.getMaterial(stack).map(ResourceLocation::toString).orElse(null))).append(',');
+			json.append(jsonProperty("modelClass", model.getClass().getName())).append(',');
+			json.append(jsonProperty("particle", model.getParticleIcon(ModelData.EMPTY).contents().name().toString())).append(',');
+			json.append("\"passCount\":").append(passes.size()).append(',');
+			json.append("\"passes\":[");
+			for (int i = 0; i < passes.size(); i++) {
+				if (i > 0) {
+					json.append(',');
+				}
+				BakedModel pass = passes.get(i);
+				List<BakedQuad> quads = new ArrayList<>();
+				RandomSource random = RandomSource.create(42);
+				for (Direction direction : Direction.values()) {
+					random.setSeed(42);
+					quads.addAll(pass.getQuads(null, direction, random));
+				}
+				random.setSeed(42);
+				quads.addAll(pass.getQuads(null, null, random));
+				Set<String> sprites = new HashSet<>();
+				for (BakedQuad quad : quads) {
+					sprites.add(quad.getSprite().contents().name().toString());
+				}
+				json.append('{').append(jsonProperty("class", pass.getClass().getName())).append(',').append("\"quadCount\":").append(quads.size()).append(',')
+						.append("\"sprites\":[");
+				int spriteIndex = 0;
+				for (String sprite : sprites) {
+					if (spriteIndex++ > 0) {
+						json.append(',');
+					}
+					json.append('"').append(escapeJson(sprite)).append('"');
+				}
+				json.append("]}");
+			}
+			json.append("]}");
+			return json.toString();
 		}
 
 		private ItemStack createNestedBackpack(Item firstSeedItem, Item secondSeedItem) {
@@ -801,7 +897,7 @@ public class DevClientAutomation {
 		private String spreadNestedBackpacks(ServerPlayer player) {
 			IBackpackWrapper mainWrapper = getMainBackpackWrapper(player);
 			InventoryHandler mainInventory = mainWrapper.getInventoryHandler();
-			List<ItemStack> nestedBackpacks = new java.util.ArrayList<>();
+			List<ItemStack> nestedBackpacks = new ArrayList<>();
 			for (int slot = 0; slot < mainInventory.getSlots(); slot++) {
 				ItemStack stack = mainInventory.getStackInSlot(slot);
 				if (stack.getItem() instanceof BackpackItem) {
@@ -1052,20 +1148,11 @@ public class DevClientAutomation {
 		}
 
 		private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
-			return "{\"ok\":" + result.passed()
-					+ "," + jsonProperty("name", result.name())
-					+ ",\"firstSlotCount\":" + result.firstSlotCount()
-					+ ",\"secondSlotCount\":" + result.secondSlotCount()
-					+ ",\"triggerCount\":" + result.triggerCount()
-					+ ",\"expectedNuggets\":" + result.expectedNuggets()
-					+ ",\"actualNuggets\":" + result.actualNuggets()
-					+ ",\"expectedIngots\":" + result.expectedIngots()
-					+ ",\"actualIngots\":" + result.actualIngots()
-					+ ",\"expectedBlocks\":" + result.expectedBlocks()
-					+ ",\"actualBlocks\":" + result.actualBlocks()
-					+ ",\"insertRemainder\":" + result.insertRemainder()
-					+ "," + jsonProperty("error", result.error())
-					+ "}";
+			return "{\"ok\":" + result.passed() + "," + jsonProperty("name", result.name()) + ",\"firstSlotCount\":" + result.firstSlotCount()
+					+ ",\"secondSlotCount\":" + result.secondSlotCount() + ",\"triggerCount\":" + result.triggerCount() + ",\"expectedNuggets\":"
+					+ result.expectedNuggets() + ",\"actualNuggets\":" + result.actualNuggets() + ",\"expectedIngots\":" + result.expectedIngots()
+					+ ",\"actualIngots\":" + result.actualIngots() + ",\"expectedBlocks\":" + result.expectedBlocks() + ",\"actualBlocks\":"
+					+ result.actualBlocks() + ",\"insertRemainder\":" + result.insertRemainder() + "," + jsonProperty("error", result.error()) + "}";
 		}
 
 		private String runSubMobCatcherImmediateOpenRegression(String name) {
@@ -1080,7 +1167,8 @@ public class DevClientAutomation {
 
 				SubMobCatcherRegressionState parentState = waitForParentMobCatcherRegressionState();
 				if (!parentState.parentMatches()) {
-					return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data did not stay separate after inserting sub backpack");
+					return subMobCatcherRegressionJson(name, false, parentState, parentState,
+							"Parent backpack mob catcher data did not stay separate after inserting sub backpack");
 				}
 
 				runOnServer(this::openSubBackpackColumnUpgradeRegression);
@@ -1190,7 +1278,8 @@ public class DevClientAutomation {
 			ServerLevel level = player.serverLevel();
 			BlockPos pos = getRegressionBackpackPos(player);
 
-			level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, player.getDirection().getOpposite()), 3);
+			level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING,
+					player.getDirection().getOpposite()), 3);
 			BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(level, pos, BackpackBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Failed to place regression backpack block"));
 			backpackBlockEntity.setBackpack(createColumnUpgradeRegressionBackpack());
@@ -1202,7 +1291,8 @@ public class DevClientAutomation {
 				throw new IllegalStateException("Client level/player is not available");
 			}
 			BlockPos pos = getRegressionBackpackPos(Minecraft.getInstance().player);
-			Minecraft.getInstance().level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
+			Minecraft.getInstance().level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState()
+					.setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
 			BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, BackpackBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Failed to create client regression backpack block"));
 			backpackBlockEntity.setBackpack(createColumnUpgradeRegressionBackpack());
@@ -1213,7 +1303,8 @@ public class DevClientAutomation {
 			BlockPos pos = getRegressionBackpackPos(player);
 
 			BackpackContext.Block backpackContext = new BackpackContext.Block(pos);
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Placed Column Regression")), backpackContext::toBuffer);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Placed Column Regression")), backpackContext::toBuffer);
 			return true;
 		}
 
@@ -1248,7 +1339,8 @@ public class DevClientAutomation {
 			String identifier = getCuriosBackpackIdentifier(player, createColumnUpgradeRegressionBackpack());
 
 			BackpackContext.Item backpackContext = new BackpackContext.Item(CompatModIds.CURIOS, identifier, 0);
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Curios Column Regression")), backpackContext::toBuffer);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Curios Column Regression")), backpackContext::toBuffer);
 			return true;
 		}
 
@@ -1288,12 +1380,15 @@ public class DevClientAutomation {
 				sleep(50);
 			} while (System.nanoTime() < deadline);
 
-			throw new IllegalStateException("Timed out waiting for client inventory slot " + slot + " to contain " + description + "; " + runOnClient(this::getClientSubBackpackOpenState));
+			throw new IllegalStateException("Timed out waiting for client inventory slot " + slot + " to contain " + description + "; "
+					+ runOnClient(this::getClientSubBackpackOpenState));
 		}
 
 		private Boolean openSubBackpackColumnUpgradeRegression(ServerPlayer player) {
-			BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0, true);
-			if (player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Sub Column Regression")), backpackContext::toBuffer).isEmpty()) {
+			BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0,
+					true);
+			if (player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Sub Column Regression")), backpackContext::toBuffer).isEmpty()) {
 				throw new IllegalStateException("Server refused to open sub backpack column regression menu");
 			}
 			return true;
@@ -1301,7 +1396,8 @@ public class DevClientAutomation {
 
 		private Boolean openParentBackpackRegression(ServerPlayer player) {
 			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Parent Backpack Regression")), backpackContext::toBuffer);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Parent Backpack Regression")), backpackContext::toBuffer);
 			return true;
 		}
 
@@ -1356,7 +1452,8 @@ public class DevClientAutomation {
 			backpackWrapper.setSlotNumbers(inventorySlots, upgradeSlots);
 			backpackWrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.MOB_CATCHER_UPGRADE.get()));
 			backpackWrapper.getUpgradeHandler().saveInventory();
-			MobCatcherStorage.addCapturedMob(backpackWrapper, new CapturedMob(mobId, ResourceLocation.parse("minecraft:pig"), new CompoundTag(), mobSlot, 1, 1, 1, false, displayName, 10, 10));
+			MobCatcherStorage.addCapturedMob(backpackWrapper,
+					new CapturedMob(mobId, ResourceLocation.parse("minecraft:pig"), new CompoundTag(), mobSlot, 1, 1, 1, false, displayName, 10, 10));
 			backpackWrapper.onContentsNbtUpdated();
 			return backpack;
 		}
@@ -1366,10 +1463,12 @@ public class DevClientAutomation {
 					.orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
 			if (inventoryHandler.getSlotCount(player, identifier) < slots) {
 				MinecraftServer server = player.server;
-				server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withPermission(4).withSuppressedOutput(), "curios add " + identifier + " " + player.getGameProfile().getName() + " " + slots);
+				server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withPermission(4).withSuppressedOutput(),
+						"curios add " + identifier + " " + player.getGameProfile().getName() + " " + slots);
 			}
 			if (inventoryHandler.getSlotCount(player, identifier) < slots) {
-				throw new IllegalStateException("Unable to configure Curios slot " + identifier + "; slot count is " + inventoryHandler.getSlotCount(player, identifier));
+				throw new IllegalStateException(
+						"Unable to configure Curios slot " + identifier + "; slot count is " + inventoryHandler.getSlotCount(player, identifier));
 			}
 		}
 
@@ -1415,10 +1514,8 @@ public class DevClientAutomation {
 		private void waitForOpenPlacedBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
-						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
-						&& menu.getBlockPosition().isPresent())) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
+						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu && menu.getBlockPosition().isPresent())) {
 					return;
 				}
 				sleep(50);
@@ -1429,10 +1526,8 @@ public class DevClientAutomation {
 		private void waitForOpenCuriosBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
-						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
-						&& menu.getBlockPosition().isEmpty())) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
+						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu && menu.getBlockPosition().isEmpty())) {
 					return;
 				}
 				sleep(50);
@@ -1443,8 +1538,7 @@ public class DevClientAutomation {
 		private void waitForOpenParentBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
 						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK)) {
 					return;
@@ -1457,8 +1551,7 @@ public class DevClientAutomation {
 		private void waitForOpenSubBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
 						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
 					return;
@@ -1488,7 +1581,8 @@ public class DevClientAutomation {
 					nestedSlot0Item = BuiltInRegistries.ITEM.getKey(nested.getItem()).toString();
 				}
 			}
-			return "screen=" + screen + ", menu=" + menu + ", context=" + context + ", storageSlots=" + storageSlots + ", slot0=" + slot0Item + ", nestedSlot0=" + nestedSlot0Item;
+			return "screen=" + screen + ", menu=" + menu + ", context=" + context + ", storageSlots=" + storageSlots + ", slot0=" + slot0Item + ", nestedSlot0="
+					+ nestedSlot0Item;
 		}
 
 		private PlacedColumnUpgradeClickExpectation clickPlacedBackpackColumnUpgrade() {
@@ -1496,7 +1590,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenPlacedBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Placed backpack screen is not open");
 			}
 			if (menu.getBlockPosition().isEmpty()) {
@@ -1510,7 +1605,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenCuriosBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Curios backpack screen is not open");
 			}
 			if (menu.getBlockPosition().isPresent()) {
@@ -1524,7 +1620,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenSubBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Sub backpack screen is not open");
 			}
 			if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_SUB_BACKPACK) {
@@ -1611,19 +1708,13 @@ public class DevClientAutomation {
 					menu.getStorageWrapper().getInventoryHandler().getSlots(), menu.upgradeSlots.get(1).getItem().isEmpty(), !menu.getCarried().isEmpty());
 		}
 
-		private String placedColumnUpgradeRegressionJson(String name, boolean ok, PlacedColumnUpgradeClickExpectation expectation, PlacedColumnUpgradeState state,
-				String error) {
-			return "{\"ok\":" + ok
-					+ "," + jsonProperty("name", name)
-					+ ",\"expectedColumnsTaken\":" + expectation.expectedColumnsTaken()
-					+ ",\"actualColumnsTaken\":" + state.columnsTaken()
-					+ ",\"expectedStorageSlots\":" + expectation.expectedStorageSlots()
-					+ ",\"actualStorageSlots\":" + state.storageSlots()
-					+ ",\"actualInventoryHandlerSlots\":" + state.inventoryHandlerSlots()
-					+ ",\"upgradeSlotEmpty\":" + state.upgradeSlotEmpty()
-					+ ",\"carriedNotEmpty\":" + state.carriedNotEmpty()
-					+ "," + jsonProperty("error", error)
-					+ "}";
+		private String placedColumnUpgradeRegressionJson(String name, boolean ok, PlacedColumnUpgradeClickExpectation expectation,
+				PlacedColumnUpgradeState state, String error) {
+			return "{\"ok\":" + ok + "," + jsonProperty("name", name) + ",\"expectedColumnsTaken\":" + expectation.expectedColumnsTaken()
+					+ ",\"actualColumnsTaken\":" + state.columnsTaken() + ",\"expectedStorageSlots\":" + expectation.expectedStorageSlots()
+					+ ",\"actualStorageSlots\":" + state.storageSlots() + ",\"actualInventoryHandlerSlots\":" + state.inventoryHandlerSlots()
+					+ ",\"upgradeSlotEmpty\":" + state.upgradeSlotEmpty() + ",\"carriedNotEmpty\":" + state.carriedNotEmpty() + ","
+					+ jsonProperty("error", error) + "}";
 		}
 
 		private SubMobCatcherRegressionState getParentMobCatcherRegressionState() {
@@ -1654,7 +1745,9 @@ public class DevClientAutomation {
 		private SubMobCatcherRegressionState getCurrentMobCatcherRegressionStateSafely() {
 			try {
 				if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu) {
-					IBackpackWrapper nestedWrapper = menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK ? getNestedBackpackWrapper(menu) : null;
+					IBackpackWrapper nestedWrapper = menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK
+							? getNestedBackpackWrapper(menu)
+							: null;
 					return getSubMobCatcherRegressionState(menu, nestedWrapper);
 				}
 			} catch (RuntimeException ignored) {
@@ -1664,7 +1757,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenParentBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Parent backpack screen is not open");
 			}
 			if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
@@ -1684,26 +1778,19 @@ public class DevClientAutomation {
 		private SubMobCatcherRegressionState getSubMobCatcherRegressionState(BackpackContainer menu, IBackpackWrapper nestedWrapper) {
 			List<CapturedMob> currentMobs = MobCatcherStorage.getCapturedMobs(menu.getStorageWrapper());
 			List<CapturedMob> nestedMobs = nestedWrapper == null ? List.of() : MobCatcherStorage.getCapturedMobs(nestedWrapper);
-			return new SubMobCatcherRegressionState(menu.getBackpackContext().getType().name(), menu.getStorageWrapper().getInventoryHandler().getSlots(), nestedWrapper != null,
-					currentMobs.size(), currentMobs.isEmpty() ? null : currentMobs.get(0).id().toString(), nestedMobs.size(), nestedMobs.isEmpty() ? null : nestedMobs.get(0).id().toString());
+			return new SubMobCatcherRegressionState(menu.getBackpackContext().getType().name(), menu.getStorageWrapper().getInventoryHandler().getSlots(),
+					nestedWrapper != null, currentMobs.size(), currentMobs.isEmpty() ? null : currentMobs.get(0).id().toString(), nestedMobs.size(),
+					nestedMobs.isEmpty() ? null : nestedMobs.get(0).id().toString());
 		}
 
-		private String subMobCatcherRegressionJson(String name, boolean ok, SubMobCatcherRegressionState parentState, SubMobCatcherRegressionState subState, String error) {
-			return "{\"ok\":" + ok
-					+ "," + jsonProperty("name", name)
-					+ "," + jsonProperty("parentContext", parentState.context())
-					+ ",\"parentStorageSlots\":" + parentState.storageSlots()
-					+ ",\"parentSlot0Backpack\":" + parentState.slot0Backpack()
-					+ ",\"parentMobCount\":" + parentState.currentMobCount()
-					+ "," + jsonProperty("parentMobId", parentState.currentMobId())
-					+ ",\"parentNestedMobCount\":" + parentState.nestedMobCount()
-					+ "," + jsonProperty("parentNestedMobId", parentState.nestedMobId())
-					+ "," + jsonProperty("subContext", subState.context())
-					+ ",\"subStorageSlots\":" + subState.storageSlots()
-					+ ",\"subMobCount\":" + subState.currentMobCount()
-					+ "," + jsonProperty("subMobId", subState.currentMobId())
-					+ "," + jsonProperty("error", error)
-					+ "}";
+		private String subMobCatcherRegressionJson(String name, boolean ok, SubMobCatcherRegressionState parentState, SubMobCatcherRegressionState subState,
+				String error) {
+			return "{\"ok\":" + ok + "," + jsonProperty("name", name) + "," + jsonProperty("parentContext", parentState.context()) + ",\"parentStorageSlots\":"
+					+ parentState.storageSlots() + ",\"parentSlot0Backpack\":" + parentState.slot0Backpack() + ",\"parentMobCount\":"
+					+ parentState.currentMobCount() + "," + jsonProperty("parentMobId", parentState.currentMobId()) + ",\"parentNestedMobCount\":"
+					+ parentState.nestedMobCount() + "," + jsonProperty("parentNestedMobId", parentState.nestedMobId()) + ","
+					+ jsonProperty("subContext", subState.context()) + ",\"subStorageSlots\":" + subState.storageSlots() + ",\"subMobCount\":"
+					+ subState.currentMobCount() + "," + jsonProperty("subMobId", subState.currentMobId()) + "," + jsonProperty("error", error) + "}";
 		}
 
 		private String runBackpackRemoteUpgradeSlotRegression() {
@@ -1758,15 +1845,18 @@ public class DevClientAutomation {
 				}
 
 				StorageGuiRegressionState state = runOnClient(this::getStorageGuiRegressionState);
-				return new StorageGuiRegressionResult(scenario.name(), true, scenario.actions().length, state.storageSlots(), state.menuSlots(), state.upgradeSlots(), null);
+				return new StorageGuiRegressionResult(scenario.name(), true, scenario.actions().length, state.storageSlots(), state.menuSlots(),
+						state.upgradeSlots(), null);
 			} catch (RuntimeException e) {
 				StorageGuiRegressionState state = runOnClient(this::getStorageGuiRegressionStateSafely);
-				return new StorageGuiRegressionResult(scenario.name(), false, scenario.actions().length, state.storageSlots(), state.menuSlots(), state.upgradeSlots(), e.getMessage());
+				return new StorageGuiRegressionResult(scenario.name(), false, scenario.actions().length, state.storageSlots(), state.menuSlots(),
+						state.upgradeSlots(), e.getMessage());
 			}
 		}
 
-		private void runStorageGuiAction(StorageGuiRegressionScenario scenario, StorageGuiAction action, Map<String, List<StorageGuiSlotSnapshot>> slotSnapshots) {
-				switch (action.type()) {
+		private void runStorageGuiAction(StorageGuiRegressionScenario scenario, StorageGuiAction action,
+				Map<String, List<StorageGuiSlotSnapshot>> slotSnapshots) {
+			switch (action.type()) {
 				case "assertMenuSlotLayout" -> runOnClient(() -> assertStorageGuiMenuSlotLayout(scenario));
 				case "assertProtectedStorageSlots" -> runOnClient(() -> assertProtectedStorageSlots(scenario, action.slots()));
 				case "assertTrashSlotIndexCompatibility" -> runOnClient(() -> assertTrashSlotIndexCompatibility(action.slots()));
@@ -1890,7 +1980,8 @@ public class DevClientAutomation {
 				double y = screen.getGuiTop() + slot.y + 8.0;
 				Slot foundSlot = screen.findSlot(x, y);
 				if (foundSlot != slot) {
-					throw new IllegalStateException("findSlot did not return storage slot " + slotId + "; found=" + (foundSlot == null ? "null" : foundSlot.index));
+					throw new IllegalStateException(
+							"findSlot did not return storage slot " + slotId + "; found=" + (foundSlot == null ? "null" : foundSlot.index));
 				}
 			}
 			return true;
@@ -1984,8 +2075,7 @@ public class DevClientAutomation {
 
 		private List<StorageGuiSlotSnapshot> snapshotStorageGuiSlotContents(StorageGuiAction action) {
 			BackpackContainer menu = getOpenPlacedBackpackMenu();
-			return Arrays.stream(action.slotRefs())
-					.map(slotRef -> new StorageGuiSlotSnapshot(slotRef, resolveStorageGuiSlot(menu, slotRef).getItem().copy()))
+			return Arrays.stream(action.slotRefs()).map(slotRef -> new StorageGuiSlotSnapshot(slotRef, resolveStorageGuiSlot(menu, slotRef).getItem().copy()))
 					.toList();
 		}
 
@@ -1999,7 +2089,8 @@ public class DevClientAutomation {
 			for (StorageGuiSlotSnapshot snapshot : snapshots) {
 				ItemStack currentStack = resolveStorageGuiSlot(menu, snapshot.slotRef()).getItem();
 				if (!ItemStack.matches(snapshot.stack(), currentStack)) {
-					throw new IllegalStateException("Slot " + snapshot.slotRef() + " changed after snapshot " + action.snapshot() + "; expected=" + snapshot.stack() + " actual=" + currentStack);
+					throw new IllegalStateException("Slot " + snapshot.slotRef() + " changed after snapshot " + action.snapshot() + "; expected="
+							+ snapshot.stack() + " actual=" + currentStack);
 				}
 			}
 			return true;
@@ -2026,10 +2117,12 @@ public class DevClientAutomation {
 		private Boolean assertStorageGuiColumnState(StorageGuiAction action) {
 			BackpackContainer menu = getOpenPlacedBackpackMenu();
 			if (action.expectedColumnsTaken() >= 0 && menu.getStorageWrapper().getColumnsTaken() != action.expectedColumnsTaken()) {
-				throw new IllegalStateException("Expected columnsTaken=" + action.expectedColumnsTaken() + " but was " + menu.getStorageWrapper().getColumnsTaken());
+				throw new IllegalStateException(
+						"Expected columnsTaken=" + action.expectedColumnsTaken() + " but was " + menu.getStorageWrapper().getColumnsTaken());
 			}
 			if (action.expectedStorageSlots() >= 0 && menu.getNumberOfStorageInventorySlots() != action.expectedStorageSlots()) {
-				throw new IllegalStateException("Expected storageSlots=" + action.expectedStorageSlots() + " but was " + menu.getNumberOfStorageInventorySlots());
+				throw new IllegalStateException(
+						"Expected storageSlots=" + action.expectedStorageSlots() + " but was " + menu.getNumberOfStorageInventorySlots());
 			}
 			return true;
 		}
@@ -2164,7 +2257,8 @@ public class DevClientAutomation {
 				sleep(50);
 			} while (System.nanoTime() < deadline);
 
-			throw new IllegalStateException("Timed out waiting for column upgrade " + action.operation() + " sync; expected=" + expectation + " actual=" + state);
+			throw new IllegalStateException(
+					"Timed out waiting for column upgrade " + action.operation() + " sync; expected=" + expectation + " actual=" + state);
 		}
 
 		private Boolean setStorageGuiCarriedStack(ServerPlayer player, Item item) {
@@ -2267,7 +2361,8 @@ public class DevClientAutomation {
 			int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
 			clickSlot(Minecraft.getInstance().screen, slot);
-			return new StorageGuiColumnUpgradeExpectation(expectedColumnsTaken, expectedStorageSlots, "remove".equals(action.operation()), "insert".equals(action.operation()));
+			return new StorageGuiColumnUpgradeExpectation(expectedColumnsTaken, expectedStorageSlots, "remove".equals(action.operation()),
+					"insert".equals(action.operation()));
 		}
 
 		private StorageGuiColumnUpgradeState getStorageGuiColumnUpgradeState(int upgradeSlot) {
@@ -2275,7 +2370,8 @@ public class DevClientAutomation {
 			if (upgradeSlot < 0 || upgradeSlot >= menu.upgradeSlots.size()) {
 				throw new IllegalStateException("Invalid upgrade slot " + upgradeSlot);
 			}
-			return new StorageGuiColumnUpgradeState(menu.getStorageWrapper().getColumnsTaken(), menu.getNumberOfStorageInventorySlots(), menu.upgradeSlots.get(upgradeSlot).getItem().isEmpty(), menu.getCarried().isEmpty());
+			return new StorageGuiColumnUpgradeState(menu.getStorageWrapper().getColumnsTaken(), menu.getNumberOfStorageInventorySlots(),
+					menu.upgradeSlots.get(upgradeSlot).getItem().isEmpty(), menu.getCarried().isEmpty());
 		}
 
 		private StorageGuiRegressionState getStorageGuiRegressionState() {
@@ -2298,7 +2394,8 @@ public class DevClientAutomation {
 			ServerLevel level = player.serverLevel();
 			BlockPos pos = getRegressionBackpackPos(player);
 			applyStorageGuiPlayerContents(player, scenario.playerContents());
-			level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, player.getDirection().getOpposite()), 3);
+			level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING,
+					player.getDirection().getOpposite()), 3);
 			BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(level, pos, BackpackBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Failed to place storage GUI regression backpack block"));
 			backpackBlockEntity.setBackpack(createStorageGuiRegressionBackpack(scenario));
@@ -2311,7 +2408,8 @@ public class DevClientAutomation {
 			}
 			applyStorageGuiPlayerContents(Minecraft.getInstance().player, scenario.playerContents());
 			BlockPos pos = getRegressionBackpackPos(Minecraft.getInstance().player);
-			Minecraft.getInstance().level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
+			Minecraft.getInstance().level.setBlock(pos, net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks.GOLD_BACKPACK.get().defaultBlockState()
+					.setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
 			BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, BackpackBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Failed to create client storage GUI regression backpack block"));
 			backpackBlockEntity.setBackpack(createStorageGuiRegressionBackpack(scenario));
@@ -2320,7 +2418,8 @@ public class DevClientAutomation {
 
 		private Boolean openPlacedBackpackStorageGuiRegression(ServerPlayer player, StorageGuiRegressionScenario scenario) {
 			BackpackContext.Block backpackContext = new BackpackContext.Block(getRegressionBackpackPos(player));
-			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext), Component.literal("Storage GUI Regression: " + scenario.name())), backpackContext::toBuffer);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Storage GUI Regression: " + scenario.name())), backpackContext::toBuffer);
 			return true;
 		}
 
@@ -2343,7 +2442,10 @@ public class DevClientAutomation {
 			upgrades.saveInventory();
 			applyProtectedSlots(wrapper, scenario.noSortSlots(), scenario.memorySlots());
 			for (CapturedMobSpec capturedMob : scenario.capturedMobs()) {
-				MobCatcherStorage.addCapturedMob(wrapper, new CapturedMob(UUID.randomUUID(), ResourceLocation.parse(capturedMob.entityType()), new CompoundTag(), capturedMob.slot(), capturedMob.width(), capturedMob.height(), capturedMob.width() * capturedMob.height(), false, capturedMob.entityType(), 10, 10));
+				MobCatcherStorage.addCapturedMob(wrapper,
+						new CapturedMob(UUID.randomUUID(), ResourceLocation.parse(capturedMob.entityType()), new CompoundTag(), capturedMob.slot(),
+								capturedMob.width(), capturedMob.height(), capturedMob.width() * capturedMob.height(), false, capturedMob.entityType(), 10,
+								10));
 			}
 			if (scenario.openTab() >= 0) {
 				wrapper.setOpenTabId(scenario.openTab());
@@ -2371,20 +2473,12 @@ public class DevClientAutomation {
 				List<StorageGuiRegressionScenario> scenarios = new ArrayList<>();
 				for (JsonElement scenarioElement : scenarioElements) {
 					JsonObject scenario = scenarioElement.getAsJsonObject();
-					scenarios.add(new StorageGuiRegressionScenario(
-							scenario.get("name").getAsString(),
-							scenario.get("inventorySlots").getAsInt(),
+					scenarios.add(new StorageGuiRegressionScenario(scenario.get("name").getAsString(), scenario.get("inventorySlots").getAsInt(),
 							scenario.has("upgradeSlots") ? scenario.get("upgradeSlots").getAsInt() : 3,
 							scenario.has("columnsTaken") ? scenario.get("columnsTaken").getAsInt() : 0,
-							scenario.has("openTab") ? scenario.get("openTab").getAsInt() : -1,
-							getSlotStackSpecs(scenario, "contents"),
-							getSlotStackSpecs(scenario, "playerContents"),
-							getSlotStackSpecs(scenario, "upgradeContents"),
-							getIntArray(scenario, "noSortSlots"),
-							getIntArray(scenario, "memorySlots"),
-							getCapturedMobs(scenario),
-							getStorageGuiActions(scenario)
-					));
+							scenario.has("openTab") ? scenario.get("openTab").getAsInt() : -1, getSlotStackSpecs(scenario, "contents"),
+							getSlotStackSpecs(scenario, "playerContents"), getSlotStackSpecs(scenario, "upgradeContents"), getIntArray(scenario, "noSortSlots"),
+							getIntArray(scenario, "memorySlots"), getCapturedMobs(scenario), getStorageGuiActions(scenario)));
 				}
 				return new StorageGuiRegressionSuite(scenarios);
 			} catch (IOException e) {
@@ -2400,7 +2494,8 @@ public class DevClientAutomation {
 			SlotStackSpec[] specs = new SlotStackSpec[elements.size()];
 			for (int i = 0; i < elements.size(); i++) {
 				JsonObject element = elements.get(i).getAsJsonObject();
-				specs[i] = new SlotStackSpec(element.get("slot").getAsInt(), getItem(element.get("item").getAsString()), element.has("count") ? element.get("count").getAsInt() : 1);
+				specs[i] = new SlotStackSpec(element.get("slot").getAsInt(), getItem(element.get("item").getAsString()),
+						element.has("count") ? element.get("count").getAsInt() : 1);
 			}
 			return specs;
 		}
@@ -2410,10 +2505,12 @@ public class DevClientAutomation {
 			StorageGuiAction[] actions = new StorageGuiAction[elements.size()];
 			for (int i = 0; i < elements.size(); i++) {
 				JsonObject element = elements.get(i).getAsJsonObject();
-				actions[i] = new StorageGuiAction(element.get("type").getAsString(), element.has("snapshot") ? element.get("snapshot").getAsString() : "", getIntArray(element, "slots"), getSlotRefs(element, "slots"), getSlotRef(element, "slot"),
-						getButton(element), element.has("operation") ? element.get("operation").getAsString() : "", element.has("upgradeSlot") ? element.get("upgradeSlot").getAsInt() : -1,
-						element.has("item") ? Optional.of(getItem(element.get("item").getAsString())) : Optional.empty(), element.has("count") ? element.get("count").getAsInt() : 1,
-						element.has("hotbarSlot") ? element.get("hotbarSlot").getAsInt() : 0,
+				actions[i] = new StorageGuiAction(element.get("type").getAsString(), element.has("snapshot") ? element.get("snapshot").getAsString() : "",
+						getIntArray(element, "slots"), getSlotRefs(element, "slots"), getSlotRef(element, "slot"), getButton(element),
+						element.has("operation") ? element.get("operation").getAsString() : "",
+						element.has("upgradeSlot") ? element.get("upgradeSlot").getAsInt() : -1,
+						element.has("item") ? Optional.of(getItem(element.get("item").getAsString())) : Optional.empty(),
+						element.has("count") ? element.get("count").getAsInt() : 1, element.has("hotbarSlot") ? element.get("hotbarSlot").getAsInt() : 0,
 						element.has("expectedColumnsTaken") ? element.get("expectedColumnsTaken").getAsInt() : -1,
 						element.has("expectedStorageSlots") ? element.get("expectedStorageSlots").getAsInt() : -1);
 			}
@@ -2455,7 +2552,8 @@ public class DevClientAutomation {
 		}
 
 		private SlotRef getSlotRef(JsonObject json) {
-			return new SlotRef(json.has("area") ? json.get("area").getAsString() : "storage", json.get("index").getAsInt(), json.has("upgradeSlot") ? json.get("upgradeSlot").getAsInt() : -1);
+			return new SlotRef(json.has("area") ? json.get("area").getAsString() : "storage", json.get("index").getAsInt(),
+					json.has("upgradeSlot") ? json.get("upgradeSlot").getAsInt() : -1);
 		}
 
 		private Item getItem(String itemName) {
@@ -2501,25 +2599,187 @@ public class DevClientAutomation {
 
 		private String runStorageControllerDoubleChestRegressions(ServerPlayer player, boolean inspectOnly) {
 			List<ControllerDoubleChestRegressionResult> results = List.of(
-					runControllerDoubleChestRegression(player, "double_chest_then_controller", player.blockPosition().offset(0, 0, 6), false, true, inspectOnly),
-					runControllerDoubleChestRegression(player, "controller_then_left_chest_then_right_chest", player.blockPosition().offset(6, 0, 6), true, false, inspectOnly),
-					runControllerDoubleChestRegression(player, "controller_then_right_chest_then_left_chest", player.blockPosition().offset(12, 0, 6), true, true, inspectOnly)
-			);
+					runControllerDoubleChestRegression(player, "double_chest_then_controller", player.blockPosition().offset(0, 0, 6), false, true,
+							inspectOnly),
+					runControllerDoubleChestRegression(player, "controller_then_left_chest_then_right_chest", player.blockPosition().offset(6, 0, 6), true,
+							false, inspectOnly),
+					runControllerDoubleChestRegression(player, "controller_then_right_chest_then_left_chest", player.blockPosition().offset(12, 0, 6), true,
+							true, inspectOnly));
 
 			long failed = results.stream().filter(result -> !result.passed()).count();
-			StringBuilder json = new StringBuilder("{\"ok\":").append(failed == 0).append(",\"inspectOnly\":").append(inspectOnly).append(",\"total\":").append(results.size()).append(",\"failed\":")
-					.append(failed).append(",\"results\":[");
+			StringBuilder json = new StringBuilder("{\"ok\":").append(failed == 0).append(",\"inspectOnly\":").append(inspectOnly).append(",\"total\":")
+					.append(results.size()).append(",\"failed\":").append(failed).append(",\"results\":[");
 			for (int i = 0; i < results.size(); i++) {
 				if (i > 0) {
 					json.append(',');
 				}
 				ControllerDoubleChestRegressionResult result = results.get(i);
 				json.append('{').append(jsonProperty("name", result.name())).append(",\"passed\":").append(result.passed()).append(",\"registeredStorages\":")
-						.append(result.registeredStorages()).append(",\"slots\":").append(result.slots()).append(',').append(jsonProperty("positions", result.positions()))
-						.append(',').append(jsonProperty("chestState", result.chestState())).append(',').append(jsonProperty("error", result.error())).append('}');
+						.append(result.registeredStorages()).append(",\"slots\":").append(result.slots()).append(',')
+						.append(jsonProperty("positions", result.positions())).append(',').append(jsonProperty("chestState", result.chestState())).append(',')
+						.append(jsonProperty("error", result.error())).append('}');
 			}
 			json.append("]}");
 			return json.toString();
+		}
+
+		private String verifySimpleMaterialDecoration(ServerPlayer player) {
+			ServerLevel level = player.serverLevel();
+			BlockPos tablePos = player.blockPosition().offset(0, 0, 4);
+			level.setBlockAndUpdate(tablePos, Blocks.AIR.defaultBlockState());
+			level.setBlockAndUpdate(tablePos, ModBlocks.DECORATION_TABLE.get().defaultBlockState());
+
+			DecorationTableBlockEntity table = level.getBlockEntity(tablePos, ModBlocks.DECORATION_TABLE_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			if (table == null) {
+				return "{\"ok\":false," + jsonProperty("error", "Decoration table block entity missing") + "}";
+			}
+
+			ResourceLocation expectedMaterial = BuiltInRegistries.BLOCK.getKey(Blocks.OAK_PLANKS);
+			List<Item> itemsToVerify = new ArrayList<>(List.of(ModBlocks.CONTROLLER_ITEM.get(), ModBlocks.STORAGE_IO_ITEM.get(),
+					ModBlocks.STORAGE_INPUT_ITEM.get(), ModBlocks.STORAGE_OUTPUT_ITEM.get(), ModBlocks.STORAGE_LINK_ITEM.get()));
+			ModBlocks.STORAGE_CONNECTOR_ITEMS.values().forEach(item -> itemsToVerify.add(item.get()));
+
+			StringBuilder results = new StringBuilder();
+			int failed = 0;
+			for (int i = 0; i < itemsToVerify.size(); i++) {
+				Item item = itemsToVerify.get(i);
+				if (i > 0) {
+					results.append(',');
+				}
+
+				table.getStorageBlock().setStackInSlot(0, ItemStack.EMPTY);
+				for (int slot = 0; slot < 7; slot++) {
+					table.getDecorativeBlocks().setStackInSlot(slot, ItemStack.EMPTY);
+				}
+
+				ItemStack input = new ItemStack(item);
+				ItemStack materialStack = new ItemStack(Items.OAK_PLANKS, 2);
+				table.getStorageBlock().setStackInSlot(0, input);
+
+				boolean slot0AcceptsMaterial = table.getDecorativeBlocks().isItemValid(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, materialStack);
+				boolean slot1AcceptsMaterial = table.getDecorativeBlocks().isItemValid(DecorationTableBlockEntity.TOP_TRIM_SLOT, materialStack);
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, materialStack.copy());
+
+				ItemStack result = table.getResult().copy();
+				Optional<ResourceLocation> resultMaterial = SimpleMaterialBlockItem.getMaterial(result);
+				Map<ResourceLocation, Integer> partsNeeded = table.getPartsNeeded();
+				int oakPartsNeeded = partsNeeded.getOrDefault(expectedMaterial, 0);
+				ItemStack extracted = table.extractResult(1);
+				table.consumeIngredientsOnCraft();
+				int remainingMaterialCount = table.getDecorativeBlocks().getStackInSlot(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT).getCount();
+
+				boolean layoutSingle = table.getMaterialLayout() == DecorationTableBlockEntity.MaterialLayout.SINGLE;
+				boolean resultMaterialMatches = resultMaterial.filter(expectedMaterial::equals).isPresent();
+				Optional<ResourceLocation> extractedMaterial = SimpleMaterialBlockItem.getMaterial(extracted);
+				boolean extractedMaterialMatches = extractedMaterial.filter(expectedMaterial::equals).isPresent();
+				boolean passed = layoutSingle && table.isMaterialSlotActive(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT)
+						&& !table.isMaterialSlotActive(DecorationTableBlockEntity.TOP_TRIM_SLOT) && !table.areTintsActive() && slot0AcceptsMaterial
+						&& !slot1AcceptsMaterial && !result.isEmpty() && resultMaterialMatches && !extracted.isEmpty() && extractedMaterialMatches
+						&& oakPartsNeeded == 24 && remainingMaterialCount == 1;
+				if (!passed) {
+					failed++;
+				}
+
+				results.append('{').append(jsonProperty("item", BuiltInRegistries.ITEM.getKey(item).toString())).append(',').append("\"passed\":")
+						.append(passed).append(',').append(jsonProperty("layout", table.getMaterialLayout().name())).append(',').append("\"slot0Active\":")
+						.append(table.isMaterialSlotActive(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT)).append(',').append("\"slot1Active\":")
+						.append(table.isMaterialSlotActive(DecorationTableBlockEntity.TOP_TRIM_SLOT)).append(',').append("\"slot0AcceptsMaterial\":")
+						.append(slot0AcceptsMaterial).append(',').append("\"slot1AcceptsMaterial\":").append(slot1AcceptsMaterial).append(',')
+						.append("\"tintsActive\":").append(table.areTintsActive()).append(',')
+						.append(jsonProperty("resultItem", result.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(result.getItem()).toString())).append(',')
+						.append(jsonProperty("resultMaterial", resultMaterial.map(ResourceLocation::toString).orElse(null))).append(',')
+						.append(jsonProperty("extractedMaterial", extractedMaterial.map(ResourceLocation::toString).orElse(null))).append(',')
+						.append("\"oakPartsNeeded\":").append(oakPartsNeeded).append(',').append("\"remainingMaterialCount\":").append(remainingMaterialCount)
+						.append('}');
+			}
+
+			return "{\"ok\":" + (failed == 0) + ',' + jsonProperty("tablePos", tablePos.toShortString()) + ',' + "\"total\":" + itemsToVerify.size() + ','
+					+ "\"failed\":" + failed + ',' + "\"results\":[" + results + "]}";
+		}
+
+		private String setupSimpleMaterialRenderVerification(ServerPlayer player) {
+			ServerLevel level = player.serverLevel();
+			BlockPos tablePos = player.blockPosition().offset(0, 0, 4);
+			BlockPos controllerPos = player.blockPosition().offset(3, 1, 4);
+			level.setBlockAndUpdate(tablePos, Blocks.AIR.defaultBlockState());
+			level.setBlockAndUpdate(controllerPos, Blocks.AIR.defaultBlockState());
+			level.setBlockAndUpdate(controllerPos.above(), Blocks.AIR.defaultBlockState());
+			level.setBlockAndUpdate(tablePos, ModBlocks.DECORATION_TABLE.get().defaultBlockState());
+
+			DecorationTableBlockEntity table = level.getBlockEntity(tablePos, ModBlocks.DECORATION_TABLE_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			if (table == null) {
+				return "{\"ok\":false," + jsonProperty("error", "Decoration table block entity missing") + "}";
+			}
+
+			table.getStorageBlock().setStackInSlot(0, new ItemStack(ModBlocks.CONTROLLER_ITEM.get()));
+			table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, new ItemStack(Items.DIAMOND_BLOCK, 2));
+			ItemStack decoratedController = table.extractResult(1);
+			table.consumeIngredientsOnCraft();
+			Optional<ResourceLocation> decoratedMaterial = SimpleMaterialBlockItem.getMaterial(decoratedController);
+
+			player.getInventory().clearContent();
+			player.getInventory().setItem(0, decoratedController.copy());
+			player.getInventory().setItem(1, new ItemStack(ModBlocks.CONTROLLER_ITEM.get()));
+
+			level.setBlockAndUpdate(controllerPos, ModBlocks.CONTROLLER.get().defaultBlockState());
+			WorldHelper.getBlockEntity(level, controllerPos, ISimpleMaterialHolder.class).ifPresent(holder -> {
+				SimpleMaterialBlockItem.getMaterial(decoratedController).ifPresentOrElse(holder::setMaterial, () -> holder.setMaterial(null));
+				holder.setOverlayHidden(false);
+			});
+
+			return "{\"ok\":" + (!decoratedController.isEmpty() && decoratedMaterial.isPresent()) + ',' + jsonProperty("tablePos", tablePos.toShortString())
+					+ ',' + jsonProperty("controllerPos", controllerPos.toShortString()) + ','
+					+ jsonProperty("decoratedItem",
+							decoratedController.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(decoratedController.getItem()).toString())
+					+ ',' + jsonProperty("decoratedMaterial", decoratedMaterial.map(ResourceLocation::toString).orElse(null)) + '}';
+		}
+
+		private String setupSimpleMaterialOverlayComparison(ServerPlayer player) {
+			ServerLevel level = player.serverLevel();
+			BlockPos origin = player.blockPosition().offset(0, 0, 6);
+			ResourceLocation material = BuiltInRegistries.BLOCK.getKey(Blocks.DIAMOND_BLOCK);
+
+			BlockPos controllerShown = origin.offset(-3, 0, 0);
+			BlockPos controllerHidden = origin.offset(-1, 0, 0);
+			BlockPos linkShown = origin.offset(1, 0, 0);
+			BlockPos linkHidden = origin.offset(3, 0, 0);
+			List<BlockPos> positions = List.of(controllerShown, controllerHidden, linkShown, linkHidden);
+			for (BlockPos pos : positions) {
+				level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+				level.setBlockAndUpdate(pos.above(), Blocks.AIR.defaultBlockState());
+				level.setBlockAndUpdate(pos.below(), Blocks.GRAY_CONCRETE.defaultBlockState());
+			}
+
+			level.setBlockAndUpdate(controllerShown, ModBlocks.CONTROLLER.get().defaultBlockState());
+			level.setBlockAndUpdate(controllerHidden, ModBlocks.CONTROLLER.get().defaultBlockState());
+			level.setBlockAndUpdate(linkShown, ModBlocks.STORAGE_LINK.get().defaultBlockState());
+			level.setBlockAndUpdate(linkHidden, ModBlocks.STORAGE_LINK.get().defaultBlockState());
+
+			boolean controllerShownSet = setSimpleMaterialState(level, controllerShown, material, false);
+			boolean controllerHiddenSet = setSimpleMaterialState(level, controllerHidden, material, true);
+			boolean linkShownSet = setSimpleMaterialState(level, linkShown, material, false);
+			boolean linkHiddenSet = setSimpleMaterialState(level, linkHidden, material, true);
+
+			player.getInventory().clearContent();
+			ItemStack storageTool = new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModItems.STORAGE_TOOL.get());
+			storageTool.set(ModDataComponents.TOOL_MODE, StorageToolItem.Mode.TIER_DISPLAY);
+			player.getInventory().setItem(0, storageTool);
+			player.getInventory().setChanged();
+
+			return "{\"ok\":" + (controllerShownSet && controllerHiddenSet && linkShownSet && linkHiddenSet) + ','
+					+ jsonProperty("material", material.toString()) + ',' + jsonProperty("controllerShown", controllerShown.toShortString()) + ','
+					+ jsonProperty("controllerHidden", controllerHidden.toShortString()) + ',' + jsonProperty("linkShown", linkShown.toShortString()) + ','
+					+ jsonProperty("linkHidden", linkHidden.toShortString()) + ',' + "\"controllerShownSet\":" + controllerShownSet + ','
+					+ "\"controllerHiddenSet\":" + controllerHiddenSet + ',' + "\"linkShownSet\":" + linkShownSet + ',' + "\"linkHiddenSet\":" + linkHiddenSet
+					+ '}';
+		}
+
+		private boolean setSimpleMaterialState(ServerLevel level, BlockPos pos, ResourceLocation material, boolean overlayHidden) {
+			return WorldHelper.getBlockEntity(level, pos, ISimpleMaterialHolder.class).map(holder -> {
+				holder.setMaterial(material);
+				holder.setOverlayHidden(overlayHidden);
+				return true;
+			}).orElse(false);
 		}
 
 		private String runStorageControllerFilterRegressions(ServerPlayer player, boolean runInserts, boolean profileCapacity) {
@@ -2531,17 +2791,17 @@ public class DevClientAutomation {
 			clearStorageControllerFilterRegressionArea(level, controllerPos);
 			placeController(level, player, controllerPos);
 
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), ModBlocks.BARREL_ITEM.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
@@ -2593,7 +2853,8 @@ public class DevClientAutomation {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
 
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long insertStartedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -2617,14 +2878,15 @@ public class DevClientAutomation {
 			}
 			long verifyMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - verifyStartedAt);
 
-			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages, lockedSpecs.size(),
-					filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
+			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages,
+					lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
 		}
 
 		private Map<BlockPos, Item> createControllerFilterBarrelItems(List<BlockPos> overflowPositions, List<ControllerFilterStorageSpec> filterSpecs,
 				List<ControllerLockedStorageSpec> lockedSpecs) {
 			Map<BlockPos, Item> barrelItems = new HashMap<>();
-			List<Item> overflowBarrels = List.of(ModBlocks.BARREL_ITEM.get(), ModBlocks.IRON_BARREL_ITEM.get(), ModBlocks.GOLD_BARREL_ITEM.get(), ModBlocks.DIAMOND_BARREL_ITEM.get());
+			List<Item> overflowBarrels = List.of(ModBlocks.BARREL_ITEM.get(), ModBlocks.IRON_BARREL_ITEM.get(), ModBlocks.GOLD_BARREL_ITEM.get(),
+					ModBlocks.DIAMOND_BARREL_ITEM.get());
 			for (int i = 0; i < overflowPositions.size(); i++) {
 				barrelItems.put(overflowPositions.get(i), overflowBarrels.get(i % overflowBarrels.size()));
 			}
@@ -2641,17 +2903,17 @@ public class DevClientAutomation {
 			ServerLevel level = player.serverLevel();
 			BlockPos controllerPos = player.blockPosition().offset(0, 0, 12);
 			List<String> failures = new ArrayList<>();
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), ModBlocks.BARREL_ITEM.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
 			allPositions.addAll(overflowPositions);
@@ -2661,7 +2923,8 @@ public class DevClientAutomation {
 			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
 			if (controller == null) {
 				failures.add("controller block entity missing at " + controllerPos + "; run setup mode before profile mode");
-				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0, failures);
+				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0,
+						failures);
 			}
 			int connectedStorages = controller.getStoragePositions().size();
 			if (connectedStorages != allPositions.size()) {
@@ -2672,7 +2935,8 @@ public class DevClientAutomation {
 			for (ControllerLockedStorageSpec spec : lockedSpecs) {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long startedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -2689,29 +2953,119 @@ public class DevClientAutomation {
 					overflowPositions.size(), insertCalls, itemsInserted, failures);
 		}
 
+		private String profileStorageControllerFilterManualDeposit(ServerPlayer player, int runs) {
+			ServerLevel level = player.serverLevel();
+			BlockPos controllerPos = player.blockPosition().offset(0, 0, 12);
+			List<String> failures = new ArrayList<>();
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
+			List<ControllerFilterStorageSpec> filterSpecs = List.of(
+					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
+					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
+					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), ModBlocks.BARREL_ITEM.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
+			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
+
+			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			if (controller == null) {
+				failures.add("controller block entity missing at " + controllerPos + "; run setup mode before manual deposit profile mode");
+				return buildStorageControllerFilterRegressionJson("storage_controller_filter_manual_deposit", false, 0, 0, 0, 0, lockedSpecs.size(),
+						filterSpecs.size(), overflowPositions.size(), 0, 0, failures);
+			}
+			int connectedStorages = controller.getStoragePositions().size();
+			if (connectedStorages != overflowPositions.size() + filterSpecs.size() + lockedSpecs.size()) {
+				failures.add("expected " + (overflowPositions.size() + filterSpecs.size() + lockedSpecs.size()) + " connected storages, got "
+						+ connectedStorages + ": " + controller.getStoragePositions());
+			}
+
+			List<Item> depositItems = createControllerFilterManualDepositItems(lockedSpecs);
+			long depositNanos = 0;
+			long itemsDeposited = 0;
+			int depositCalls = 0;
+			player.getInventory().selected = 0;
+			clearControllerFilterManualDepositInventory(player);
+			for (int run = 0; run < runs; run++) {
+				fillControllerFilterManualDepositInventory(player, depositItems);
+				long beforeDeposited = countControllerFilterManualDepositRemaining(player, depositItems.size());
+				long startedAt = System.nanoTime();
+				controller.depositPlayerItems(player, InteractionHand.MAIN_HAND);
+				controller.depositPlayerItems(player, InteractionHand.MAIN_HAND);
+				depositNanos += System.nanoTime() - startedAt;
+				depositCalls += 2;
+				long remaining = countControllerFilterManualDepositRemaining(player, depositItems.size());
+				itemsDeposited += beforeDeposited - remaining;
+				if (remaining != 0) {
+					failures.add("manual deposit run " + run + " left " + remaining + " items in player inventory");
+				}
+			}
+			clearControllerFilterManualDepositInventory(player);
+			long depositMillis = TimeUnit.NANOSECONDS.toMillis(depositNanos);
+			return buildStorageControllerFilterRegressionJson("storage_controller_filter_manual_deposit", failures.isEmpty(), 0, depositMillis, 0,
+					connectedStorages, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), depositCalls, itemsDeposited, failures);
+		}
+
+		private List<Item> createControllerFilterManualDepositItems(List<ControllerLockedStorageSpec> lockedSpecs) {
+			List<Item> depositItems = new ArrayList<>();
+			lockedSpecs.stream().limit(24).map(ControllerLockedStorageSpec::item).forEach(depositItems::add);
+			depositItems.add(Items.AMETHYST_SHARD);
+			depositItems.add(Items.HONEYCOMB);
+			depositItems.add(Items.ECHO_SHARD);
+			depositItems.add(ModBlocks.GOLD_BARREL_ITEM.get());
+			depositItems.add(ModItems.STACK_UPGRADE_TIER_1.get());
+			depositItems.add(Items.NAUTILUS_SHELL);
+			return depositItems;
+		}
+
+		private void fillControllerFilterManualDepositInventory(ServerPlayer player, List<Item> depositItems) {
+			for (int slot = 0; slot < depositItems.size(); slot++) {
+				player.getInventory().setItem(slot, new ItemStack(depositItems.get(slot)));
+			}
+		}
+
+		private void clearControllerFilterManualDepositInventory(ServerPlayer player) {
+			for (int slot = 0; slot < 36; slot++) {
+				player.getInventory().setItem(slot, ItemStack.EMPTY);
+			}
+		}
+
+		private long countControllerFilterManualDepositRemaining(ServerPlayer player, int slots) {
+			long remaining = 0;
+			for (int slot = 0; slot < slots; slot++) {
+				remaining += player.getInventory().getItem(slot).getCount();
+			}
+			return remaining;
+		}
+
 		private List<ControllerFilterInsertExpectation> createControllerFilterInsertExpectations(BlockPos controllerPos, List<BlockPos> overflowPositions,
 				Map<Item, Set<BlockPos>> lockedPositionsByItem) {
 			List<ControllerFilterInsertExpectation> expectations = new ArrayList<>();
-			lockedPositionsByItem.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
+			lockedPositionsByItem
+					.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
 			expectations.add(new ControllerFilterInsertExpectation("specific_amethyst", Items.AMETHYST_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, -1))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_honeycomb", Items.HONEYCOMB, 4, 80, Set.of(controllerPos.offset(2, 0, 0))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_echo_shard", Items.ECHO_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, 1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage", ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80, Set.of(controllerPos.offset(3, 0, -1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80, Set.of(controllerPos.offset(3, 0, 0))));
-			expectations.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage", ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80,
+					Set.of(controllerPos.offset(3, 0, -1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80,
+					Set.of(controllerPos.offset(3, 0, 0))));
+			expectations
+					.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
 			expectations.add(new ControllerFilterInsertExpectation("denied_item_overflows", Items.FEATHER, 4, 80, Set.copyOf(overflowPositions)));
 			return expectations;
 		}
 
 		private List<ControllerLockedStorageSpec> createControllerFilterLockedStorageSpecs(BlockPos controllerPos) {
-			List<Item> items = List.of(
-					Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE, Items.SAND,
-					Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG, Items.ACACIA_LOG,
-					Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS, Items.BIRCH_PLANKS,
-					Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI, Items.EMERALD,
-					Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER, Items.LEATHER,
-					Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE, Items.IRON_INGOT
-			);
+			List<Item> items = List.of(Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE,
+					Items.SAND, Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG,
+					Items.ACACIA_LOG, Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS,
+					Items.BIRCH_PLANKS, Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI,
+					Items.EMERALD, Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER,
+					Items.LEATHER, Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE,
+					Items.IRON_INGOT);
 			List<ControllerLockedStorageSpec> specs = new ArrayList<>();
 			int slot = 0;
 			for (int x = 4; x <= 12 && slot < items.size(); x++) {
@@ -2756,8 +3110,8 @@ public class DevClientAutomation {
 		}
 
 		private void discardStorageControllerFilterRegressionItemEntities(ServerLevel level, BlockPos controllerPos) {
-			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17, controllerPos.getY() + 5,
-					controllerPos.getZ() + 9);
+			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17,
+					controllerPos.getY() + 5, controllerPos.getZ() + 9);
 			for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, area)) {
 				itemEntity.discard();
 			}
@@ -2768,8 +3122,7 @@ public class DevClientAutomation {
 		}
 
 		private StorageBlockEntity getBarrelStorage(ServerLevel level, BlockPos pos) {
-			return level.getBlockEntity(pos, ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get())
-					.map(storage -> (StorageBlockEntity) storage)
+			return level.getBlockEntity(pos, ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get()).map(storage -> (StorageBlockEntity) storage)
 					.orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
 		}
 
@@ -2806,8 +3159,8 @@ public class DevClientAutomation {
 			}
 		}
 
-		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller, List<BlockPos> allPositions,
-				ControllerFilterInsertExpectation expectation, List<String> failures) {
+		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller,
+				List<BlockPos> allPositions, ControllerFilterInsertExpectation expectation, List<String> failures) {
 			Set<BlockPos> outsidePositions = new HashSet<>(allPositions);
 			outsidePositions.removeAll(expectation.expectedPositions());
 			long expectedBefore = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
@@ -2823,17 +3176,18 @@ public class DevClientAutomation {
 			long expectedAfter = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
 			long outsideAfter = countItemInPositions(level, outsidePositions, expectation.item());
 			if (expectedAfter - expectedBefore != inserted) {
-				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got " + (expectedAfter - expectedBefore)
-						+ " at " + expectation.expectedPositions());
+				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got "
+						+ (expectedAfter - expectedBefore) + " at " + expectation.expectedPositions());
 			}
 			if (outsideAfter != outsideBefore) {
-				failures.add(expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
+				failures.add(
+						expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
 			}
 			return new ControllerFilterInsertStats(expectation.calls(), inserted);
 		}
 
-		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller, ControllerFilterInsertExpectation expectation, int run,
-				List<String> failures) {
+		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller,
+				ControllerFilterInsertExpectation expectation, int run, List<String> failures) {
 			long inserted = 0;
 			for (int i = 0; i < expectation.calls(); i++) {
 				ItemStack remainder = controller.insertItem(new ItemStack(expectation.item(), expectation.count()), false);
@@ -2858,19 +3212,19 @@ public class DevClientAutomation {
 
 		private String buildStorageControllerFilterRegressionJson(boolean ok, long setupMillis, long insertMillis, long verifyMillis, int connectedStorages,
 				int lockedStorages, int filteredStorages, int overflowStorages, int insertCalls, long itemsInserted, List<String> failures) {
-			StringBuilder json = new StringBuilder("{\"ok\":").append(ok)
-					.append(",\"scenario\":\"storage_controller_filter_routing\"")
-					.append(",\"connectedStorages\":").append(connectedStorages)
-					.append(",\"lockedStorages\":").append(lockedStorages)
-					.append(",\"filteredStorages\":").append(filteredStorages)
-					.append(",\"overflowStorages\":").append(overflowStorages)
-					.append(",\"insertCalls\":").append(insertCalls)
-					.append(",\"itemsInserted\":").append(itemsInserted)
-					.append(",\"setupMillis\":").append(setupMillis)
-					.append(",\"insertMillis\":").append(insertMillis)
-					.append(",\"verifyMillis\":").append(verifyMillis)
-					.append(",\"failed\":").append(failures.size())
-					.append(",\"failures\":[");
+			return buildStorageControllerFilterRegressionJson("storage_controller_filter_routing", ok, setupMillis, insertMillis, verifyMillis,
+					connectedStorages, lockedStorages, filteredStorages, overflowStorages, insertCalls, itemsInserted, failures);
+		}
+
+		private String buildStorageControllerFilterRegressionJson(String scenario, boolean ok, long setupMillis, long insertMillis, long verifyMillis,
+				int connectedStorages, int lockedStorages, int filteredStorages, int overflowStorages, int insertCalls, long itemsInserted,
+				List<String> failures) {
+			StringBuilder json = new StringBuilder("{\"ok\":").append(ok).append(",\"scenario\":\"").append(scenario).append("\"")
+					.append(",\"connectedStorages\":").append(connectedStorages).append(",\"lockedStorages\":").append(lockedStorages)
+					.append(",\"filteredStorages\":").append(filteredStorages).append(",\"overflowStorages\":").append(overflowStorages)
+					.append(",\"insertCalls\":").append(insertCalls).append(",\"itemsInserted\":").append(itemsInserted).append(",\"setupMillis\":")
+					.append(setupMillis).append(",\"insertMillis\":").append(insertMillis).append(",\"verifyMillis\":").append(verifyMillis)
+					.append(",\"failed\":").append(failures.size()).append(",\"failures\":[");
 			for (int i = 0; i < failures.size(); i++) {
 				if (i > 0) {
 					json.append(',');
@@ -2885,7 +3239,8 @@ public class DevClientAutomation {
 			return BuiltInRegistries.ITEM.getKey(item).toString();
 		}
 
-		private ControllerDoubleChestRegressionResult runControllerDoubleChestRegression(ServerPlayer player, String name, BlockPos controllerPos, boolean controllerFirst, boolean farChestFirst, boolean inspectOnly) {
+		private ControllerDoubleChestRegressionResult runControllerDoubleChestRegression(ServerPlayer player, String name, BlockPos controllerPos,
+				boolean controllerFirst, boolean farChestFirst, boolean inspectOnly) {
 			ServerLevel level = player.serverLevel();
 			BlockPos leftChestPos = controllerPos.east();
 			BlockPos rightChestPos = leftChestPos.east();
@@ -2917,7 +3272,8 @@ public class DevClientAutomation {
 				boolean passed = mainStorageRegistered && slots == 54 && isDoubleChest(level, leftChestPos, rightChestPos);
 				String error = null;
 				if (!passed) {
-					error = "expected one connected double chest registered at " + rightChestPos + " with 54 slots; slots=" + slots + "; chestState=" + chestState;
+					error = "expected one connected double chest registered at " + rightChestPos + " with 54 slots; slots=" + slots + "; chestState="
+							+ chestState;
 				}
 				return new ControllerDoubleChestRegressionResult(name, passed, registeredStorages, slots, positions, chestState, error);
 			}).orElseGet(() -> new ControllerDoubleChestRegressionResult(name, false, 0, 0, "[]",
@@ -2953,12 +3309,13 @@ public class DevClientAutomation {
 		}
 
 		private boolean isDoubleChest(ServerLevel level, BlockPos leftChestPos, BlockPos rightChestPos) {
-			return level.getBlockState(leftChestPos).is(ModBlocks.CHEST.get())
-					&& level.getBlockState(rightChestPos).is(ModBlocks.CHEST.get())
+			return level.getBlockState(leftChestPos).is(ModBlocks.CHEST.get()) && level.getBlockState(rightChestPos).is(ModBlocks.CHEST.get())
 					&& level.getBlockState(leftChestPos).getValue(ChestBlock.TYPE) == ChestType.LEFT
 					&& level.getBlockState(rightChestPos).getValue(ChestBlock.TYPE) == ChestType.RIGHT
-					&& level.getBlockEntity(leftChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos)).orElse(false)
-					&& level.getBlockEntity(rightChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos)).orElse(false);
+					&& level.getBlockEntity(leftChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos))
+							.orElse(false)
+					&& level.getBlockEntity(rightChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).map(be -> be.getMainPos().equals(rightChestPos))
+							.orElse(false);
 		}
 
 		private String getChestState(ServerLevel level, BlockPos pos) {
@@ -2968,8 +3325,8 @@ public class DevClientAutomation {
 			}
 			return level.getBlockEntity(pos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get())
 					.map(be -> pos + "=type:" + state.getValue(ChestBlock.TYPE) + ",facing:" + state.getValue(ChestBlock.FACING) + ",main:" + be.getMainPos()
-							+ ",hasData:" + be.hasStorageData() + ",controller:" + be.getControllerPos().map(Object::toString).orElse("none")
-							+ ",slots:" + be.getStorageWrapper().getInventoryHandler().getSlots())
+							+ ",hasData:" + be.hasStorageData() + ",controller:" + be.getControllerPos().map(Object::toString).orElse("none") + ",slots:"
+							+ be.getStorageWrapper().getInventoryHandler().getSlots())
 					.orElse(pos + "=chest_without_be");
 		}
 
@@ -3807,8 +4164,8 @@ public class DevClientAutomation {
 		private record SlotStackSpec(int slot, Item item, int count) {
 		}
 
-		private record StorageGuiAction(String type, String snapshot, int[] slots, SlotRef[] slotRefs, SlotRef slot, int button, String operation, int upgradeSlot,
-				Optional<Item> item, int count, int hotbarSlot, int expectedColumnsTaken, int expectedStorageSlots) {
+		private record StorageGuiAction(String type, String snapshot, int[] slots, SlotRef[] slotRefs, SlotRef slot, int button, String operation,
+				int upgradeSlot, Optional<Item> item, int count, int hotbarSlot, int expectedColumnsTaken, int expectedStorageSlots) {
 		}
 
 		private record SlotRef(String area, int index, int upgradeSlot) {
@@ -3820,15 +4177,13 @@ public class DevClientAutomation {
 		private record StorageGuiSlotSnapshot(SlotRef slotRef, ItemStack stack) {
 		}
 
-		private record StorageGuiRegressionResult(String name, boolean passed, int actions, int storageSlots, int menuSlots, int upgradeSlots,
-				String error) {
+		private record StorageGuiRegressionResult(String name, boolean passed, int actions, int storageSlots, int menuSlots, int upgradeSlots, String error) {
 		}
 
 		private record StorageGuiRegressionState(int storageSlots, int menuSlots, int upgradeSlots) {
 		}
 
-		private record StorageGuiColumnUpgradeExpectation(int expectedColumnsTaken, int expectedStorageSlots, boolean upgradeSlotEmpty,
-				boolean carriedEmpty) {
+		private record StorageGuiColumnUpgradeExpectation(int expectedColumnsTaken, int expectedStorageSlots, boolean upgradeSlotEmpty, boolean carriedEmpty) {
 		}
 
 		private record StorageGuiColumnUpgradeState(int columnsTaken, int storageSlots, boolean upgradeSlotEmpty, boolean carriedEmpty) {
@@ -3855,7 +4210,8 @@ public class DevClientAutomation {
 				String error) {
 		}
 
-		private record ControllerDoubleChestRegressionResult(String name, boolean passed, int registeredStorages, int slots, String positions, String chestState, String error) {
+		private record ControllerDoubleChestRegressionResult(String name, boolean passed, int registeredStorages, int slots, String positions,
+				String chestState, String error) {
 		}
 
 		private record ControllerFilterStorageSpec(String name, BlockPos pos, Item filterItem, boolean allowList, PrimaryMatch primaryMatch) {
@@ -3876,7 +4232,8 @@ public class DevClientAutomation {
 		private record PlacedColumnUpgradeClickExpectation(int expectedColumnsTaken, int expectedStorageSlots) {
 		}
 
-		private record PlacedColumnUpgradeState(int columnsTaken, int storageSlots, int inventoryHandlerSlots, boolean upgradeSlotEmpty, boolean carriedNotEmpty) {
+		private record PlacedColumnUpgradeState(int columnsTaken, int storageSlots, int inventoryHandlerSlots, boolean upgradeSlotEmpty,
+				boolean carriedNotEmpty) {
 			private boolean matches(PlacedColumnUpgradeClickExpectation expectation) {
 				return columnsTaken == expectation.expectedColumnsTaken() && storageSlots == expectation.expectedStorageSlots()
 						&& inventoryHandlerSlots == expectation.expectedStorageSlots() && upgradeSlotEmpty && carriedNotEmpty;
@@ -3902,9 +4259,7 @@ public class DevClientAutomation {
 		}
 
 		private enum BackpackGuiRegressionContext {
-			PLACED("placed"),
-			CURIOS("curios"),
-			SUB("sub");
+			PLACED("placed"), CURIOS("curios"), SUB("sub");
 
 			private final String jsonName;
 
