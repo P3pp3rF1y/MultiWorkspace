@@ -125,14 +125,14 @@ public class DemoCommand {
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setContainerSlot(
-										context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
+												context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), false, true))))))
 						.then(Commands.literal("only").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setContainerSlot(context.getSource(),
-										context.getSource().getLevel().dimension().identifier().toString(),
+												context.getSource().getLevel().dimension().identifier().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))));
 
@@ -820,7 +820,7 @@ public class DemoCommand {
 			for (int i = 0; i < targets.size(); i++) {
 				StorageTarget target = targets.get(i);
 				success(source, () -> Component.literal("[" + target.index() + "] " + target.kind() + " at " + formatPosition(target.position()) + " with "
-					+ target.itemHandler().size() + " slots"));
+						+ target.itemHandler().size() + " slots"));
 			}
 			return targets.size();
 		} catch (Exception e) {
@@ -1927,8 +1927,7 @@ public class DemoCommand {
 	}
 
 	private static ItemStack createItemStack(String itemName, int count) {
-		Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
-				.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
+		Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName)).orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
 		return new ItemStack(item, count);
 	}
 
