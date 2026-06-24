@@ -1,0 +1,47 @@
+apply plugin: 'pmd'
+
+def findCodeQualityFile = { String relativePath ->
+    def dir = project.projectDir
+    while (dir != null) {
+        def candidate = new File(dir, relativePath)
+        if (candidate.isFile()) {
+            return candidate
+        }
+        dir = dir.parentFile
+    }
+    return null
+}
+
+def pmdRulesetFile = findCodeQualityFile('config/pmd/ruleset.xml')
+def pmdRulesetUri = 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/1.21.x/config/pmd/ruleset.xml'
+
+pmd {
+    toolVersion = '7.25.0'
+    consoleOutput = false
+    ignoreFailures = true
+    ruleSets = []
+    if (pmdRulesetFile != null) {
+        ruleSetFiles = files(pmdRulesetFile)
+    } else {
+        ruleSetConfig = resources.text.fromUri(pmdRulesetUri)
+    }
+}
+
+tasks.withType(Pmd).configureEach {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    rewrite 'org.openrewrite.recipe:rewrite-static-analysis:2.37.0'
+}
+
+rewrite {
+    activeRecipe('org.openrewrite.staticanalysis.CodeCleanup')
+}
