@@ -33,6 +33,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -62,10 +63,10 @@ import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
-import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.inventory.ISlotStackAccessor;
-import net.p3pp3rf1y.sophisticatedcore.util.InventoryHelper;
+import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
+import net.p3pp3rf1y.sophisticatedcore.util.InventoryHelper;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
@@ -1283,7 +1284,7 @@ public class DemoCommand {
 	private static InteractionResult invokeMobCatcherCapture(ServerPlayer player, LivingEntity entity) {
 		try {
 			Class<?> handlerClass = Class.forName("net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherHandler");
-			Method tryCapture = handlerClass.getMethod("tryCapture", net.minecraft.world.entity.player.Player.class, InteractionHand.class, LivingEntity.class);
+			Method tryCapture = handlerClass.getMethod("tryCapture", Player.class, InteractionHand.class, LivingEntity.class);
 			return (InteractionResult) tryCapture.invoke(null, player, InteractionHand.MAIN_HAND, entity);
 		} catch (InvocationTargetException e) {
 			Throwable cause = e.getCause() == null ? e : e.getCause();
@@ -1794,7 +1795,7 @@ public class DemoCommand {
 			Class<?> storageItemHandlerTarget = Class.forName("net.p3pp3rf1y.sophisticateditemactions.common.StorageItemHandlerTarget");
 
 			return new SiaReflection(subLevelCompatHelper.getMethod("getBlockEntitiesInRange", Level.class, BlockPos.class, int.class),
-					subLevelCompatHelper.getMethod("mayInteract", net.minecraft.world.entity.player.Player.class, Level.class, BlockPos.class),
+					subLevelCompatHelper.getMethod("mayInteract", Player.class, Level.class, BlockPos.class),
 					subLevelCompatHelper.getMethod("distanceSquared", Level.class, Vec3.class, Vec3.class),
 					itemActionHandlerRegistry.getMethod("getBlockHandlerFor", Level.class, BlockPos.class, BlockEntity.class, blockItemAction),
 					itemActionHandlerRegistry.getMethod("getEntityHandlerIdFor", Entity.class),
