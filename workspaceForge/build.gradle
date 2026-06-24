@@ -1,11 +1,14 @@
 plugins {
     id 'idea'
-    id "org.sonarqube" version "5.0.0.4638"
     id "maven-publish"
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id "org.openrewrite.rewrite" version "7.35.0"
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
     id 'org.spongepowered.mixin' version '0.7.+'
 }
+
+def sharedCodeQualityScript = file('../gradle/code-quality.gradle')
+apply from: sharedCodeQualityScript.exists() ? sharedCodeQualityScript : 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/1.20.x/gradle/code-quality.gradle'
 
 def workspaceGradleProperties = file('../workspace/gradle.properties')
 if (workspaceGradleProperties.exists()) {

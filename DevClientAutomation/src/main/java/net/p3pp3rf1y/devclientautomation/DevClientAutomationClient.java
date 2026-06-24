@@ -1051,20 +1051,11 @@ public class DevClientAutomationClient {
 		}
 
 		private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
-			return "{\"ok\":" + result.passed()
-					+ "," + jsonProperty("name", result.name())
-					+ ",\"firstSlotCount\":" + result.firstSlotCount()
-					+ ",\"secondSlotCount\":" + result.secondSlotCount()
-					+ ",\"triggerCount\":" + result.triggerCount()
-					+ ",\"expectedNuggets\":" + result.expectedNuggets()
-					+ ",\"actualNuggets\":" + result.actualNuggets()
-					+ ",\"expectedIngots\":" + result.expectedIngots()
-					+ ",\"actualIngots\":" + result.actualIngots()
-					+ ",\"expectedBlocks\":" + result.expectedBlocks()
-					+ ",\"actualBlocks\":" + result.actualBlocks()
-					+ ",\"insertRemainder\":" + result.insertRemainder()
-					+ "," + jsonProperty("error", result.error())
-					+ "}";
+			return "{\"ok\":" + result.passed() + "," + jsonProperty("name", result.name()) + ",\"firstSlotCount\":" + result.firstSlotCount()
+					+ ",\"secondSlotCount\":" + result.secondSlotCount() + ",\"triggerCount\":" + result.triggerCount() + ",\"expectedNuggets\":"
+					+ result.expectedNuggets() + ",\"actualNuggets\":" + result.actualNuggets() + ",\"expectedIngots\":" + result.expectedIngots()
+					+ ",\"actualIngots\":" + result.actualIngots() + ",\"expectedBlocks\":" + result.expectedBlocks() + ",\"actualBlocks\":"
+					+ result.actualBlocks() + ",\"insertRemainder\":" + result.insertRemainder() + "," + jsonProperty("error", result.error()) + "}";
 		}
 
 		private ColumnUpgradeRegressionSuite loadColumnUpgradeRegressionSuite() {
@@ -1782,17 +1773,17 @@ public class DevClientAutomationClient {
 			clearStorageControllerFilterRegressionArea(level, controllerPos);
 			placeController(level, player, controllerPos);
 
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1),
+							net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
@@ -1801,7 +1792,8 @@ public class DevClientAutomationClient {
 			lockedSpecs.forEach(spec -> allPositions.add(spec.pos()));
 			Map<BlockPos, Item> barrelItems = createControllerFilterBarrelItems(overflowPositions, filterSpecs, lockedSpecs);
 
-			allPositions.forEach(pos -> placeBarrel(level, player, pos, barrelItems.getOrDefault(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get())));
+			allPositions.forEach(pos -> placeBarrel(level, player, pos,
+					barrelItems.getOrDefault(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get())));
 			if (profileCapacity) {
 				for (BlockPos pos : overflowPositions) {
 					addControllerFilterProfileCapacity(getBarrelStorage(level, pos), 0);
@@ -1825,7 +1817,8 @@ public class DevClientAutomationClient {
 
 			long setupMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
 
-			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			ControllerBlockEntity controller = level
+					.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
 			if (controller == null) {
 				failures.add("controller block entity missing at " + controllerPos);
 				return buildStorageControllerFilterRegressionJson(false, setupMillis, 0, 0, 0, 0, 0, 0, 0, 0, failures);
@@ -1844,7 +1837,8 @@ public class DevClientAutomationClient {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
 
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long insertStartedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -1868,19 +1862,26 @@ public class DevClientAutomationClient {
 			}
 			long verifyMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - verifyStartedAt);
 
-			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages, lockedSpecs.size(),
-					filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
+			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages,
+					lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
 		}
 
 		private Map<BlockPos, Item> createControllerFilterBarrelItems(List<BlockPos> overflowPositions, List<ControllerFilterStorageSpec> filterSpecs,
 				List<ControllerLockedStorageSpec> lockedSpecs) {
 			Map<BlockPos, Item> barrelItems = new HashMap<>();
-			List<Item> overflowBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.IRON_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get());
+			List<Item> overflowBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.IRON_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get());
 			for (int i = 0; i < overflowPositions.size(); i++) {
 				barrelItems.put(overflowPositions.get(i), overflowBarrels.get(i % overflowBarrels.size()));
 			}
-			List<Item> filterBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
-					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get());
+			List<Item> filterBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get());
 			for (int i = 0; i < filterSpecs.size(); i++) {
 				barrelItems.put(filterSpecs.get(i).pos(), filterBarrels.get(i % filterBarrels.size()));
 			}
@@ -1892,27 +1893,29 @@ public class DevClientAutomationClient {
 			ServerLevel level = (ServerLevel) player.level();
 			BlockPos controllerPos = player.blockPosition().offset(0, 0, 12);
 			List<String> failures = new ArrayList<>();
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1),
+							net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
 			allPositions.addAll(overflowPositions);
 			filterSpecs.forEach(spec -> allPositions.add(spec.pos()));
 			lockedSpecs.forEach(spec -> allPositions.add(spec.pos()));
 
-			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			ControllerBlockEntity controller = level
+					.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
 			if (controller == null) {
 				failures.add("controller block entity missing at " + controllerPos + "; run setup mode before profile mode");
-				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0, failures);
+				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0,
+						failures);
 			}
 			int connectedStorages = controller.getStoragePositions().size();
 			if (connectedStorages != allPositions.size()) {
@@ -1923,7 +1926,8 @@ public class DevClientAutomationClient {
 			for (ControllerLockedStorageSpec spec : lockedSpecs) {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long startedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -1943,26 +1947,29 @@ public class DevClientAutomationClient {
 		private List<ControllerFilterInsertExpectation> createControllerFilterInsertExpectations(BlockPos controllerPos, List<BlockPos> overflowPositions,
 				Map<Item, Set<BlockPos>> lockedPositionsByItem) {
 			List<ControllerFilterInsertExpectation> expectations = new ArrayList<>();
-			lockedPositionsByItem.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
+			lockedPositionsByItem
+					.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
 			expectations.add(new ControllerFilterInsertExpectation("specific_amethyst", Items.AMETHYST_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, -1))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_honeycomb", Items.HONEYCOMB, 4, 80, Set.of(controllerPos.offset(2, 0, 0))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_echo_shard", Items.ECHO_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, 1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage", net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80, Set.of(controllerPos.offset(3, 0, -1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80, Set.of(controllerPos.offset(3, 0, 0))));
-			expectations.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage",
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80, Set.of(controllerPos.offset(3, 0, -1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80,
+					Set.of(controllerPos.offset(3, 0, 0))));
+			expectations
+					.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
 			expectations.add(new ControllerFilterInsertExpectation("denied_item_overflows", Items.FEATHER, 4, 80, Set.copyOf(overflowPositions)));
 			return expectations;
 		}
 
 		private List<ControllerLockedStorageSpec> createControllerFilterLockedStorageSpecs(BlockPos controllerPos) {
-			List<Item> items = List.of(
-					Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE, Items.SAND,
-					Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG, Items.ACACIA_LOG,
-					Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS, Items.BIRCH_PLANKS,
-					Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI, Items.EMERALD,
-					Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER, Items.LEATHER,
-					Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE, Items.IRON_INGOT
-			);
+			List<Item> items = List.of(Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE,
+					Items.SAND, Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG,
+					Items.ACACIA_LOG, Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS,
+					Items.BIRCH_PLANKS, Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI,
+					Items.EMERALD, Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER,
+					Items.LEATHER, Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE,
+					Items.IRON_INGOT);
 			List<ControllerLockedStorageSpec> specs = new ArrayList<>();
 			int slot = 0;
 			for (int x = 4; x <= 12 && slot < items.size(); x++) {
@@ -2007,8 +2014,8 @@ public class DevClientAutomationClient {
 		}
 
 		private void discardStorageControllerFilterRegressionItemEntities(ServerLevel level, BlockPos controllerPos) {
-			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17, controllerPos.getY() + 5,
-					controllerPos.getZ() + 9);
+			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17,
+					controllerPos.getY() + 5, controllerPos.getZ() + 9);
 			for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, area)) {
 				itemEntity.discard();
 			}
@@ -2034,8 +2041,7 @@ public class DevClientAutomationClient {
 
 		private StorageBlockEntity getBarrelStorage(ServerLevel level, BlockPos pos) {
 			return level.getBlockEntity(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get())
-					.map(storage -> (StorageBlockEntity) storage)
-					.orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
+					.map(storage -> (StorageBlockEntity) storage).orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
 		}
 
 		private void configureControllerFilterStorage(StorageBlockEntity storage, ControllerFilterStorageSpec spec, boolean profileCapacity) {
@@ -2071,8 +2077,8 @@ public class DevClientAutomationClient {
 			}
 		}
 
-		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller, List<BlockPos> allPositions,
-				ControllerFilterInsertExpectation expectation, List<String> failures) {
+		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller,
+				List<BlockPos> allPositions, ControllerFilterInsertExpectation expectation, List<String> failures) {
 			Set<BlockPos> outsidePositions = new HashSet<>(allPositions);
 			outsidePositions.removeAll(expectation.expectedPositions());
 			long expectedBefore = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
@@ -2088,16 +2094,18 @@ public class DevClientAutomationClient {
 			long expectedAfter = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
 			long outsideAfter = countItemInPositions(level, outsidePositions, expectation.item());
 			if (expectedAfter - expectedBefore != inserted) {
-				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got " + (expectedAfter - expectedBefore)
-						+ " at " + expectation.expectedPositions());
+				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got "
+						+ (expectedAfter - expectedBefore) + " at " + expectation.expectedPositions());
 			}
 			if (outsideAfter != outsideBefore) {
-				failures.add(expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
+				failures.add(
+						expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
 			}
 			return new ControllerFilterInsertStats(expectation.calls(), inserted);
 		}
 
-		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller, ControllerFilterInsertExpectation expectation) {
+		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller,
+				ControllerFilterInsertExpectation expectation) {
 			long inserted = 0;
 			for (int i = 0; i < expectation.calls(); i++) {
 				ItemStack remainder = controller.insertItem(new ItemStack(expectation.item(), expectation.count()), false);
@@ -2122,19 +2130,12 @@ public class DevClientAutomationClient {
 
 		private String buildStorageControllerFilterRegressionJson(boolean ok, long setupMillis, long insertMillis, long verifyMillis, int connectedStorages,
 				int lockedStorages, int filteredStorages, int overflowStorages, int insertCalls, long itemsInserted, List<String> failures) {
-			StringBuilder json = new StringBuilder("{\"ok\":").append(ok)
-					.append(",\"scenario\":\"storage_controller_filter_routing\"")
-					.append(",\"connectedStorages\":").append(connectedStorages)
-					.append(",\"lockedStorages\":").append(lockedStorages)
-					.append(",\"filteredStorages\":").append(filteredStorages)
-					.append(",\"overflowStorages\":").append(overflowStorages)
-					.append(",\"insertCalls\":").append(insertCalls)
-					.append(",\"itemsInserted\":").append(itemsInserted)
-					.append(",\"setupMillis\":").append(setupMillis)
-					.append(",\"insertMillis\":").append(insertMillis)
-					.append(",\"verifyMillis\":").append(verifyMillis)
-					.append(",\"failed\":").append(failures.size())
-					.append(",\"failures\":[");
+			StringBuilder json = new StringBuilder("{\"ok\":").append(ok).append(",\"scenario\":\"storage_controller_filter_routing\"")
+					.append(",\"connectedStorages\":").append(connectedStorages).append(",\"lockedStorages\":").append(lockedStorages)
+					.append(",\"filteredStorages\":").append(filteredStorages).append(",\"overflowStorages\":").append(overflowStorages)
+					.append(",\"insertCalls\":").append(insertCalls).append(",\"itemsInserted\":").append(itemsInserted).append(",\"setupMillis\":")
+					.append(setupMillis).append(",\"insertMillis\":").append(insertMillis).append(",\"verifyMillis\":").append(verifyMillis)
+					.append(",\"failed\":").append(failures.size()).append(",\"failures\":[");
 			for (int i = 0; i < failures.size(); i++) {
 				if (i > 0) {
 					json.append(',');
