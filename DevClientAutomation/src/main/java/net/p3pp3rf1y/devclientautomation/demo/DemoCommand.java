@@ -62,7 +62,6 @@ import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorag
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -117,20 +116,20 @@ public class DemoCommand {
 		var blockContainer = Commands.literal("block")
 				.then(Commands.argument("pos", BlockPosArgument.blockPos())
 						.then(Commands.literal("clear")
-                                .executes(context -> clearContainer(context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
+								.executes(context -> clearContainer(context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
 										BlockPosArgument.getLoadedBlockPos(context, "pos"), true)))
 						.then(Commands.literal("set").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setContainerSlot(
-                                                context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
+												context.getSource(), context.getSource().getLevel().dimension().identifier().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), false, true))))))
 						.then(Commands.literal("only").then(Commands.argument("slot", IntegerArgumentType.integer(0)).then(Commands
 								.argument("item", ItemArgument.item(event.getBuildContext()))
 								.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
 										.executes(context -> setContainerSlot(context.getSource(),
-                                                context.getSource().getLevel().dimension().identifier().toString(),
+												context.getSource().getLevel().dimension().identifier().toString(),
 												BlockPosArgument.getLoadedBlockPos(context, "pos"), IntegerArgumentType.getInteger(context, "slot"),
 												ItemArgument.getItem(context, "item"), IntegerArgumentType.getInteger(context, "count"), true, true)))))));
 
@@ -534,7 +533,7 @@ public class DemoCommand {
 	}
 
 	private static void tickVisualActions(ServerTickEvent.Post event) {
-        if (visualMobCatchAction != null && visualMobCatchAction.player.level().getServer() == event.getServer()) {
+		if (visualMobCatchAction != null && visualMobCatchAction.player.level().getServer() == event.getServer()) {
 			try {
 				if (visualMobCatchAction.tick()) {
 					setMovementKeys(false, false, false, false);
@@ -578,7 +577,7 @@ public class DemoCommand {
 
 	private static int setHotbar(CommandSourceStack source, int slot, ItemInput itemInput, int count, boolean record) throws CommandSyntaxException {
 		try {
-            ItemStack stack = itemInput.createItemStack(count);
+			ItemStack stack = itemInput.createItemStack(count);
 			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 			ServerPlayer player = source.getPlayerOrException();
 			player.getInventory().setItem(slot, stack);
@@ -596,7 +595,7 @@ public class DemoCommand {
 
 	private static int setHotbar(CommandSourceStack source, int slot, String itemName, int count, boolean record) {
 		try {
-            Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
+			Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
 					.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
 			ServerPlayer player = source.getPlayerOrException();
 			player.getInventory().setItem(slot, new ItemStack(item, count));
@@ -614,7 +613,7 @@ public class DemoCommand {
 
 	private static int selectHotbar(CommandSourceStack source, int slot, boolean record) {
 		try {
-            source.getPlayerOrException().getInventory().setSelectedSlot(slot);
+			source.getPlayerOrException().getInventory().setSelectedSlot(slot);
 			if (record) {
 				DemoSession.get().record("player hotbar select " + slot);
 			}
@@ -727,7 +726,7 @@ public class DemoCommand {
 		try {
 			ServerPlayer player = source.getPlayerOrException();
 			BlockPos pos = getLookedAtBlock(player);
-            String dimension = player.level().dimension().identifier().toString();
+			String dimension = player.level().dimension().identifier().toString();
 			return clearContainer(source, dimension, pos, record);
 		} catch (Exception e) {
 			source.sendFailure(Component.literal(e.getMessage()));
@@ -740,8 +739,8 @@ public class DemoCommand {
 		try {
 			ServerPlayer player = source.getPlayerOrException();
 			BlockPos pos = getLookedAtBlock(player);
-            ItemStack stack = itemInput.createItemStack(count);
-            String dimension = player.level().dimension().identifier().toString();
+			ItemStack stack = itemInput.createItemStack(count);
+			String dimension = player.level().dimension().identifier().toString();
 			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 			return setContainerSlot(source, dimension, pos, slot, itemName, count, clearFirst, record);
 		} catch (Exception e) {
@@ -753,7 +752,7 @@ public class DemoCommand {
 	private static int setContainerSlot(CommandSourceStack source, String dimension, BlockPos pos, int slot, ItemInput itemInput, int count, boolean clearFirst,
 			boolean record) throws CommandSyntaxException {
 		try {
-            ItemStack stack = itemInput.createItemStack(count);
+			ItemStack stack = itemInput.createItemStack(count);
 			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 			return setContainerSlot(source, dimension, pos, slot, itemName, count, clearFirst, record);
 		} catch (Exception e) {
@@ -765,7 +764,7 @@ public class DemoCommand {
 	private static int clearContainer(CommandSourceStack source, String dimension, BlockPos pos, boolean record) {
 		try {
 			ServerLevel level = getLevel(source, dimension);
-            ResourceHandler<ItemResource> itemHandler = getContainerHandler(level, pos);
+			ResourceHandler<ItemResource> itemHandler = getContainerHandler(level, pos);
 			int cleared = clearItemHandler(itemHandler);
 			markContainerChanged(level, pos);
 			if (record) {
@@ -783,11 +782,11 @@ public class DemoCommand {
 			boolean record) {
 		try {
 			ServerLevel level = getLevel(source, dimension);
-            ResourceHandler<ItemResource> itemHandler = getContainerHandler(level, pos);
-            if (slot >= itemHandler.size()) {
-                throw new IllegalArgumentException("Container only has " + itemHandler.size() + " slots");
-            }
-            Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
+			ResourceHandler<ItemResource> itemHandler = getContainerHandler(level, pos);
+			if (slot >= itemHandler.size()) {
+				throw new IllegalArgumentException("Container only has " + itemHandler.size() + " slots");
+			}
+			Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
 					.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
 			if (clearFirst) {
 				clearItemHandler(itemHandler);
@@ -818,7 +817,7 @@ public class DemoCommand {
 			for (int i = 0; i < targets.size(); i++) {
 				StorageTarget target = targets.get(i);
 				success(source, () -> Component.literal("[" + target.index() + "] " + target.kind() + " at " + formatPosition(target.position()) + " with "
-                        + target.itemHandler().size() + " slots"));
+						+ target.itemHandler().size() + " slots"));
 			}
 			return targets.size();
 		} catch (Exception e) {
@@ -859,7 +858,7 @@ public class DemoCommand {
 	private static int setNearbyStorageTargetSlot(CommandSourceStack source, int index, int slot, ItemInput itemInput, int count, boolean clearFirst,
 			boolean record) throws CommandSyntaxException {
 		try {
-            ItemStack stack = itemInput.createItemStack(count);
+			ItemStack stack = itemInput.createItemStack(count);
 			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 			return setNearbyStorageTargetSlot(source, index, slot, itemName, count, clearFirst, record);
 		} catch (Exception e) {
@@ -871,7 +870,7 @@ public class DemoCommand {
 	private static int setNearestStorageTargetSlot(CommandSourceStack source, Vec3 position, int slot, ItemInput itemInput, int count, boolean clearFirst,
 			boolean record) throws CommandSyntaxException {
 		try {
-            ItemStack stack = itemInput.createItemStack(count);
+			ItemStack stack = itemInput.createItemStack(count);
 			String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 			return setNearestStorageTargetSlot(source, position, slot, itemName, count, clearFirst, record);
 		} catch (Exception e) {
@@ -907,11 +906,11 @@ public class DemoCommand {
 	private static int setStorageTargetSlot(CommandSourceStack source, StorageTarget target, int slot, String itemName, int count, boolean clearFirst,
 			String recordedCommand) {
 		try {
-            ResourceHandler<ItemResource> itemHandler = target.itemHandler();
-            if (slot >= itemHandler.size()) {
-                throw new IllegalArgumentException("Storage target only has " + itemHandler.size() + " slots");
-            }
-            Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
+			ResourceHandler<ItemResource> itemHandler = target.itemHandler();
+			if (slot >= itemHandler.size()) {
+				throw new IllegalArgumentException("Storage target only has " + itemHandler.size() + " slots");
+			}
+			Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
 					.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
 			if (clearFirst) {
 				clearItemHandler(itemHandler);
@@ -1004,7 +1003,7 @@ public class DemoCommand {
 		}
 		for (Object target : list) {
 			Vec3 position = (Vec3) sia.targetPosition.invoke(target);
-            ResourceHandler<ItemResource> itemHandler = (ResourceHandler<ItemResource>) sia.targetItemHandler.invoke(target);
+			ResourceHandler<ItemResource> itemHandler = (ResourceHandler<ItemResource>) sia.targetItemHandler.invoke(target);
 			targets.add(new StorageTarget(-1, kind, position, itemHandler));
 		}
 	}
@@ -1188,7 +1187,7 @@ public class DemoCommand {
 			ServerPlayer player = source.getPlayerOrException();
 			LivingEntity target = findMatchingMobs(player, selector, range).stream().findFirst()
 					.orElseThrow(() -> new IllegalArgumentException("No matching mob catcher target found for " + selector));
-            player.getInventory().setSelectedSlot(0);
+			player.getInventory().setSelectedSlot(0);
 			visualMobCatchAction = new VisualMobCatchAction(player, target, player.tickCount, 100);
 			if (record) {
 				DemoSession.get().record(String.format(Locale.ROOT, "mobCatcher catchNearest %s %.3f", selector, range));
@@ -1204,7 +1203,7 @@ public class DemoCommand {
 	private static int catchNearbyMobs(CommandSourceStack source, String selector, int count, double range, boolean record) {
 		try {
 			ServerPlayer player = source.getPlayerOrException();
-            player.getInventory().setSelectedSlot(0);
+			player.getInventory().setSelectedSlot(0);
 			List<LivingEntity> targets = findMatchingMobs(player, selector, range);
 			int captured = 0;
 			for (LivingEntity target : targets) {
@@ -1236,7 +1235,7 @@ public class DemoCommand {
 
 	private static List<LivingEntity> findMatchingMobs(ServerPlayer player, String selector, double range) {
 		AABB searchBox = player.getBoundingBox().inflate(range);
-        List<LivingEntity> targets = ((ServerLevel) player.level()).getEntitiesOfClass(LivingEntity.class, searchBox,
+		List<LivingEntity> targets = ((ServerLevel) player.level()).getEntitiesOfClass(LivingEntity.class, searchBox,
 				entity -> entity != player && entity.isAlive() && matchesMobSelector(entity, selector));
 		targets.sort(Comparator.comparingDouble(entity -> entity.distanceToSqr(player)));
 		return targets;
@@ -1339,9 +1338,9 @@ public class DemoCommand {
 		int clickX = x + capturedMob.width() * 9;
 		int clickY = y + capturedMob.height() * 9;
 		DemoMouseMotion.moveTo(clickX, clickY, 12, 8, () -> {
-            MouseButtonEvent event = new MouseButtonEvent(clickX, clickY, new MouseButtonInfo(0, 0));
-            containerScreen.mouseClicked(event, false);
-            containerScreen.mouseReleased(event);
+			MouseButtonEvent event = new MouseButtonEvent(clickX, clickY, new MouseButtonInfo(0, 0));
+			containerScreen.mouseClicked(event, false);
+			containerScreen.mouseReleased(event);
 		});
 	}
 
@@ -1356,7 +1355,7 @@ public class DemoCommand {
 	}
 
 	private static ServerLevel getLevel(CommandSourceStack source, String dimension) {
-        ResourceKey<Level> dimensionKey = ResourceKey.create(Registries.DIMENSION, Identifier.parse(dimension));
+		ResourceKey<Level> dimensionKey = ResourceKey.create(Registries.DIMENSION, Identifier.parse(dimension));
 		ServerLevel level = source.getServer().getLevel(dimensionKey);
 		if (level == null) {
 			throw new IllegalArgumentException("Dimension is not loaded: " + dimension);
@@ -1364,40 +1363,40 @@ public class DemoCommand {
 		return level;
 	}
 
-    private static ResourceHandler<ItemResource> getContainerHandler(ServerLevel level, BlockPos pos) {
-        ResourceHandler<ItemResource> itemHandler = level.getCapability(Capabilities.Item.BLOCK, pos, null);
+	private static ResourceHandler<ItemResource> getContainerHandler(ServerLevel level, BlockPos pos) {
+		ResourceHandler<ItemResource> itemHandler = level.getCapability(Capabilities.Item.BLOCK, pos, null);
 		if (itemHandler == null) {
 			throw new IllegalArgumentException("No item handler at " + pos.toShortString());
 		}
 		return itemHandler;
 	}
 
-    private static int clearItemHandler(ResourceHandler<ItemResource> itemHandler) {
-        int cleared = 0;
-        try (Transaction tx = Transaction.openRoot()) {
-            for (int slot = 0; slot < itemHandler.size(); slot++) {
-                ItemResource resource = itemHandler.getResource(slot);
+	private static int clearItemHandler(ResourceHandler<ItemResource> itemHandler) {
+		int cleared = 0;
+		try (Transaction tx = Transaction.openRoot()) {
+			for (int slot = 0; slot < itemHandler.size(); slot++) {
+				ItemResource resource = itemHandler.getResource(slot);
 				int amount = itemHandler.getAmountAsInt(slot);
-                if (!resource.isEmpty() && amount > 0) {
-                    cleared += itemHandler.extract(slot, resource, amount, tx);
-                }
-            }
-            tx.commit();
-        }
-        return cleared;
-    }
+				if (!resource.isEmpty() && amount > 0) {
+					cleared += itemHandler.extract(slot, resource, amount, tx);
+				}
+			}
+			tx.commit();
+		}
+		return cleared;
+	}
 
-    private static ItemStack setItemHandlerSlot(ResourceHandler<ItemResource> itemHandler, int slot, ItemStack stack) {
-        try (Transaction tx = Transaction.openRoot()) {
-            ItemResource currentResource = itemHandler.getResource(slot);
+	private static ItemStack setItemHandlerSlot(ResourceHandler<ItemResource> itemHandler, int slot, ItemStack stack) {
+		try (Transaction tx = Transaction.openRoot()) {
+			ItemResource currentResource = itemHandler.getResource(slot);
 			int currentAmount = itemHandler.getAmountAsInt(slot);
-            if (!currentResource.isEmpty() && currentAmount > 0) {
-                itemHandler.extract(slot, currentResource, currentAmount, tx);
-            }
-            int inserted = (int) itemHandler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
-            tx.commit();
-            return inserted >= stack.getCount() ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - inserted);
-        }
+			if (!currentResource.isEmpty() && currentAmount > 0) {
+				itemHandler.extract(slot, currentResource, currentAmount, tx);
+			}
+			int inserted = (int) itemHandler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
+			tx.commit();
+			return inserted >= stack.getCount() ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - inserted);
+		}
 	}
 
 	private static void markContainerChanged(ServerLevel level, BlockPos pos) {
@@ -1417,7 +1416,7 @@ public class DemoCommand {
 	private record ItemSeed(String itemName, int count) {
 	}
 
-    private record StorageTarget(int index, String kind, Vec3 position, ResourceHandler<ItemResource> itemHandler) {
+	private record StorageTarget(int index, String kind, Vec3 position, ResourceHandler<ItemResource> itemHandler) {
 	}
 
 	private abstract static class PlayerWorldAction {
@@ -1783,7 +1782,7 @@ public class DemoCommand {
 					subLevelCompatHelper.getMethod("distanceSquared", Level.class, Vec3.class, Vec3.class),
 					itemActionHandlerRegistry.getMethod("getBlockHandlerFor", Level.class, BlockPos.class, BlockEntity.class, blockItemAction),
 					itemActionHandlerRegistry.getMethod("getEntityHandlerIdFor", Entity.class),
-                    itemActionHandlerRegistry.getMethod("getEntityHandler", Identifier.class),
+					itemActionHandlerRegistry.getMethod("getEntityHandler", Identifier.class),
 					blockItemActionHandler.getMethod("getInteractionPosToActOn", Level.class, BlockPos.class, BlockEntity.class, blockItemAction),
 					blockItemActionHandler.getMethod("getStorageItemHandlerTargets", ServerPlayer.class, BlockPos.class),
 					entityItemActionHandler.getMethod("getStorageItemHandlerTargets", Entity.class), storageItemHandlerTarget.getMethod("position"),
@@ -1797,7 +1796,7 @@ public class DemoCommand {
 			clearPlayerInventory(player);
 			ItemStack backpack = createConfiguredBackpack(mode, itemSeeds.isEmpty() ? defaultBackpackItemSeeds(mode) : itemSeeds);
 			player.getInventory().setItem(0, backpack);
-            player.getInventory().setSelectedSlot(0);
+			player.getInventory().setSelectedSlot(0);
 			player.getInventory().setChanged();
 			player.containerMenu.broadcastChanges();
 			if (record) {
@@ -1819,7 +1818,7 @@ public class DemoCommand {
 				source.sendFailure(Component.literal("No backpack in hotbar slot 0"));
 				return 0;
 			}
-            player.getInventory().setSelectedSlot(0);
+			player.getInventory().setSelectedSlot(0);
 			backpackItem.use(player.level(), player, InteractionHand.MAIN_HAND);
 			if (record) {
 				DemoSession.get().record("backpack open");
@@ -1863,7 +1862,7 @@ public class DemoCommand {
 			}
 			KeyMapping.set(key, true);
 			KeyMapping.click(key);
-            KeyMapping.set(key, false);
+			KeyMapping.set(key, false);
 		});
 		if (record) {
 			DemoSession.get().record("step keybind " + actionName);
@@ -1884,7 +1883,7 @@ public class DemoCommand {
 	}
 
 	private static void clearPlayerInventory(ServerPlayer player) {
-        player.getInventory().clearContent();
+		player.getInventory().clearContent();
 		player.getInventory().setChanged();
 		player.containerMenu.broadcastChanges();
 	}
@@ -1912,7 +1911,7 @@ public class DemoCommand {
 		InventoryHandler inventory = wrapper.getInventoryHandler();
 		for (int slot = 0; slot < itemSeeds.size(); slot++) {
 			ItemSeed itemSeed = itemSeeds.get(slot);
-            Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemSeed.itemName()))
+			Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemSeed.itemName()))
 					.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemSeed.itemName()));
 			inventory.setStackInSlot(slot, new ItemStack(item, itemSeed.count()));
 		}
@@ -1921,8 +1920,7 @@ public class DemoCommand {
 	}
 
 	private static ItemStack createItemStack(String itemName, int count) {
-        Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName))
-				.orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
+		Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(itemName)).orElseThrow(() -> new IllegalArgumentException("Unknown item " + itemName));
 		return new ItemStack(item, count);
 	}
 
