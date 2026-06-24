@@ -45,6 +45,7 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
@@ -52,7 +53,6 @@ import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
-import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -69,9 +69,9 @@ import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
-import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
+import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.network.BackpackOpenPayload;
@@ -539,8 +539,8 @@ public class DevClientAutomation {
 				return "{\"ok\":true,\"created\":false}";
 			}
 
-			LevelSettings levelSettings = new LevelSettings(worldName, GameType.CREATIVE, false, Difficulty.PEACEFUL, true, new GameRules(WorldDataConfiguration.DEFAULT.enabledFeatures()),
-					WorldDataConfiguration.DEFAULT);
+			LevelSettings levelSettings = new LevelSettings(worldName, GameType.CREATIVE, false, Difficulty.PEACEFUL, true,
+					new GameRules(WorldDataConfiguration.DEFAULT.enabledFeatures()), WorldDataConfiguration.DEFAULT);
 			WorldOptions worldOptions = new WorldOptions(0L, false, false);
 			minecraft.createWorldOpenFlows().createFreshLevel(worldName, levelSettings, worldOptions, AutomationServer::voidFlatDimensions, null);
 			return "{\"ok\":true,\"created\":true}";
@@ -797,7 +797,7 @@ public class DevClientAutomation {
 		private String spreadNestedBackpacks(ServerPlayer player) {
 			IBackpackWrapper mainWrapper = getMainBackpackWrapper(player);
 			InventoryHandler mainInventory = mainWrapper.getInventoryHandler();
-			List<ItemStack> nestedBackpacks = new java.util.ArrayList<>();
+			List<ItemStack> nestedBackpacks = new ArrayList<>();
 			for (int slot = 0; slot < mainInventory.getSlots(); slot++) {
 				ItemStack stack = mainInventory.getStackInSlot(slot);
 				if (stack.getItem() instanceof BackpackItem) {
@@ -1048,20 +1048,11 @@ public class DevClientAutomation {
 		}
 
 		private String advancedCompactingHighStackRegressionJson(AdvancedCompactingHighStackRegressionResult result) {
-			return "{\"ok\":" + result.passed()
-					+ "," + jsonProperty("name", result.name())
-					+ ",\"firstSlotCount\":" + result.firstSlotCount()
-					+ ",\"secondSlotCount\":" + result.secondSlotCount()
-					+ ",\"triggerCount\":" + result.triggerCount()
-					+ ",\"expectedNuggets\":" + result.expectedNuggets()
-					+ ",\"actualNuggets\":" + result.actualNuggets()
-					+ ",\"expectedIngots\":" + result.expectedIngots()
-					+ ",\"actualIngots\":" + result.actualIngots()
-					+ ",\"expectedBlocks\":" + result.expectedBlocks()
-					+ ",\"actualBlocks\":" + result.actualBlocks()
-					+ ",\"insertRemainder\":" + result.insertRemainder()
-					+ "," + jsonProperty("error", result.error())
-					+ "}";
+			return "{\"ok\":" + result.passed() + "," + jsonProperty("name", result.name()) + ",\"firstSlotCount\":" + result.firstSlotCount()
+					+ ",\"secondSlotCount\":" + result.secondSlotCount() + ",\"triggerCount\":" + result.triggerCount() + ",\"expectedNuggets\":"
+					+ result.expectedNuggets() + ",\"actualNuggets\":" + result.actualNuggets() + ",\"expectedIngots\":" + result.expectedIngots()
+					+ ",\"actualIngots\":" + result.actualIngots() + ",\"expectedBlocks\":" + result.expectedBlocks() + ",\"actualBlocks\":"
+					+ result.actualBlocks() + ",\"insertRemainder\":" + result.insertRemainder() + "," + jsonProperty("error", result.error()) + "}";
 		}
 
 		private String runSubMobCatcherImmediateOpenRegression(String name) {
@@ -1077,7 +1068,8 @@ public class DevClientAutomation {
 
 				SubMobCatcherRegressionState parentState = runOnClient(this::getParentMobCatcherRegressionState);
 				if (!parentState.parentMatches()) {
-					return subMobCatcherRegressionJson(name, false, parentState, parentState, "Parent backpack mob catcher data did not stay separate after inserting sub backpack");
+					return subMobCatcherRegressionJson(name, false, parentState, parentState,
+							"Parent backpack mob catcher data did not stay separate after inserting sub backpack");
 				}
 
 				runOnServer(this::openSubBackpackColumnUpgradeRegression);
@@ -1188,8 +1180,7 @@ public class DevClientAutomation {
 			do {
 				runOnServer(this::openSubBackpackColumnUpgradeRegression);
 				sleep(100);
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
 						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
 					return;
@@ -1239,7 +1230,8 @@ public class DevClientAutomation {
 				throw new IllegalStateException("Client level/player is not available");
 			}
 			BlockPos pos = getRegressionBackpackPos(Minecraft.getInstance().player);
-			Minecraft.getInstance().level.setBlock(pos, ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Minecraft.getInstance().player.getDirection().getOpposite()), 3);
+			Minecraft.getInstance().level.setBlock(pos, ModBlocks.GOLD_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING,
+					Minecraft.getInstance().player.getDirection().getOpposite()), 3);
 			BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, BackpackBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Failed to create client regression backpack block"));
 			backpackBlockEntity.setBackpack(createColumnUpgradeRegressionBackpack());
@@ -1280,8 +1272,12 @@ public class DevClientAutomation {
 			if (Minecraft.getInstance().player == null) {
 				throw new IllegalStateException("Client player is not available");
 			}
-			ItemStack backpack = curiosColumnUpgradeRegressionBackpack.isEmpty() ? createColumnUpgradeRegressionBackpack() : curiosColumnUpgradeRegressionBackpack.copy();
-			String identifier = curiosColumnUpgradeRegressionIdentifier == null ? getCuriosBackpackIdentifier(Minecraft.getInstance().player, backpack) : curiosColumnUpgradeRegressionIdentifier;
+			ItemStack backpack = curiosColumnUpgradeRegressionBackpack.isEmpty()
+					? createColumnUpgradeRegressionBackpack()
+					: curiosColumnUpgradeRegressionBackpack.copy();
+			String identifier = curiosColumnUpgradeRegressionIdentifier == null
+					? getCuriosBackpackIdentifier(Minecraft.getInstance().player, backpack)
+					: curiosColumnUpgradeRegressionIdentifier;
 			setCuriosStack(Minecraft.getInstance().player, identifier, 0, backpack);
 			PlayerInventoryHandler inventoryHandler = PlayerInventoryProvider.get().getPlayerInventoryHandler(CompatModIds.CURIOS)
 					.orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
@@ -1302,7 +1298,9 @@ public class DevClientAutomation {
 		}
 
 		private Boolean openCuriosBackpackColumnUpgradeRegression(ServerPlayer player) {
-			String identifier = curiosColumnUpgradeRegressionIdentifier == null ? getCuriosBackpackIdentifier(player, createColumnUpgradeRegressionBackpack()) : curiosColumnUpgradeRegressionIdentifier;
+			String identifier = curiosColumnUpgradeRegressionIdentifier == null
+					? getCuriosBackpackIdentifier(player, createColumnUpgradeRegressionBackpack())
+					: curiosColumnUpgradeRegressionIdentifier;
 
 			BackpackContext.Item backpackContext = new BackpackContext.Item(CompatModIds.CURIOS, identifier, 0);
 			ItemStack upgradeStack = backpackContext.getBackpackWrapper(player).getUpgradeHandler().getStackInSlot(1);
@@ -1318,7 +1316,8 @@ public class DevClientAutomation {
 			PlayerInventoryHandler inventoryHandler = PlayerInventoryProvider.get().getPlayerInventoryHandler(CompatModIds.CURIOS)
 					.orElseThrow(() -> new IllegalStateException("Curios inventory handler is not registered"));
 			for (String identifier : inventoryHandler.getIdentifiers(player)) {
-				if (inventoryHandler.getSlotCount(player, identifier) > 0 && inventoryHandler.getStackInSlot(player, identifier, 0).getItem() instanceof BackpackItem) {
+				if (inventoryHandler.getSlotCount(player, identifier) > 0
+						&& inventoryHandler.getStackInSlot(player, identifier, 0).getItem() instanceof BackpackItem) {
 					return identifier;
 				}
 			}
@@ -1350,7 +1349,8 @@ public class DevClientAutomation {
 			if (Minecraft.getInstance().player == null) {
 				throw new IllegalStateException("Client player is not available");
 			}
-			Minecraft.getInstance().player.getInventory().items.set(0, createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
+			Minecraft.getInstance().player.getInventory().items.set(0,
+					createMobCatcherRegressionBackpack(81, 3, SUB_MOB_CATCHER_PARENT_MOB_ID, 0, "Parent Pig"));
 			Minecraft.getInstance().player.getInventory().setChanged();
 			return true;
 		}
@@ -1375,7 +1375,8 @@ public class DevClientAutomation {
 		}
 
 		private Boolean openSubBackpackColumnUpgradeRegression(ServerPlayer player) {
-			BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0, true);
+			BackpackContext.ItemSubBackpack backpackContext = new BackpackContext.ItemSubBackpack(PlayerInventoryProvider.MAIN_INVENTORY, "", 0, false, 0,
+					true);
 			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
 					Component.literal("Sub Column Regression")), backpackContext::toBuffer);
 			return true;
@@ -1409,8 +1410,7 @@ public class DevClientAutomation {
 		private void waitForOpenParentBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
 						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK)) {
 					return;
@@ -1455,7 +1455,8 @@ public class DevClientAutomation {
 			backpackWrapper.setSlotNumbers(inventorySlots, upgradeSlots);
 			backpackWrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.MOB_CATCHER_UPGRADE.get()));
 			backpackWrapper.getUpgradeHandler().saveInventory();
-			MobCatcherStorage.addCapturedMob(backpackWrapper, new CapturedMob(mobId, ResourceLocation.parse("minecraft:pig"), new CompoundTag(), mobSlot, 1, 1, 1, false, displayName, 10, 10));
+			MobCatcherStorage.addCapturedMob(backpackWrapper,
+					new CapturedMob(mobId, ResourceLocation.parse("minecraft:pig"), new CompoundTag(), mobSlot, 1, 1, 1, false, displayName, 10, 10));
 			return backpack;
 		}
 
@@ -1467,7 +1468,8 @@ public class DevClientAutomation {
 						"curios add " + identifier + " " + player.getGameProfile().getName() + " " + slots);
 			}
 			if (inventoryHandler.getSlotCount(player, identifier) < slots) {
-				throw new IllegalStateException("Unable to configure Curios slot " + identifier + "; slot count is " + inventoryHandler.getSlotCount(player, identifier));
+				throw new IllegalStateException(
+						"Unable to configure Curios slot " + identifier + "; slot count is " + inventoryHandler.getSlotCount(player, identifier));
 			}
 		}
 
@@ -1493,8 +1495,7 @@ public class DevClientAutomation {
 		private Map<String, ?> getCuriosItemSlotTypes(ItemStack backpack, LivingEntity player) {
 			try {
 				Class<?> curiosSlotTypesClass = Class.forName("top.theillusivec4.curios.api.CuriosSlotTypes");
-				return (Map<String, ?>) curiosSlotTypesClass.getMethod("getItemSlotTypes", ItemStack.class, LivingEntity.class)
-						.invoke(null, backpack, player);
+				return (Map<String, ?>) curiosSlotTypesClass.getMethod("getItemSlotTypes", ItemStack.class, LivingEntity.class).invoke(null, backpack, player);
 			} catch (ReflectiveOperationException e) {
 				return Map.of();
 			}
@@ -1514,10 +1515,8 @@ public class DevClientAutomation {
 		private void waitForOpenPlacedBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
-						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
-						&& menu.getBlockPosition().isPresent())) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
+						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu && menu.getBlockPosition().isPresent())) {
 					return;
 				}
 				sleep(50);
@@ -1528,10 +1527,8 @@ public class DevClientAutomation {
 		private void waitForOpenCuriosBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
-						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
-						&& menu.getBlockPosition().isEmpty())) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
+						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu && menu.getBlockPosition().isEmpty())) {
 					return;
 				}
 				sleep(50);
@@ -1542,8 +1539,7 @@ public class DevClientAutomation {
 		private void waitForOpenSubBackpackMenu() {
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 			do {
-				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen
-						&& Minecraft.getInstance().player != null
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof BackpackScreen && Minecraft.getInstance().player != null
 						&& Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_SUB_BACKPACK)) {
 					return;
@@ -1558,7 +1554,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenPlacedBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Placed backpack screen is not open");
 			}
 			if (menu.getBlockPosition().isEmpty()) {
@@ -1572,7 +1569,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenCuriosBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Curios backpack screen is not open");
 			}
 			if (menu.getBlockPosition().isPresent()) {
@@ -1586,7 +1584,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenSubBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Sub backpack screen is not open");
 			}
 			if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_SUB_BACKPACK) {
@@ -1661,19 +1660,13 @@ public class DevClientAutomation {
 					menu.getStorageWrapper().getInventoryHandler().getSlots(), menu.upgradeSlots.get(1).getItem().isEmpty(), !menu.getCarried().isEmpty());
 		}
 
-		private String placedColumnUpgradeRegressionJson(String name, boolean ok, PlacedColumnUpgradeClickExpectation expectation, PlacedColumnUpgradeState state,
-				String error) {
-			return "{\"ok\":" + ok
-					+ "," + jsonProperty("name", name)
-					+ ",\"expectedColumnsTaken\":" + expectation.expectedColumnsTaken()
-					+ ",\"actualColumnsTaken\":" + state.columnsTaken()
-					+ ",\"expectedStorageSlots\":" + expectation.expectedStorageSlots()
-					+ ",\"actualStorageSlots\":" + state.storageSlots()
-					+ ",\"actualInventoryHandlerSlots\":" + state.inventoryHandlerSlots()
-					+ ",\"upgradeSlotEmpty\":" + state.upgradeSlotEmpty()
-					+ ",\"carriedNotEmpty\":" + state.carriedNotEmpty()
-					+ "," + jsonProperty("error", error)
-					+ "}";
+		private String placedColumnUpgradeRegressionJson(String name, boolean ok, PlacedColumnUpgradeClickExpectation expectation,
+				PlacedColumnUpgradeState state, String error) {
+			return "{\"ok\":" + ok + "," + jsonProperty("name", name) + ",\"expectedColumnsTaken\":" + expectation.expectedColumnsTaken()
+					+ ",\"actualColumnsTaken\":" + state.columnsTaken() + ",\"expectedStorageSlots\":" + expectation.expectedStorageSlots()
+					+ ",\"actualStorageSlots\":" + state.storageSlots() + ",\"actualInventoryHandlerSlots\":" + state.inventoryHandlerSlots()
+					+ ",\"upgradeSlotEmpty\":" + state.upgradeSlotEmpty() + ",\"carriedNotEmpty\":" + state.carriedNotEmpty() + ","
+					+ jsonProperty("error", error) + "}";
 		}
 
 		private SubMobCatcherRegressionState getParentMobCatcherRegressionState() {
@@ -1690,7 +1683,9 @@ public class DevClientAutomation {
 		private SubMobCatcherRegressionState getCurrentMobCatcherRegressionStateSafely() {
 			try {
 				if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu) {
-					IBackpackWrapper nestedWrapper = menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK ? getNestedBackpackWrapper(menu) : null;
+					IBackpackWrapper nestedWrapper = menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK
+							? getNestedBackpackWrapper(menu)
+							: null;
 					return getSubMobCatcherRegressionState(menu, nestedWrapper);
 				}
 			} catch (RuntimeException ignored) {
@@ -1700,7 +1695,8 @@ public class DevClientAutomation {
 		}
 
 		private BackpackContainer getOpenParentBackpackMenu() {
-			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen)
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Parent backpack screen is not open");
 			}
 			if (menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
@@ -1720,26 +1716,19 @@ public class DevClientAutomation {
 		private SubMobCatcherRegressionState getSubMobCatcherRegressionState(BackpackContainer menu, IBackpackWrapper nestedWrapper) {
 			List<CapturedMob> currentMobs = MobCatcherStorage.getCapturedMobs(menu.getStorageWrapper());
 			List<CapturedMob> nestedMobs = nestedWrapper == null ? List.of() : MobCatcherStorage.getCapturedMobs(nestedWrapper);
-			return new SubMobCatcherRegressionState(menu.getBackpackContext().getType().name(), menu.getStorageWrapper().getInventoryHandler().getSlots(), nestedWrapper != null,
-					currentMobs.size(), currentMobs.isEmpty() ? null : currentMobs.get(0).id().toString(), nestedMobs.size(), nestedMobs.isEmpty() ? null : nestedMobs.get(0).id().toString());
+			return new SubMobCatcherRegressionState(menu.getBackpackContext().getType().name(), menu.getStorageWrapper().getInventoryHandler().getSlots(),
+					nestedWrapper != null, currentMobs.size(), currentMobs.isEmpty() ? null : currentMobs.get(0).id().toString(), nestedMobs.size(),
+					nestedMobs.isEmpty() ? null : nestedMobs.get(0).id().toString());
 		}
 
-		private String subMobCatcherRegressionJson(String name, boolean ok, SubMobCatcherRegressionState parentState, SubMobCatcherRegressionState subState, String error) {
-			return "{\"ok\":" + ok
-					+ "," + jsonProperty("name", name)
-					+ "," + jsonProperty("parentContext", parentState.context())
-					+ ",\"parentStorageSlots\":" + parentState.storageSlots()
-					+ ",\"parentSlot0Backpack\":" + parentState.slot0Backpack()
-					+ ",\"parentMobCount\":" + parentState.currentMobCount()
-					+ "," + jsonProperty("parentMobId", parentState.currentMobId())
-					+ ",\"parentNestedMobCount\":" + parentState.nestedMobCount()
-					+ "," + jsonProperty("parentNestedMobId", parentState.nestedMobId())
-					+ "," + jsonProperty("subContext", subState.context())
-					+ ",\"subStorageSlots\":" + subState.storageSlots()
-					+ ",\"subMobCount\":" + subState.currentMobCount()
-					+ "," + jsonProperty("subMobId", subState.currentMobId())
-					+ "," + jsonProperty("error", error)
-					+ "}";
+		private String subMobCatcherRegressionJson(String name, boolean ok, SubMobCatcherRegressionState parentState, SubMobCatcherRegressionState subState,
+				String error) {
+			return "{\"ok\":" + ok + "," + jsonProperty("name", name) + "," + jsonProperty("parentContext", parentState.context()) + ",\"parentStorageSlots\":"
+					+ parentState.storageSlots() + ",\"parentSlot0Backpack\":" + parentState.slot0Backpack() + ",\"parentMobCount\":"
+					+ parentState.currentMobCount() + "," + jsonProperty("parentMobId", parentState.currentMobId()) + ",\"parentNestedMobCount\":"
+					+ parentState.nestedMobCount() + "," + jsonProperty("parentNestedMobId", parentState.nestedMobId()) + ","
+					+ jsonProperty("subContext", subState.context()) + ",\"subStorageSlots\":" + subState.storageSlots() + ",\"subMobCount\":"
+					+ subState.currentMobCount() + "," + jsonProperty("subMobId", subState.currentMobId()) + "," + jsonProperty("error", error) + "}";
 		}
 
 		private String runBackpackRemoteUpgradeSlotRegression() {
@@ -1773,8 +1762,8 @@ public class DevClientAutomation {
 				ColumnUpgradeRegressionResult result = results.get(i);
 				json.append('{').append(jsonProperty("name", result.name())).append(",\"passed\":").append(result.passed()).append(",\"expectedFits\":")
 						.append(result.expectedFits()).append(",\"actualFits\":").append(result.actualFits()).append(",\"beforeStacks\":")
-						.append(result.beforeStacks()).append(",\"afterStacks\":").append(result.afterStacks()).append(',').append(jsonProperty("error", result.error()))
-						.append('}');
+						.append(result.beforeStacks()).append(",\"afterStacks\":").append(result.afterStacks()).append(',')
+						.append(jsonProperty("error", result.error())).append('}');
 			}
 			json.append("]}");
 
@@ -1796,7 +1785,8 @@ public class DevClientAutomation {
 					String name = scenario.get("name").getAsString();
 					int inventorySlots = scenario.get("inventorySlots").getAsInt();
 					ResourceLocation upgradeName = ResourceLocation.parse(scenario.get("upgrade").getAsString());
-					Item upgradeItem = BuiltInRegistries.ITEM.getOptional(upgradeName).orElseThrow(() -> new IllegalArgumentException("Unknown upgrade " + upgradeName));
+					Item upgradeItem = BuiltInRegistries.ITEM.getOptional(upgradeName)
+							.orElseThrow(() -> new IllegalArgumentException("Unknown upgrade " + upgradeName));
 					int[] occupiedSlots = getOccupiedSlots(scenario);
 					boolean expectedFits = scenario.get("expectedFits").getAsBoolean();
 					int[] noSortSlots = getIntArray(scenario, "noSortSlots");
@@ -1871,7 +1861,8 @@ public class DevClientAutomation {
 			return mobs;
 		}
 
-		private ColumnUpgradeRegressionResult runColumnUpgradeRegressionScenario(ColumnUpgradeRegressionScenario scenario, ColumnUpgradeStackGenerator stackGenerator) {
+		private ColumnUpgradeRegressionResult runColumnUpgradeRegressionScenario(ColumnUpgradeRegressionScenario scenario,
+				ColumnUpgradeStackGenerator stackGenerator) {
 			ItemStack backpack = createBackpackStack(scenario.inventorySlots());
 			IBackpackWrapper wrapper = BackpackWrapper.fromStack(backpack);
 			wrapper.setSlotNumbers(scenario.inventorySlots(), 5);
@@ -1903,16 +1894,16 @@ public class DevClientAutomation {
 			Map<String, String> afterProtectedSettings = snapshotProtectedSettings(wrapper, scenario);
 			Map<UUID, String> afterCapturedMobs = snapshotCapturedMobs(wrapper);
 			if (!beforeProtectedStacks.equals(afterProtectedStacks)) {
-				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
-						"protected slot stack changed");
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
+						afterStacks.size(), "protected slot stack changed");
 			}
 			if (!beforeProtectedSettings.equals(afterProtectedSettings)) {
-				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
-						"protected slot settings changed");
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
+						afterStacks.size(), "protected slot settings changed");
 			}
 			if (!beforeStableStacks.equals(afterStableStacks)) {
-				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(),
-						"stable slot stack changed");
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
+						afterStacks.size(), "stable slot stack changed");
 			}
 			if (scenario.expectedFits()) {
 				Optional<String> capturedMobLayoutError = capturedMobLayoutError(wrapper);
@@ -1925,16 +1916,20 @@ public class DevClientAutomation {
 							"captured mob slots mismatch expected=" + Arrays.toString(scenario.expectedCapturedMobSlots()) + " actual=" + afterCapturedMobs);
 				}
 				if (!beforeStacks.equals(afterStacks)) {
-					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(), "stack snapshot changed");
+					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(),
+							"stack snapshot changed");
 				}
 				if (scenario.expectedCapturedMobSlots().length == 0 && !beforeCapturedMobs.equals(afterCapturedMobs)) {
-					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(), "captured mobs changed");
+					return new ColumnUpgradeRegressionResult(scenario.name(), false, true, true, beforeStacks.size(), afterStacks.size(),
+							"captured mobs changed");
 				}
 			} else if (!beforeStacks.equals(afterStacks) || !beforeCapturedMobs.equals(afterCapturedMobs)) {
-				return new ColumnUpgradeRegressionResult(scenario.name(), false, false, false, beforeStacks.size(), afterStacks.size(), "blocked insertion mutated stacks");
+				return new ColumnUpgradeRegressionResult(scenario.name(), false, false, false, beforeStacks.size(), afterStacks.size(),
+						"blocked insertion mutated stacks");
 			}
 
-			return new ColumnUpgradeRegressionResult(scenario.name(), true, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(), afterStacks.size(), null);
+			return new ColumnUpgradeRegressionResult(scenario.name(), true, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
+					afterStacks.size(), null);
 		}
 
 		private void applyProtectedSlots(IBackpackWrapper wrapper, int[] noSortSlots, int[] memorySlots) {
@@ -1964,8 +1959,8 @@ public class DevClientAutomation {
 			int targetColumns = baseColumns - targetColumnsTaken;
 			int targetSlots = baseSlots - targetColumnsTaken * rows;
 
-			InventoryLayoutFitResult fitResult = InventoryLayoutFitter.fit(wrapper.getInventoryLayoutParts(currentColumns, targetColumns), targetSlots, targetColumns,
-					targetColumnsTaken < currentColumnsTaken);
+			InventoryLayoutFitResult fitResult = InventoryLayoutFitter.fit(wrapper.getInventoryLayoutParts(currentColumns, targetColumns), targetSlots,
+					targetColumns, targetColumnsTaken < currentColumnsTaken);
 			if (!fitResult.fits()) {
 				return new ColumnUpgradeSimulationResult(false);
 			}
@@ -2006,8 +2001,10 @@ public class DevClientAutomation {
 			wrapper.getUpgradeHandler().saveInventory();
 			for (int i = 0; i < capturedMobs.length; i++) {
 				CapturedMobSpec capturedMob = capturedMobs[i];
-				MobCatcherStorage.addCapturedMob(wrapper, new CapturedMob(new UUID(0, i + 1), ResourceLocation.parse(capturedMob.entityType()), new CompoundTag(),
-						capturedMob.slot(), capturedMob.width(), capturedMob.height(), capturedMob.width() * capturedMob.height(), false, capturedMob.entityType(), 10, 10));
+				MobCatcherStorage.addCapturedMob(wrapper,
+						new CapturedMob(new UUID(0, i + 1), ResourceLocation.parse(capturedMob.entityType()), new CompoundTag(), capturedMob.slot(),
+								capturedMob.width(), capturedMob.height(), capturedMob.width() * capturedMob.height(), false, capturedMob.entityType(), 10,
+								10));
 			}
 		}
 
@@ -2523,17 +2520,17 @@ public class DevClientAutomation {
 			clearStorageControllerFilterRegressionArea(level, controllerPos);
 			placeController(level, player, controllerPos);
 
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1),
+							net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
@@ -2542,7 +2539,8 @@ public class DevClientAutomation {
 			lockedSpecs.forEach(spec -> allPositions.add(spec.pos()));
 			Map<BlockPos, Item> barrelItems = createControllerFilterBarrelItems(overflowPositions, filterSpecs, lockedSpecs);
 
-			allPositions.forEach(pos -> placeBarrel(level, player, pos, barrelItems.getOrDefault(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get())));
+			allPositions.forEach(pos -> placeBarrel(level, player, pos,
+					barrelItems.getOrDefault(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get())));
 			if (profileCapacity) {
 				for (BlockPos pos : overflowPositions) {
 					addControllerFilterProfileCapacity(getBarrelStorage(level, pos), 0);
@@ -2566,7 +2564,8 @@ public class DevClientAutomation {
 
 			long setupMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
 
-			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			ControllerBlockEntity controller = level
+					.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
 			if (controller == null) {
 				failures.add("controller block entity missing at " + controllerPos);
 				return buildStorageControllerFilterRegressionJson(false, setupMillis, 0, 0, 0, 0, 0, 0, 0, 0, failures);
@@ -2585,7 +2584,8 @@ public class DevClientAutomation {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
 
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long insertStartedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -2609,19 +2609,26 @@ public class DevClientAutomation {
 			}
 			long verifyMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - verifyStartedAt);
 
-			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages, lockedSpecs.size(),
-					filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
+			return buildStorageControllerFilterRegressionJson(failures.isEmpty(), setupMillis, insertMillis, verifyMillis, connectedStorages,
+					lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), insertCalls, itemsInserted, failures);
 		}
 
 		private Map<BlockPos, Item> createControllerFilterBarrelItems(List<BlockPos> overflowPositions, List<ControllerFilterStorageSpec> filterSpecs,
 				List<ControllerLockedStorageSpec> lockedSpecs) {
 			Map<BlockPos, Item> barrelItems = new HashMap<>();
-			List<Item> overflowBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.IRON_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get());
+			List<Item> overflowBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.IRON_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get());
 			for (int i = 0; i < overflowPositions.size(); i++) {
 				barrelItems.put(overflowPositions.get(i), overflowBarrels.get(i % overflowBarrels.size()));
 			}
-			List<Item> filterBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
-					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get(), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get());
+			List<Item> filterBarrels = List.of(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DIAMOND_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get(),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.NETHERITE_BARREL_ITEM.get());
 			for (int i = 0; i < filterSpecs.size(); i++) {
 				barrelItems.put(filterSpecs.get(i).pos(), filterBarrels.get(i % filterBarrels.size()));
 			}
@@ -2633,27 +2640,29 @@ public class DevClientAutomation {
 			ServerLevel level = player.serverLevel();
 			BlockPos controllerPos = player.blockPosition().offset(0, 0, 12);
 			List<String> failures = new ArrayList<>();
-			List<BlockPos> overflowPositions = List.of(
-					controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1), controllerPos.offset(1, 0, 2)
-			);
+			List<BlockPos> overflowPositions = List.of(controllerPos.offset(1, 0, -1), controllerPos.offset(1, 0, 0), controllerPos.offset(1, 0, 1),
+					controllerPos.offset(1, 0, 2));
 			List<ControllerFilterStorageSpec> filterSpecs = List.of(
 					new ControllerFilterStorageSpec("specific_amethyst", controllerPos.offset(2, 0, -1), Items.AMETHYST_SHARD, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_honeycomb", controllerPos.offset(2, 0, 0), Items.HONEYCOMB, true, PrimaryMatch.ITEM),
 					new ControllerFilterStorageSpec("specific_echo_shard", controllerPos.offset(2, 0, 1), Items.ECHO_SHARD, true, PrimaryMatch.ITEM),
-					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1), net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true, PrimaryMatch.MOD),
-					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM)
-			);
+					new ControllerFilterStorageSpec("mod_sophisticatedstorage", controllerPos.offset(3, 0, -1),
+							net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get(), true, PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("mod_sophisticatedbackpacks", controllerPos.offset(3, 0, 0), ModItems.GOLD_BACKPACK.get(), true,
+							PrimaryMatch.MOD),
+					new ControllerFilterStorageSpec("deny_feather", controllerPos.offset(3, 0, 1), Items.FEATHER, false, PrimaryMatch.ITEM));
 			List<ControllerLockedStorageSpec> lockedSpecs = createControllerFilterLockedStorageSpecs(controllerPos);
 			List<BlockPos> allPositions = new ArrayList<>();
 			allPositions.addAll(overflowPositions);
 			filterSpecs.forEach(spec -> allPositions.add(spec.pos()));
 			lockedSpecs.forEach(spec -> allPositions.add(spec.pos()));
 
-			ControllerBlockEntity controller = level.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			ControllerBlockEntity controller = level
+					.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).orElse(null);
 			if (controller == null) {
 				failures.add("controller block entity missing at " + controllerPos + "; run setup mode before profile mode");
-				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0, failures);
+				return buildStorageControllerFilterRegressionJson(false, 0, 0, 0, 0, lockedSpecs.size(), filterSpecs.size(), overflowPositions.size(), 0, 0,
+						failures);
 			}
 			int connectedStorages = controller.getStoragePositions().size();
 			if (connectedStorages != allPositions.size()) {
@@ -2664,7 +2673,8 @@ public class DevClientAutomation {
 			for (ControllerLockedStorageSpec spec : lockedSpecs) {
 				lockedPositionsByItem.computeIfAbsent(spec.item(), item -> new HashSet<>()).add(spec.pos());
 			}
-			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions, lockedPositionsByItem);
+			List<ControllerFilterInsertExpectation> expectations = createControllerFilterInsertExpectations(controllerPos, overflowPositions,
+					lockedPositionsByItem);
 
 			long startedAt = System.nanoTime();
 			int insertCalls = 0;
@@ -2684,26 +2694,29 @@ public class DevClientAutomation {
 		private List<ControllerFilterInsertExpectation> createControllerFilterInsertExpectations(BlockPos controllerPos, List<BlockPos> overflowPositions,
 				Map<Item, Set<BlockPos>> lockedPositionsByItem) {
 			List<ControllerFilterInsertExpectation> expectations = new ArrayList<>();
-			lockedPositionsByItem.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
+			lockedPositionsByItem
+					.forEach((item, positions) -> expectations.add(new ControllerFilterInsertExpectation("locked_" + itemId(item), item, 3, 20, positions)));
 			expectations.add(new ControllerFilterInsertExpectation("specific_amethyst", Items.AMETHYST_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, -1))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_honeycomb", Items.HONEYCOMB, 4, 80, Set.of(controllerPos.offset(2, 0, 0))));
 			expectations.add(new ControllerFilterInsertExpectation("specific_echo_shard", Items.ECHO_SHARD, 4, 80, Set.of(controllerPos.offset(2, 0, 1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage", net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80, Set.of(controllerPos.offset(3, 0, -1))));
-			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80, Set.of(controllerPos.offset(3, 0, 0))));
-			expectations.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedstorage",
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.GOLD_BARREL_ITEM.get(), 2, 80, Set.of(controllerPos.offset(3, 0, -1))));
+			expectations.add(new ControllerFilterInsertExpectation("mod_sophisticatedbackpacks", ModItems.STACK_UPGRADE_TIER_1.get(), 2, 80,
+					Set.of(controllerPos.offset(3, 0, 0))));
+			expectations
+					.add(new ControllerFilterInsertExpectation("deny_accepts_unmatched", Items.NAUTILUS_SHELL, 4, 80, Set.of(controllerPos.offset(3, 0, 1))));
 			expectations.add(new ControllerFilterInsertExpectation("denied_item_overflows", Items.FEATHER, 4, 80, Set.copyOf(overflowPositions)));
 			return expectations;
 		}
 
 		private List<ControllerLockedStorageSpec> createControllerFilterLockedStorageSpecs(BlockPos controllerPos) {
-			List<Item> items = List.of(
-					Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE, Items.SAND,
-					Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG, Items.ACACIA_LOG,
-					Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS, Items.BIRCH_PLANKS,
-					Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI, Items.EMERALD,
-					Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER, Items.LEATHER,
-					Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE, Items.IRON_INGOT
-			);
+			List<Item> items = List.of(Items.COBBLESTONE, Items.DIRT, Items.GRANITE, Items.DIORITE, Items.ANDESITE, Items.TUFF, Items.DEEPSLATE, Items.CALCITE,
+					Items.SAND, Items.RED_SAND, Items.GRAVEL, Items.CLAY_BALL, Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG,
+					Items.ACACIA_LOG, Items.DARK_OAK_LOG, Items.MANGROVE_LOG, Items.CHERRY_LOG, Items.BAMBOO, Items.OAK_PLANKS, Items.SPRUCE_PLANKS,
+					Items.BIRCH_PLANKS, Items.STICK, Items.COAL, Items.CHARCOAL, Items.IRON_INGOT, Items.GOLD_INGOT, Items.COPPER_INGOT, Items.LAPIS_LAZULI,
+					Items.EMERALD, Items.DIAMOND, Items.QUARTZ, Items.FLINT, Items.STRING, Items.SPIDER_EYE, Items.BONE, Items.ROTTEN_FLESH, Items.GUNPOWDER,
+					Items.LEATHER, Items.RABBIT_HIDE, Items.EGG, Items.WHEAT, Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.COBBLESTONE,
+					Items.IRON_INGOT);
 			List<ControllerLockedStorageSpec> specs = new ArrayList<>();
 			int slot = 0;
 			for (int x = 4; x <= 12 && slot < items.size(); x++) {
@@ -2748,8 +2761,8 @@ public class DevClientAutomation {
 		}
 
 		private void discardStorageControllerFilterRegressionItemEntities(ServerLevel level, BlockPos controllerPos) {
-			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17, controllerPos.getY() + 5,
-					controllerPos.getZ() + 9);
+			AABB area = new AABB(controllerPos.getX() - 4, controllerPos.getY() - 2, controllerPos.getZ() - 7, controllerPos.getX() + 17,
+					controllerPos.getY() + 5, controllerPos.getZ() + 9);
 			for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, area)) {
 				itemEntity.discard();
 			}
@@ -2775,8 +2788,7 @@ public class DevClientAutomation {
 
 		private StorageBlockEntity getBarrelStorage(ServerLevel level, BlockPos pos) {
 			return level.getBlockEntity(pos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get())
-					.map(storage -> (StorageBlockEntity) storage)
-					.orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
+					.map(storage -> (StorageBlockEntity) storage).orElseThrow(() -> new IllegalStateException("Missing barrel storage at " + pos));
 		}
 
 		private void configureControllerFilterStorage(StorageBlockEntity storage, ControllerFilterStorageSpec spec, boolean profileCapacity) {
@@ -2812,8 +2824,8 @@ public class DevClientAutomation {
 			}
 		}
 
-		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller, List<BlockPos> allPositions,
-				ControllerFilterInsertExpectation expectation, List<String> failures) {
+		private ControllerFilterInsertStats runControllerFilterInsertExpectation(ServerLevel level, ControllerBlockEntity controller,
+				List<BlockPos> allPositions, ControllerFilterInsertExpectation expectation, List<String> failures) {
 			Set<BlockPos> outsidePositions = new HashSet<>(allPositions);
 			outsidePositions.removeAll(expectation.expectedPositions());
 			long expectedBefore = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
@@ -2829,16 +2841,18 @@ public class DevClientAutomation {
 			long expectedAfter = countItemInPositions(level, expectation.expectedPositions(), expectation.item());
 			long outsideAfter = countItemInPositions(level, outsidePositions, expectation.item());
 			if (expectedAfter - expectedBefore != inserted) {
-				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got " + (expectedAfter - expectedBefore)
-						+ " at " + expectation.expectedPositions());
+				failures.add(expectation.name() + " expected destination delta " + inserted + " for " + itemId(expectation.item()) + ", got "
+						+ (expectedAfter - expectedBefore) + " at " + expectation.expectedPositions());
 			}
 			if (outsideAfter != outsideBefore) {
-				failures.add(expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
+				failures.add(
+						expectation.name() + " changed outside destination count for " + itemId(expectation.item()) + " by " + (outsideAfter - outsideBefore));
 			}
 			return new ControllerFilterInsertStats(expectation.calls(), inserted);
 		}
 
-		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller, ControllerFilterInsertExpectation expectation) {
+		private ControllerFilterInsertStats runControllerFilterProfileExpectation(ControllerBlockEntity controller,
+				ControllerFilterInsertExpectation expectation) {
 			long inserted = 0;
 			for (int i = 0; i < expectation.calls(); i++) {
 				ItemStack remainder = controller.insertItem(new ItemStack(expectation.item(), expectation.count()), false);
@@ -2863,19 +2877,12 @@ public class DevClientAutomation {
 
 		private String buildStorageControllerFilterRegressionJson(boolean ok, long setupMillis, long insertMillis, long verifyMillis, int connectedStorages,
 				int lockedStorages, int filteredStorages, int overflowStorages, int insertCalls, long itemsInserted, List<String> failures) {
-			StringBuilder json = new StringBuilder("{\"ok\":").append(ok)
-					.append(",\"scenario\":\"storage_controller_filter_routing\"")
-					.append(",\"connectedStorages\":").append(connectedStorages)
-					.append(",\"lockedStorages\":").append(lockedStorages)
-					.append(",\"filteredStorages\":").append(filteredStorages)
-					.append(",\"overflowStorages\":").append(overflowStorages)
-					.append(",\"insertCalls\":").append(insertCalls)
-					.append(",\"itemsInserted\":").append(itemsInserted)
-					.append(",\"setupMillis\":").append(setupMillis)
-					.append(",\"insertMillis\":").append(insertMillis)
-					.append(",\"verifyMillis\":").append(verifyMillis)
-					.append(",\"failed\":").append(failures.size())
-					.append(",\"failures\":[");
+			StringBuilder json = new StringBuilder("{\"ok\":").append(ok).append(",\"scenario\":\"storage_controller_filter_routing\"")
+					.append(",\"connectedStorages\":").append(connectedStorages).append(",\"lockedStorages\":").append(lockedStorages)
+					.append(",\"filteredStorages\":").append(filteredStorages).append(",\"overflowStorages\":").append(overflowStorages)
+					.append(",\"insertCalls\":").append(insertCalls).append(",\"itemsInserted\":").append(itemsInserted).append(",\"setupMillis\":")
+					.append(setupMillis).append(",\"insertMillis\":").append(insertMillis).append(",\"verifyMillis\":").append(verifyMillis)
+					.append(",\"failed\":").append(failures.size()).append(",\"failures\":[");
 			for (int i = 0; i < failures.size(); i++) {
 				if (i > 0) {
 					json.append(',');
@@ -2935,8 +2942,8 @@ public class DevClientAutomation {
 			}
 		}
 
-		private record ColumnUpgradeRegressionScenario(String name, int inventorySlots, Item upgradeItem, int[] occupiedSlots, int[] noSortSlots, int[] memorySlots,
-				int[] stableSlots, CapturedMobSpec[] capturedMobs, int[] expectedCapturedMobSlots, String operation, boolean expectedFits) {
+		private record ColumnUpgradeRegressionScenario(String name, int inventorySlots, Item upgradeItem, int[] occupiedSlots, int[] noSortSlots,
+				int[] memorySlots, int[] stableSlots, CapturedMobSpec[] capturedMobs, int[] expectedCapturedMobSlots, String operation, boolean expectedFits) {
 			private int[] protectedSlots() {
 				int[] slots = new int[noSortSlots.length + memorySlots.length];
 				System.arraycopy(noSortSlots, 0, slots, 0, noSortSlots.length);
@@ -2970,7 +2977,8 @@ public class DevClientAutomation {
 		private record PlacedColumnUpgradeClickExpectation(int expectedColumnsTaken, int expectedStorageSlots) {
 		}
 
-		private record PlacedColumnUpgradeState(int columnsTaken, int storageSlots, int inventoryHandlerSlots, boolean upgradeSlotEmpty, boolean carriedNotEmpty) {
+		private record PlacedColumnUpgradeState(int columnsTaken, int storageSlots, int inventoryHandlerSlots, boolean upgradeSlotEmpty,
+				boolean carriedNotEmpty) {
 			private boolean matches(PlacedColumnUpgradeClickExpectation expectation) {
 				return columnsTaken == expectation.expectedColumnsTaken() && storageSlots == expectation.expectedStorageSlots()
 						&& inventoryHandlerSlots == expectation.expectedStorageSlots() && upgradeSlotEmpty && carriedNotEmpty;
@@ -2997,9 +3005,7 @@ public class DevClientAutomation {
 		}
 
 		private enum BackpackGuiRegressionContext {
-			PLACED("placed"),
-			CURIOS("curios"),
-			SUB("sub");
+			PLACED("placed"), CURIOS("curios"), SUB("sub");
 
 			private final String jsonName;
 
