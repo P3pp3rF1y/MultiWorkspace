@@ -344,7 +344,7 @@ dependencies {
 
         runtimeOnly "curse.maven:spark-361579:5759671"
 
-        runtimeOnly "curse.maven:craftingstation-318551:5569165"
+        runtimeOnly "curse.maven:craftingstation-318551:7272413"
 
         runtimeOnly "curse.maven:mousetweaks-60089:5637846"
         runtimeOnly "curse.maven:flatcoloredblocks-238590:6293435"
