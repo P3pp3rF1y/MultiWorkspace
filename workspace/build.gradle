@@ -370,7 +370,15 @@ dependencies {
         runtimeOnly "dev.eriksonn.aeronautics:aeronautics-neoforge-${minecraft_version}:${aeronautics_version}"
 
 //        runtimeOnly "dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}"
-        runtimeOnly "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
+        runtimeOnly("dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}") {
+            transitive = false
+        }
+        runtimeOnly("dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}") {
+            transitive = false
+        }
+        runtimeOnly("dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}") {
+            transitive = false
+        }
 //        runtimeOnly "curse.maven:openpartiesandclaims-636608:${openpartiesandclaims_cf_file_id}"
     }
 
