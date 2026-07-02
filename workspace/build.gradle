@@ -362,6 +362,8 @@ dependencies {
         runtimeOnly "curse.maven:integratedtunnels-251389:7638035"
         runtimeOnly "curse.maven:commoncapabilities-247007:7630086"
         runtimeOnly "curse.maven:blurplus-393563:7655029"
+        runtimeOnly "curse.maven:guideme-1173950:${guideme_cf_file_id}"
+        runtimeOnly "curse.maven:modern-industrialization-405388:${modern_industrialization_cf_file_id}"
 
         runtimeOnly "dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}"
         runtimeOnly "dev.ryanhcode.sable-companion:sable-companion-common-${minecraft_version}:${sable_companion_version}"
