@@ -469,6 +469,28 @@ function Test-ChainExpectation {
     return $matches
 }
 
+function Test-TransferExpectation {
+    param([object]$Test)
+
+    $body = @{}
+    if ($Test.focus) {
+        $body.focus = Resolve-Selector -Selector $Test.focus
+    } else {
+        $body.item = $Test.item
+    }
+    $transfer = Invoke-BridgeJson -Method Post -Path "/recipe-viewer/backpack-crafting-transfer" -Body $body
+    Assert-True $transfer.ok "Transfer expectation failed for '$($Test.name)': $($transfer.error)"
+    $expect = Get-ObjectProperty -Object $Test -Name "expect"
+    if ($null -ne $expect) {
+        foreach ($property in $expect.PSObject.Properties) {
+            $actual = Get-PathValue -Object $transfer -Path $property.Name
+            Assert-True ($null -ne $actual) "Transfer expectation failed for '$($Test.name)': missing property '$($property.Name)'."
+            Assert-True ($actual.ToString() -eq $property.Value.ToString()) "Transfer expectation failed for '$($Test.name)': expected '$($property.Name)' to be '$($property.Value)' but got '$actual'."
+        }
+    }
+    return @($transfer)
+}
+
 $startedClient = $false
 $clientProcessId = 0
 
@@ -513,6 +535,7 @@ try {
             "recipe" { $matched = Test-RecipeExpectation -Test $test }
             "use" { $matched = Test-UseExpectation -Test $test }
             "chain" { $matched = Test-ChainExpectation -Test $test }
+            "transfer" { $matched = Test-TransferExpectation -Test $test }
             default { throw "Unknown recipe viewer regression test type: $($test.type)" }
         }
         $results += [pscustomobject]@{ name = $test.name; type = $test.type; passed = $true; matched = $matched }
