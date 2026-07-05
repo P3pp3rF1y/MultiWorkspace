@@ -11,12 +11,16 @@ import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.transfer.IRecipeTransferError;
+import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.p3pp3rf1y.devclientautomation.JsonUtil;
@@ -114,6 +118,48 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 				+ JsonUtil.property("name", stack.get().getHoverName().getString()) + "," + "\"uiBacked\":true,"
 				+ JsonUtil.rawProperty("focusStack", RecipeJsonUtil.itemStackJson(stack.get())) + "," + "\"recipeCount\":" + recipes.size() + ","
 				+ "\"useCount\":" + uses.size() + "," + "\"recipes\":" + recipesJson(recipes, limit) + "," + "\"uses\":" + recipesJson(uses, limit) + "}";
+	}
+
+	@Override
+	public String transferJson(String requestJson) {
+		JsonObject request = RecipeViewerRequest.parse(requestJson);
+		String itemId = RecipeViewerRequest.itemId(request);
+		IJeiRuntime jeiRuntime = runtime;
+		if (jeiRuntime == null) {
+			return runtimeUnavailableJson(Minecraft.getInstance().gui.screen());
+		}
+		Optional<ItemStack> stack = findStack(jeiRuntime.getIngredientManager(), request);
+		if (stack.isEmpty()) {
+			return itemNotFoundJson(itemId);
+		}
+
+		IFocus<ItemStack> focus = jeiRuntime.getJeiHelpers().getFocusFactory().createFocus(RecipeIngredientRole.OUTPUT, VanillaTypes.ITEM_STACK, stack.get());
+		jeiRuntime.getRecipesGui().show(focus);
+		Screen screen = Minecraft.getInstance().gui.screen();
+		if (!isRecipeScreenOpen(screen)) {
+			return "{\"ok\":false," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("error", "JEI recipe screen did not open") + ","
+					+ JsonUtil.property("screenClass", screen == null ? null : screen.getClass().getName()) + "}";
+		}
+
+		try {
+			Object parentContainerObject = invoke(screen, "getParentContainerMenu");
+			if (!(parentContainerObject instanceof AbstractContainerMenu parentContainer)) {
+				return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("item", itemId(stack.get()))
+						+ ",\"recipeScreenOpen\":true,\"hasParentContainer\":false,\"hasTransferHandler\":false,\"visible\":false,\"active\":false}";
+			}
+			Player player = Minecraft.getInstance().player;
+			if (player == null) {
+				return "{\"ok\":false," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("error", "Client player is not available") + "}";
+			}
+			List<IRecipeLayoutDrawable<?>> layouts = openedRecipeLayouts(screen);
+			if (layouts.isEmpty()) {
+				return "{\"ok\":false," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("error", "No visible JEI recipe layouts") + "}";
+			}
+
+			return transferStateJson(jeiRuntime, parentContainer, player, layouts.get(0), stack.get());
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			return "{\"ok\":false," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("error", e.getMessage()) + "}";
+		}
 	}
 
 	private static Optional<ItemStack> findStack(IIngredientManager ingredientManager, JsonObject request) {
@@ -215,19 +261,49 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 	}
 
 	private static List<RecipeEntry> openedRecipeLayoutEntries(Screen screen) throws ReflectiveOperationException {
+		List<IRecipeLayoutDrawable<?>> layouts = openedRecipeLayouts(screen);
+		List<RecipeEntry> entries = new ArrayList<>();
+		for (IRecipeLayoutDrawable<?> layout : layouts) {
+			entries.add(recipeEntry(layout));
+		}
+		return entries;
+	}
+
+	private static List<IRecipeLayoutDrawable<?>> openedRecipeLayouts(Screen screen) throws ReflectiveOperationException {
 		Object layouts = getField(screen, "layouts");
 		Object layoutEntries = getField(layouts, "recipeLayoutsWithButtons");
 		if (!(layoutEntries instanceof List<?> recipeLayoutsWithButtons)) {
 			return List.of();
 		}
-		List<RecipeEntry> entries = new ArrayList<>();
+		List<IRecipeLayoutDrawable<?>> entries = new ArrayList<>();
 		for (Object recipeLayoutWithButtons : recipeLayoutsWithButtons) {
-			Object recipeLayout = invoke(recipeLayoutWithButtons, "recipeLayout");
+			Object recipeLayout = invokeAny(recipeLayoutWithButtons, "recipeLayout", "getRecipeLayout");
 			if (recipeLayout instanceof IRecipeLayoutDrawable<?> layout) {
-				entries.add(recipeEntry(layout));
+				entries.add(layout);
 			}
 		}
 		return entries;
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static String transferStateJson(IJeiRuntime jeiRuntime, AbstractContainerMenu parentContainer, Player player, IRecipeLayoutDrawable<?> layout,
+			ItemStack focusStack) {
+		IRecipeCategory<Object> category = (IRecipeCategory<Object>) layout.getRecipeCategory();
+		Optional<IRecipeTransferHandler<AbstractContainerMenu, Object>> handler = (Optional) jeiRuntime.getRecipeTransferManager()
+				.getRecipeTransferHandler(parentContainer, category);
+		IRecipeTransferError transferError = null;
+		if (handler.isPresent()) {
+			transferError = handler.get().transferRecipe(parentContainer, layout.getRecipe(), layout.getRecipeSlotsView(), player, false, false);
+		}
+		IRecipeTransferError.Type errorType = transferError == null ? null : transferError.getType();
+		boolean active = handler.isPresent() && (transferError == null || errorType.allowsTransfer);
+		boolean visible = active || errorType == IRecipeTransferError.Type.USER_FACING;
+		return "{\"ok\":true," + JsonUtil.property("viewer", "jei") + "," + JsonUtil.property("item", itemId(focusStack))
+				+ ",\"recipeScreenOpen\":true,\"hasParentContainer\":true," + JsonUtil.property("parentContainerClass", parentContainer.getClass().getName())
+				+ "," + JsonUtil.property("recipeId", recipeId(layout.getRecipe())) + "," + JsonUtil.property("category", category.getRecipeType().getUid().toString())
+				+ ",\"hasTransferHandler\":" + handler.isPresent() + ",\"visible\":" + visible + ",\"active\":" + active + ","
+				+ JsonUtil.property("errorType", errorType == null ? null : errorType.name()) + ",\"missingCountHint\":"
+				+ (transferError == null ? 0 : transferError.getMissingCountHint()) + "}";
 	}
 
 	@SuppressWarnings("unchecked")
@@ -273,6 +349,18 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 		Method method = findMethod(target.getClass(), name);
 		method.setAccessible(true);
 		return method.invoke(target);
+	}
+
+	private static Object invokeAny(Object target, String... names) throws ReflectiveOperationException {
+		ReflectiveOperationException lastException = null;
+		for (String name : names) {
+			try {
+				return invoke(target, name);
+			} catch (ReflectiveOperationException e) {
+				lastException = e;
+			}
+		}
+		throw lastException == null ? new NoSuchMethodException(Arrays.toString(names)) : lastException;
 	}
 
 	private static Method findMethod(Class<?> type, String name) throws NoSuchMethodException {
