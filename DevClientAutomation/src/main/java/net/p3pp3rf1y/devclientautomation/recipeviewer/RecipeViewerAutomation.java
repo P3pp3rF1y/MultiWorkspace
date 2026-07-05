@@ -10,4 +10,8 @@ public interface RecipeViewerAutomation {
 	String openJson(String requestJson);
 
 	String queryJson(String requestJson);
+
+	default String transferJson(String requestJson) {
+		return "{\"ok\":false,\"error\":\"Recipe transfer automation is not supported for this viewer\"}";
+	}
 }
