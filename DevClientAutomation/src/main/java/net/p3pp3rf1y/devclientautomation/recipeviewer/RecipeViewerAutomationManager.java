@@ -44,6 +44,14 @@ public final class RecipeViewerAutomationManager {
 		return viewer.get().queryJson(requestJson);
 	}
 
+	public static String transferJson(String requestJson) {
+		Optional<RecipeViewerAutomation> viewer = activeViewer();
+		if (viewer.isEmpty()) {
+			return noViewerJson();
+		}
+		return viewer.get().transferJson(requestJson);
+	}
+
 	private static Optional<RecipeViewerAutomation> activeViewer() {
 		if (ModList.get().isLoaded("emi")) {
 			return Optional.of(new EmiRecipeViewerAutomation());
