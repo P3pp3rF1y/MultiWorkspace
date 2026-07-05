@@ -1372,6 +1372,17 @@
         ],
         "expectedMatches": 1
       }
+    },
+    {
+      "name": "JEI transfers crafting table recipe into backpack crafting upgrade",
+      "type": "transfer",
+      "viewers": ["jei"],
+      "item": "minecraft:crafting_table",
+      "expect": {
+        "hasTransferHandler": true,
+        "visible": true,
+        "active": true
+      }
     }
   ]
 }
