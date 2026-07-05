@@ -207,6 +207,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/recipe-viewer/search", this::recipeViewerSearch);
 				httpServer.createContext("/recipe-viewer/open", this::recipeViewerOpen);
 				httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
+httpServer.createContext("/recipe-viewer/backpack-crafting-transfer", this::recipeViewerBackpackCraftingTransfer);
 				httpServer.setExecutor(executor);
 				httpServer.start();
 				writeDiscoveryFile(httpServer.getAddress().getPort());
@@ -1362,7 +1363,70 @@ public class DevClientAutomation {
 			return true;
 		}
 
-		private Boolean openParentMobCatcherBackpackRegression(ServerPlayer player) {
+		private String setupBackpackCraftingTransferRegression(ServerPlayer player) {
+			player.getInventory().clearContent();
+			player.getInventory().setItem(0, createCraftingTransferRegressionBackpack());
+			for (int slot = 1; slot <= 4; slot++) {
+				player.getInventory().setItem(slot, new ItemStack(Items.OAK_PLANKS));
+			}
+			player.getInventory().selected = 0;
+			player.getInventory().setChanged();
+			return "{\"ok\":true}";
+		}
+
+
+
+private Boolean setupClientBackpackCraftingTransferRegression() {
+			Player player = Minecraft.getInstance().player;
+			if (player == null) {
+				throw new IllegalStateException("Client player is not available");
+			}
+			player.getInventory().clearContent();
+			player.getInventory().setItem(0, createCraftingTransferRegressionBackpack());
+			for (int slot = 1; slot <= 4; slot++) {
+				player.getInventory().setItem(slot, new ItemStack(Items.OAK_PLANKS));
+			}
+			player.getInventory().selected = 0;
+			player.getInventory().setChanged();
+			return true;
+		}
+
+
+
+private void waitForClientCraftingTransferBackpack() {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			do {
+				if (runOnClient(() -> {
+					Player player = Minecraft.getInstance().player;
+					if (player == null) {
+						return false;
+					}
+					ItemStack backpack = player.getInventory().getItem(0);
+					return backpack.getItem() instanceof BackpackItem && BackpackWrapper.fromStack(backpack).getUpgradeHandler().getStackInSlot(0)
+							.is(ModItems.CRAFTING_UPGRADE.get());
+				})) {
+					return;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
+
+			throw new IllegalStateException("Timed out waiting for client inventory slot 0 to contain crafting upgrade backpack");
+		}
+
+
+
+private ItemStack createCraftingTransferRegressionBackpack() {
+			ItemStack backpack = createBackpackStack(80);
+			IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
+			backpackWrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.CRAFTING_UPGRADE.get()));
+			backpackWrapper.getUpgradeHandler().saveInventory();
+			backpackWrapper.onContentsNbtUpdated();
+			return backpack;
+		}
+
+
+
+private Boolean openParentMobCatcherBackpackRegression(ServerPlayer player) {
 			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
 			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
 					Component.literal("Mob Catcher Parent Regression")), backpackContext::toBuffer);
@@ -1382,7 +1446,15 @@ public class DevClientAutomation {
 			return true;
 		}
 
-		private Boolean insertMobCatcherSubBackpackIntoOpenParent(ServerPlayer player) {
+		private Boolean openParentBackpackCraftingTransferRegression(ServerPlayer player) {
+			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+					Component.literal("Crafting Transfer Regression")), backpackContext::toBuffer);
+			return true;
+		}
+
+
+private Boolean insertMobCatcherSubBackpackIntoOpenParent(ServerPlayer player) {
 			if (!(player.containerMenu instanceof BackpackContainer menu)) {
 				throw new IllegalStateException("Parent backpack menu is not open on server");
 			}
@@ -2192,7 +2264,21 @@ public class DevClientAutomation {
 			}
 		}
 
-		private String buildStateJson() {
+		private void recipeViewerBackpackCraftingTransfer(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			sendJsonHandling(exchange, () -> {
+				runOnServer(this::setupBackpackCraftingTransferRegression);
+				runOnClient(this::setupClientBackpackCraftingTransferRegression);
+				waitForClientCraftingTransferBackpack();
+				runOnServer(this::openParentBackpackCraftingTransferRegression);
+				waitForOpenParentBackpackMenu();
+				return runOnClient(() -> RecipeViewerAutomationManager.transferJson(body));
+			});
+		}
+
+
+private String buildStateJson() {
 			Minecraft minecraft = Minecraft.getInstance();
 			Screen screen = minecraft.screen;
 			return "{" + jsonProperty("screenClass", screen == null ? null : screen.getClass().getName()) + ","
