@@ -5,11 +5,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
+import com.simibubi.create.AllBlocks;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.glue.SuperGlueEntity;
+import com.simibubi.create.content.contraptions.mounted.CartAssembleRailType;
+import com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock;
+import com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockEntity;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -30,9 +37,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.horse.Llama;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.Minecart;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
@@ -46,6 +58,10 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.block.state.properties.RailShape;
+import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
@@ -79,12 +95,21 @@ import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
+import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitter;
+import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
+import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageSettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
+import net.p3pp3rf1y.sophisticatedcore.compat.create.ContraptionHelper;
+import net.p3pp3rf1y.sophisticatedcore.compat.create.MountedStorageBase;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.inventory.StorageWrapperRepository;
+import net.p3pp3rf1y.sophisticatedcore.renderdata.DisplaySide;
+import net.p3pp3rf1y.sophisticatedcore.settings.SettingsTab;
+import net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsCategory;
+import net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
@@ -95,8 +120,21 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.filter.FilterUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
+import net.p3pp3rf1y.sophisticatedstorage.block.BarrelBlock;
+import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.LimitedBarrelBlock;
+import net.p3pp3rf1y.sophisticatedstorage.block.LimitedBarrelBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.ShulkerBoxBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.VerticalFacing;
+import net.p3pp3rf1y.sophisticatedstorage.block.WoodStorageBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.entity.MovingStorageWrapper;
+import net.p3pp3rf1y.sophisticatedstorage.item.ChestBlockItem;
+import net.p3pp3rf1y.sophisticatedstorage.item.WoodStorageBlockItem;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageBoat;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageMinecart;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -200,6 +238,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
+				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/backpack/dropped-items", this::droppedItemsStatus);
 				httpServer.createContext("/backpack/clear-dropped-items", this::clearDroppedItems);
 				httpServer.createContext("/screenshot", this::screenshot);
@@ -478,6 +517,14 @@ httpServer.createContext("/recipe-viewer/backpack-crafting-transfer", this::reci
 				}
 				return runStorageControllerFilterRegressions(player, !mode.equals("setup"), profileCapacity);
 			}));
+		}
+
+		private void openStorageItemDisplayPreview(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			String scenario = extractString(body, "scenario").orElse("barrel_north");
+			DisplaySide displaySide = DisplaySide.fromName(extractString(body, "displaySide").orElse(DisplaySide.FRONT.getSerializedName()));
+			sendJsonHandling(exchange, () -> openStorageItemDisplayPreview(scenario, displaySide));
 		}
 
 		private void droppedItemsStatus(HttpExchange exchange) throws IOException {
@@ -944,6 +991,625 @@ httpServer.createContext("/recipe-viewer/backpack-crafting-transfer", this::reci
 			}
 			return "{\"ok\":true,\"entitiesRemoved\":" + entities + ",\"itemsRemoved\":" + items + "}";
 		}
+
+		private String openStorageItemDisplayPreview(String scenario, DisplaySide displaySide) {
+			ItemDisplayPreviewSetupResult setupResult = runOnServer(player -> setupStorageItemDisplayPreview(player, scenario, displaySide));
+			if (setupResult.targetType() == ItemDisplayPreviewTargetType.PLACED_STORAGE) {
+				waitForClientStorageBlockEntity(setupResult.menuPos(), setupResult.limitedBarrel());
+				runOnServer(player -> openStorageInventory(player, setupResult.menuPos()));
+			} else if (setupResult.targetType() == ItemDisplayPreviewTargetType.BACKPACK) {
+				waitForClientBackpackInHotbar();
+				runOnServer(this::openMainBackpack);
+			} else if (setupResult.targetType() == ItemDisplayPreviewTargetType.MOVING_STORAGE) {
+				waitForClientEntity(setupResult.entityId());
+				runOnServer(player -> openMovingStorageInventory(player, setupResult.entityId()));
+			} else if (setupResult.targetType() == ItemDisplayPreviewTargetType.CREATE_CONTRAPTION) {
+				waitForClientEntity(setupResult.entityId());
+				runOnServer(player -> openCreateContraptionStorage(player, setupResult.entityId(), setupResult.localPos()));
+			}
+			waitForStorageScreen();
+			waitForStorageScreenAndClickSettingsTab();
+			String screenName = waitForSettingsScreenAndOpenItemDisplayTab();
+			return "{\"ok\":true," + jsonProperty("scenario", setupResult.scenario()) + ','
+					+ jsonProperty("displaySide", displaySide.getSerializedName()) + ','
+					+ jsonProperty("menuPos", setupResult.menuPos() == null ? null : setupResult.menuPos().toShortString()) + ','
+					+ jsonProperty("localPos", setupResult.localPos() == null ? null : setupResult.localPos().toShortString()) + ','
+					+ "\"entityId\":" + setupResult.entityId() + ','
+					+ jsonProperty("target", setupResult.target()) + ','
+					+ jsonProperty("screen", screenName) + '}';
+		}
+
+		private ItemDisplayPreviewSetupResult setupStorageItemDisplayPreview(ServerPlayer player, String scenario, DisplaySide displaySide) {
+			ServerLevel level = player.serverLevel();
+			BlockPos basePos = player.blockPosition().offset(4, 0, 0);
+			clearItemDisplayPreviewArea(level, basePos);
+
+			String normalizedScenario = scenario.toLowerCase(Locale.ROOT);
+			return switch (normalizedScenario) {
+				case "backpack_item" -> setupBackpackItemDisplayPreview(player, normalizedScenario, displaySide);
+				case "barrel_east" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.EAST),
+						displaySide, false);
+				case "barrel_up" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.UP), displaySide,
+						false);
+				case "limited_barrel_north" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1.get().defaultBlockState()
+								.setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH).setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO),
+						displaySide, true);
+				case "limited_barrel_up" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1.get().defaultBlockState()
+								.setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH).setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.UP),
+						displaySide, true);
+				case "single_chest_north" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+								.setValue(ChestBlock.TYPE, ChestType.SINGLE), displaySide, false);
+				case "double_chest_north" -> setupDoubleChestPreview(level, player, normalizedScenario, basePos, displaySide);
+				case "shulker_north" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.NORTH),
+						displaySide, false);
+				case "shulker_up" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.UP),
+						displaySide, false);
+				case "moving_minecart_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
+						createStoragePreviewStack("barrel"), 0);
+				case "moving_minecart_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
+						createStoragePreviewStack("chest"), 90);
+				case "moving_minecart_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
+						createStoragePreviewStack("shulker"), 180);
+				case "moving_boat_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
+						createStoragePreviewStack("barrel"), 0);
+				case "moving_boat_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
+						createStoragePreviewStack("chest"), 90);
+				case "moving_boat_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
+						createStoragePreviewStack("shulker"), 180);
+				case "moving_boat_limited_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
+						createStoragePreviewStack("limited_barrel"), 270);
+				case "llama_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.LLAMA,
+						createStoragePreviewStack("barrel"), 0);
+				case "llama_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.LLAMA,
+						createStoragePreviewStack("chest"), 90);
+				case "create_cart_barrel_north" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.NORTH), false,
+						0);
+				case "create_cart_birch_barrel_north" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.NORTH), false,
+						0, Optional.of(WoodType.BIRCH));
+				case "create_cart_barrel_east" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.EAST), false,
+						90);
+				case "create_cart_chest" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+								.setValue(ChestBlock.TYPE, ChestType.SINGLE), false, 180);
+				case "create_cart_double_chest" -> setupCreateContraptionDoubleChestPreview(level, player, normalizedScenario, basePos, displaySide, 180);
+				case "create_cart_shulker" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.NORTH),
+						false, 270);
+				case "create_cart_limited_barrel" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1.get().defaultBlockState()
+								.setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH).setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO),
+						true, 0);
+				case "create_cart_backpack" -> setupCreateContraptionBackpackPreview(level, player, normalizedScenario, basePos, displaySide, 90);
+				default -> setupSingleStoragePreview(level, player, "barrel_north", basePos,
+						net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.NORTH),
+						displaySide, false);
+			};
+		}
+
+		private void clearItemDisplayPreviewArea(ServerLevel level, BlockPos basePos) {
+			level.getEntitiesOfClass(Entity.class, new AABB(basePos).inflate(8), entity -> !(entity instanceof ServerPlayer)).forEach(Entity::discard);
+			for (int x = -2; x <= 3; x++) {
+				for (int y = -1; y <= 2; y++) {
+					for (int z = -2; z <= 2; z++) {
+						level.setBlock(basePos.offset(x, y, z), Blocks.AIR.defaultBlockState(), 3);
+					}
+				}
+			}
+		}
+
+		private ItemDisplayPreviewSetupResult setupSingleStoragePreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos pos, BlockState state,
+				DisplaySide displaySide, boolean limitedBarrel) {
+			if (limitedBarrel) {
+				placeLimitedBarrelWithItemDisplayPreviewItem(level, player, pos, state);
+			} else {
+				level.setBlock(pos, state, 3);
+			}
+			StorageBlockEntity storageBlockEntity = WorldHelper.getBlockEntity(level, pos, StorageBlockEntity.class)
+					.orElseThrow(() -> new IllegalStateException("Storage block entity missing for " + scenario));
+			configureItemDisplayPreviewStorage(storageBlockEntity, displaySide, limitedBarrel);
+			return new ItemDisplayPreviewSetupResult(scenario, pos, null, -1, BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString(), limitedBarrel,
+					ItemDisplayPreviewTargetType.PLACED_STORAGE);
+		}
+
+		private void placeLimitedBarrelWithItemDisplayPreviewItem(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState desiredState) {
+			BlockPos supportPos = pos.below();
+			level.setBlock(supportPos, Blocks.DIRT.defaultBlockState(), 3);
+			player.setYRot(getPlayerYawForLimitedBarrelFacing(desiredState.getValue(LimitedBarrelBlock.HORIZONTAL_FACING)));
+			player.setXRot(switch (desiredState.getValue(LimitedBarrelBlock.VERTICAL_FACING)) {
+				case UP -> 90;
+				case DOWN -> -90;
+				case NO -> 0;
+			});
+			ItemStack stack = new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1_ITEM.get());
+			player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+			BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(supportPos), Direction.UP, supportPos, false);
+			player.gameMode.useItemOn(player, level, stack, InteractionHand.MAIN_HAND, hitResult);
+
+			BlockState placedState = level.getBlockState(pos);
+			if (!placedState.is(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1.get())
+					|| placedState.getValue(LimitedBarrelBlock.HORIZONTAL_FACING) != desiredState.getValue(LimitedBarrelBlock.HORIZONTAL_FACING)
+					|| placedState.getValue(LimitedBarrelBlock.VERTICAL_FACING) != desiredState.getValue(LimitedBarrelBlock.VERTICAL_FACING)) {
+				throw new IllegalStateException("Limited barrel placement produced " + placedState + " instead of " + desiredState);
+			}
+		}
+
+		private float getPlayerYawForLimitedBarrelFacing(Direction horizontalFacing) {
+			return switch (horizontalFacing) {
+				case NORTH -> 0;
+				case SOUTH -> 180;
+				case EAST -> 90;
+				case WEST -> -90;
+				default -> 0;
+			};
+		}
+
+		private ItemDisplayPreviewSetupResult setupDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos leftPos, DisplaySide displaySide) {
+			BlockPos rightPos = leftPos.east();
+			level.setBlock(leftPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+					.setValue(ChestBlock.TYPE, ChestType.LEFT), 3);
+			level.setBlock(rightPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+					.setValue(ChestBlock.TYPE, ChestType.RIGHT), 3);
+			setPreviewWoodType(level, leftPos, WoodType.BIRCH);
+			StorageBlockEntity storageBlockEntity = level.getBlockEntity(rightPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get())
+					.map(be -> (StorageBlockEntity) be)
+					.orElseThrow(() -> new IllegalStateException("Double chest main block entity missing"));
+			configureItemDisplayPreviewStorage(storageBlockEntity, displaySide, false);
+			return new ItemDisplayPreviewSetupResult(scenario, rightPos, null, -1,
+					BuiltInRegistries.BLOCK.getKey(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get()).toString(), false,
+					ItemDisplayPreviewTargetType.PLACED_STORAGE);
+		}
+
+		private ItemDisplayPreviewSetupResult setupBackpackItemDisplayPreview(ServerPlayer player, String scenario, DisplaySide displaySide) {
+			player.getInventory().clearContent();
+			ItemStack backpack = createBackpackStack();
+			IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
+			configureItemDisplayPreviewWrapper(backpackWrapper, displaySide, false);
+			backpackWrapper.getInventoryHandler().saveInventory();
+			player.getInventory().setItem(0, backpack);
+			player.getInventory().selected = 0;
+			player.getInventory().setChanged();
+			player.inventoryMenu.broadcastChanges();
+			return new ItemDisplayPreviewSetupResult(scenario, null, null, -1, BuiltInRegistries.ITEM.getKey(backpack.getItem()).toString(), false,
+					ItemDisplayPreviewTargetType.BACKPACK);
+		}
+
+		private ItemDisplayPreviewSetupResult setupMovingStoragePreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
+				DisplaySide displaySide, MovingStoragePreviewVehicle vehicle, ItemStack storageStack, float yRot) {
+			Entity entity = switch (vehicle) {
+				case MINECART -> new StorageMinecart(level, basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
+				case BOAT -> new StorageBoat(level, basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D);
+				case LLAMA -> {
+					Llama llama = EntityType.LLAMA.create(level, EntitySpawnReason.COMMAND);
+					if (llama == null) {
+						throw new IllegalStateException("Failed to create llama for item display preview");
+					}
+					llama.setTamed(true);
+					yield llama;
+				}
+			};
+			entity.moveTo(basePos.getX() + 0.5D, basePos.getY(), basePos.getZ() + 0.5D, yRot, 0);
+			if (!(entity instanceof IMovingStorageEntity movingStorageEntity)) {
+				throw new IllegalStateException(entity.getClass().getName() + " is not a moving storage entity");
+			}
+			movingStorageEntity.getStorageHolder().setStorageItemFrom(storageStack, true);
+			configureItemDisplayPreviewWrapper(movingStorageEntity.getStorageHolder().getStorageWrapper(), displaySide, MovingStorageWrapper.isLimitedBarrel(storageStack));
+			level.addFreshEntity(entity);
+			return new ItemDisplayPreviewSetupResult(scenario, null, null, entity.getId(), BuiltInRegistries.ITEM.getKey(storageStack.getItem()).toString(),
+					MovingStorageWrapper.isLimitedBarrel(storageStack), ItemDisplayPreviewTargetType.MOVING_STORAGE);
+		}
+
+		private ItemDisplayPreviewSetupResult setupCreateContraptionStoragePreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
+				DisplaySide displaySide, BlockState storageState, boolean limitedBarrel, float cartYaw) {
+			if (!isCreateItemDisplayPreviewAvailable()) {
+				throw new IllegalStateException("Create item-display preview scenarios are unavailable in this dev runtime");
+			}
+			return CreateItemDisplayPreviewAutomation.setupStoragePreview(this, level, player, scenario, basePos, displaySide, storageState, limitedBarrel, cartYaw,
+					Optional.empty());
+		}
+
+		private ItemDisplayPreviewSetupResult setupCreateContraptionStoragePreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
+				DisplaySide displaySide, BlockState storageState, boolean limitedBarrel, float cartYaw, Optional<WoodType> woodType) {
+			if (!isCreateItemDisplayPreviewAvailable()) {
+				throw new IllegalStateException("Create item-display preview scenarios are unavailable in this dev runtime");
+			}
+			return CreateItemDisplayPreviewAutomation.setupStoragePreview(this, level, player, scenario, basePos, displaySide, storageState, limitedBarrel, cartYaw,
+					woodType);
+		}
+
+		private ItemDisplayPreviewSetupResult setupCreateContraptionDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
+				DisplaySide displaySide, float cartYaw) {
+			if (!isCreateItemDisplayPreviewAvailable()) {
+				throw new IllegalStateException("Create item-display preview scenarios are unavailable in this dev runtime");
+			}
+			return CreateItemDisplayPreviewAutomation.setupDoubleChestPreview(this, level, scenario, basePos, displaySide, cartYaw);
+		}
+
+		private ItemDisplayPreviewSetupResult setupCreateContraptionBackpackPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
+				DisplaySide displaySide, float cartYaw) {
+			if (!isCreateItemDisplayPreviewAvailable()) {
+				throw new IllegalStateException("Create item-display preview scenarios are unavailable in this dev runtime");
+			}
+			return CreateItemDisplayPreviewAutomation.setupBackpackPreview(this, level, scenario, basePos, displaySide, cartYaw);
+		}
+
+		private boolean isCreateItemDisplayPreviewAvailable() {
+			try {
+				Class.forName("com.simibubi.create.AllBlocks", false, DevClientAutomation.class.getClassLoader());
+				Class.forName("com.simibubi.create.content.contraptions.AbstractContraptionEntity", false, DevClientAutomation.class.getClassLoader());
+				return true;
+			} catch (ClassNotFoundException e) {
+				return false;
+			}
+		}
+
+		private ItemStack createStoragePreviewStack(String storageType) {
+			ItemStack storageStack = switch (storageType) {
+				case "chest" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_ITEM.get());
+				case "shulker" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX_ITEM.get());
+				case "limited_barrel" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_1_ITEM.get());
+				default -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get());
+			};
+			if (storageStack.getItem() instanceof WoodStorageBlockItem) {
+				WoodStorageBlockItem.setWoodType(storageStack, WoodType.BIRCH);
+			}
+			return storageStack;
+		}
+
+		private void configureItemDisplayPreviewStorage(StorageBlockEntity storageBlockEntity, DisplaySide displaySide, boolean limitedBarrel) {
+			if (limitedBarrel && storageBlockEntity.getBlockState().getBlock() instanceof LimitedBarrelBlock limitedBarrelBlock) {
+				int targetInventorySlots = limitedBarrelBlock.getNumberOfInventorySlots();
+				int wrapperSlotDiff = targetInventorySlots - storageBlockEntity.getStorageWrapper().getNumberOfInventorySlots();
+				if (wrapperSlotDiff != 0) {
+					storageBlockEntity.getStorageWrapper().changeSize(wrapperSlotDiff, 0);
+				}
+				int handlerSlotDiff = targetInventorySlots - storageBlockEntity.getStorageWrapper().getInventoryHandler().getSlots();
+				if (handlerSlotDiff != 0) {
+					storageBlockEntity.getStorageWrapper().getInventoryHandler().changeSlots(handlerSlotDiff);
+				}
+			}
+			if (storageBlockEntity instanceof WoodStorageBlockEntity woodStorageBlockEntity) {
+				woodStorageBlockEntity.setWoodType(WoodType.BIRCH);
+			}
+			configureItemDisplayPreviewWrapper(storageBlockEntity.getStorageWrapper(), displaySide, limitedBarrel);
+			storageBlockEntity.setChanged();
+			WorldHelper.notifyBlockUpdate(storageBlockEntity);
+		}
+
+		private void setPreviewWoodType(ServerLevel level, BlockPos pos, WoodType woodType) {
+			WorldHelper.getBlockEntity(level, pos, WoodStorageBlockEntity.class).ifPresent(woodStorageBlockEntity -> {
+				woodStorageBlockEntity.setWoodType(woodType);
+				woodStorageBlockEntity.setChanged();
+				WorldHelper.notifyBlockUpdate(woodStorageBlockEntity);
+			});
+		}
+
+		private void configureItemDisplayPreviewWrapper(IStorageWrapper storageWrapper, DisplaySide displaySide, boolean limitedBarrel) {
+			storageWrapper.getInventoryHandler().setStackInSlot(0, new ItemStack(Items.IRON_AXE));
+			if (limitedBarrel) {
+				LimitedBarrelBlockEntity.setFixedSettings(storageWrapper, storageWrapper.getInventoryHandler().getSlots());
+			}
+			ItemDisplaySettingsCategory itemDisplaySettings = storageWrapper.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class);
+			if (!itemDisplaySettings.getSlots().contains(0)) {
+				itemDisplaySettings.selectSlot(0);
+			}
+			itemDisplaySettings.setDisplaySide(displaySide);
+			itemDisplaySettings.itemsChanged();
+		}
+
+		private String openStorageInventory(ServerPlayer player, BlockPos pos) {
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			Direction hitDirection = getStorageOpenHitDirection(player.serverLevel().getBlockState(pos));
+			Vec3 hitLocation = Vec3.atCenterOf(pos).add(hitDirection.getStepX() * 0.5D, hitDirection.getStepY() * 0.5D, hitDirection.getStepZ() * 0.5D);
+			BlockHitResult hitResult = new BlockHitResult(hitLocation, hitDirection, pos, false);
+			player.gameMode.useItemOn(player, player.serverLevel(), player.getItemInHand(InteractionHand.MAIN_HAND), InteractionHand.MAIN_HAND, hitResult);
+			return "";
+		}
+
+		private String openMovingStorageInventory(ServerPlayer player, int entityId) {
+			Entity entity = player.serverLevel().getEntity(entityId);
+			if (!(entity instanceof IMovingStorageEntity movingStorageEntity)) {
+				throw new IllegalStateException("Moving storage entity missing for id " + entityId);
+			}
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			if (entity instanceof StorageBoat storageBoat) {
+				storageBoat.interactWithContainerVehicle(player);
+			} else if (entity instanceof StorageMinecart storageMinecart) {
+				storageMinecart.interact(player, InteractionHand.MAIN_HAND);
+			} else if (entity instanceof Llama llama) {
+				llama.openCustomInventoryScreen(player);
+			} else {
+				movingStorageEntity.getStorageHolder().openContainerMenu(player);
+			}
+			return "";
+		}
+
+		private String openCreateContraptionStorage(ServerPlayer player, int entityId, BlockPos localPos) {
+			Entity entity = player.serverLevel().getEntity(entityId);
+			if (!(entity instanceof AbstractContraptionEntity contraptionEntity)) {
+				throw new IllegalStateException("Create contraption entity missing for id " + entityId);
+			}
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			if (!contraptionEntity.handlePlayerInteraction(player, localPos, Direction.UP, InteractionHand.MAIN_HAND)) {
+				throw new IllegalStateException("Create contraption did not open mounted storage at " + localPos);
+			}
+			return "";
+		}
+
+		private Direction getStorageOpenHitDirection(BlockState state) {
+			if (state.getBlock() instanceof BarrelBlock barrelBlock && barrelBlock.getFacing(state) == Direction.UP) {
+				return Direction.NORTH;
+			}
+			return Direction.UP;
+		}
+
+		private void waitForClientStorageBlockEntity(BlockPos pos, boolean limitedBarrel) {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> isClientStorageBlockEntityReady(pos, limitedBarrel))) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for client storage block entity at " + pos);
+		}
+
+		private boolean isClientStorageBlockEntityReady(BlockPos pos, boolean limitedBarrel) {
+			if (Minecraft.getInstance().level == null) {
+				return false;
+			}
+			if (limitedBarrel && !(Minecraft.getInstance().level.getBlockState(pos).getBlock() instanceof LimitedBarrelBlock)) {
+				return false;
+			}
+			return WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, StorageBlockEntity.class).map(storageBlockEntity -> {
+				if (!limitedBarrel) {
+					return true;
+				}
+				if (!(storageBlockEntity.getBlockState().getBlock() instanceof LimitedBarrelBlock limitedBarrelBlock)) {
+					return false;
+				}
+				return storageBlockEntity.getStorageWrapper().getInventoryHandler().getSlots() == limitedBarrelBlock.getNumberOfInventorySlots();
+			}).orElse(false);
+		}
+
+		private void waitForClientBackpackInHotbar() {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> Minecraft.getInstance().player != null && Minecraft.getInstance().player.getInventory().getItem(0).getItem() instanceof BackpackItem)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for client backpack in hotbar slot 0");
+		}
+
+		private void waitForClientEntity(int entityId) {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> Minecraft.getInstance().level != null && Minecraft.getInstance().level.getEntity(entityId) != null)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for client entity " + entityId);
+		}
+
+		private void waitForStorageScreen() {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof AbstractContainerScreen<?> screen && screen.getMenu() instanceof StorageContainerMenuBase<?>)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for storage screen");
+		}
+
+		private void waitForStorageScreenAndClickSettingsTab() {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(this::clickStorageSettingsTabIfReady)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting to click storage settings tab");
+		}
+
+		private boolean clickStorageSettingsTabIfReady() {
+			Screen screen = Minecraft.getInstance().screen;
+			if (!(screen instanceof AbstractContainerScreen<?> containerScreen) || !(containerScreen.getMenu() instanceof StorageContainerMenuBase<?>)) {
+				return false;
+			}
+			StorageSettingsTab settingsTab = findChild(screen, StorageSettingsTab.class)
+					.orElseThrow(() -> new IllegalStateException("Storage settings tab was not present on " + screen.getClass().getSimpleName()));
+			settingsTab.mouseClicked(settingsTab.getX() + 9, settingsTab.getY() + 12, 0);
+			return true;
+		}
+
+		private String waitForSettingsScreenAndOpenItemDisplayTab() {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				String screenName = runOnClient(this::openItemDisplaySettingsTabIfReady);
+				if (!screenName.isEmpty()) {
+					return screenName;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for storage settings screen");
+		}
+
+		private String openItemDisplaySettingsTabIfReady() {
+			Screen screen = Minecraft.getInstance().screen;
+			if (!(screen instanceof SettingsScreen settingsScreen)) {
+				return "";
+			}
+			for (GuiEventListener child : settingsScreen.getSettingsTabControl().children()) {
+				if (child instanceof ItemDisplaySettingsTab itemDisplaySettingsTab) {
+					Optional<SettingsTab<?>> openTab = settingsScreen.getSettingsTabControl().getOpenTab();
+					if (openTab.map(tab -> tab == itemDisplaySettingsTab).orElse(false)) {
+						return screen.getClass().getSimpleName();
+					}
+					itemDisplaySettingsTab.mouseClicked(itemDisplaySettingsTab.getX() + 9, itemDisplaySettingsTab.getY() + 12, 0);
+					return "";
+				}
+			}
+			throw new IllegalStateException("Item display settings tab was not present on " + screen.getClass().getSimpleName());
+		}
+
+		private <T extends GuiEventListener> Optional<T> findChild(GuiEventListener parent, Class<T> childClass) {
+			if (childClass.isInstance(parent)) {
+				return Optional.of(childClass.cast(parent));
+			}
+			if (parent instanceof ContainerEventHandler containerEventHandler) {
+				for (GuiEventListener child : containerEventHandler.children()) {
+					Optional<T> found = findChild(child, childClass);
+					if (found.isPresent()) {
+						return found;
+					}
+				}
+			}
+			return Optional.empty();
+		}
+
+		private static class CreateItemDisplayPreviewAutomation {
+			private static ItemDisplayPreviewSetupResult setupStoragePreview(AutomationServer server, ServerLevel level, ServerPlayer player, String scenario,
+					BlockPos basePos, DisplaySide displaySide, BlockState storageState, boolean limitedBarrel, float cartYaw, Optional<WoodType> woodType) {
+				BlockPos assemblerPos = basePos;
+				BlockPos storagePos = assemblerPos.above();
+				level.setBlock(assemblerPos.below(), Blocks.DIRT.defaultBlockState(), 3);
+				level.setBlock(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+				level.setBlock(assemblerPos, AllBlocks.CART_ASSEMBLER.getDefaultState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
+						.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true), 3);
+				level.setBlock(storagePos, storageState, 3);
+				StorageBlockEntity storageBlockEntity = WorldHelper.getBlockEntity(level, storagePos, StorageBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Create contraption storage block entity missing for " + scenario));
+				if (storageBlockEntity instanceof WoodStorageBlockEntity woodStorageBlockEntity) {
+					woodType.ifPresent(woodStorageBlockEntity::setWoodType);
+				}
+				server.configureItemDisplayPreviewStorage(storageBlockEntity, displaySide, limitedBarrel);
+
+				AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
+				BlockPos localPos = findMountedStorageLocalPos(contraptionEntity);
+				return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(),
+						BuiltInRegistries.BLOCK.getKey(storageState.getBlock()).toString(), limitedBarrel, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			}
+
+			private static ItemDisplayPreviewSetupResult setupDoubleChestPreview(AutomationServer server, ServerLevel level, String scenario, BlockPos basePos,
+					DisplaySide displaySide, float cartYaw) {
+				BlockPos assemblerPos = basePos;
+				BlockPos leftPos = assemblerPos.above();
+				BlockPos rightPos = leftPos.east();
+				level.setBlock(assemblerPos.below(), Blocks.DIRT.defaultBlockState(), 3);
+				level.setBlock(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+				level.setBlock(assemblerPos, AllBlocks.CART_ASSEMBLER.getDefaultState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
+						.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true), 3);
+				BlockState leftState = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+						.setValue(ChestBlock.TYPE, ChestType.LEFT);
+				BlockState rightState = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH)
+						.setValue(ChestBlock.TYPE, ChestType.RIGHT);
+				level.setBlock(leftPos, leftState, 3);
+				level.setBlock(rightPos, rightState, 3);
+				level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(leftPos, rightPos)));
+
+				server.setPreviewWoodType(level, leftPos, WoodType.BIRCH);
+				StorageBlockEntity storageBlockEntity = WorldHelper.getBlockEntity(level, rightPos, StorageBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Create contraption double chest main block entity missing for " + scenario));
+				server.configureItemDisplayPreviewStorage(storageBlockEntity, displaySide, false);
+
+				AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
+				BlockPos localPos = findMountedDoubleChestLocalPos(contraptionEntity);
+				return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(),
+						BuiltInRegistries.BLOCK.getKey(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get()).toString(), false,
+						ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			}
+
+			private static ItemDisplayPreviewSetupResult setupBackpackPreview(AutomationServer server, ServerLevel level, String scenario, BlockPos basePos,
+					DisplaySide displaySide, float cartYaw) {
+				BlockPos assemblerPos = basePos;
+				BlockPos backpackPos = assemblerPos.above();
+				level.setBlock(assemblerPos.below(), Blocks.DIRT.defaultBlockState(), 3);
+				level.setBlock(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+				level.setBlock(assemblerPos, AllBlocks.CART_ASSEMBLER.getDefaultState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
+						.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true), 3);
+				BlockState backpackState = ModBlocks.DIAMOND_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Direction.NORTH);
+				level.setBlock(backpackPos, backpackState, 3);
+				BackpackBlockEntity backpackBlockEntity = WorldHelper.getBlockEntity(level, backpackPos, BackpackBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Create contraption backpack block entity missing for " + scenario));
+				ItemStack backpack = server.createBackpackStack();
+				IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
+				server.configureItemDisplayPreviewWrapper(backpackWrapper, displaySide, false);
+				backpackWrapper.getInventoryHandler().saveInventory();
+				backpackBlockEntity.setBackpack(backpack);
+				backpackBlockEntity.setChanged();
+				WorldHelper.notifyBlockUpdate(backpackBlockEntity);
+
+				AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
+				BlockPos localPos = findMountedStorageLocalPos(contraptionEntity);
+				return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(), BuiltInRegistries.BLOCK.getKey(backpackState.getBlock()).toString(),
+						false, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			}
+
+			private static AbstractContraptionEntity assembleCreateCartContraption(ServerLevel level, BlockPos assemblerPos, float cartYaw) {
+				Minecart cart = new Minecart(EntityType.MINECART, level);
+				cart.moveTo(assemblerPos.getX() + 0.5D, assemblerPos.getY(), assemblerPos.getZ() + 0.5D);
+				cart.setYRot(cartYaw);
+				level.addFreshEntity(cart);
+				CartAssemblerBlockEntity assemblerBlockEntity = WorldHelper.getBlockEntity(level, assemblerPos, CartAssemblerBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Create cart assembler block entity missing"));
+				assemblerBlockEntity.tryAssemble(cart);
+				return cart.getPassengers().stream()
+						.filter(AbstractContraptionEntity.class::isInstance)
+						.map(AbstractContraptionEntity.class::cast)
+						.findFirst()
+						.orElseThrow(() -> new IllegalStateException("Create cart assembler did not create a mounted contraption"
+								+ (assemblerBlockEntity.getLastAssemblyException() == null ? "" : ": " + assemblerBlockEntity.getLastAssemblyException().component.getString())));
+			}
+
+			private static BlockPos findMountedStorageLocalPos(AbstractContraptionEntity contraptionEntity) {
+				return ContraptionHelper.getMountedItemStorages(contraptionEntity).keySet().stream()
+						.filter(localPos -> ContraptionHelper.getMountedStorage(contraptionEntity, localPos) != null)
+						.findFirst()
+						.orElseThrow(() -> new IllegalStateException("Create contraption did not contain a mounted sophisticated storage"));
+			}
+
+			private static BlockPos findMountedDoubleChestLocalPos(AbstractContraptionEntity contraptionEntity) {
+				return ContraptionHelper.getMountedItemStorages(contraptionEntity).keySet().stream()
+						.filter(localPos -> {
+							MountedStorageBase mountedStorage = ContraptionHelper.getMountedStorage(contraptionEntity, localPos);
+							return mountedStorage != null && mountedStorage.getStorageStack().getItem() instanceof ChestBlockItem
+									&& ChestBlockItem.isDoubleChest(mountedStorage.getStorageStack())
+									&& mountedStorage.getStorageStack().has(ModCoreDataComponents.STORAGE_UUID);
+						})
+						.findFirst()
+						.orElseGet(() -> findMountedStorageLocalPos(contraptionEntity));
+			}
+		}
+
+		private enum ItemDisplayPreviewTargetType {
+			PLACED_STORAGE,
+			BACKPACK,
+			MOVING_STORAGE,
+			CREATE_CONTRAPTION
+		}
+
+		private enum MovingStoragePreviewVehicle {
+			MINECART,
+			BOAT,
+			LLAMA
+		}
+
+		private record ItemDisplayPreviewSetupResult(String scenario, BlockPos menuPos, BlockPos localPos, int entityId, String target, boolean limitedBarrel,
+				ItemDisplayPreviewTargetType targetType) {}
 
 		private String setSurvivalMode(ServerPlayer player) {
 			player.setGameMode(GameType.SURVIVAL);
