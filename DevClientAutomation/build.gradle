@@ -41,6 +41,20 @@ version = project.mod_version
 group = project.mod_group_id
 
 repositories {
+    maven {
+        url = "https://maven.createmod.net"
+        content {
+            includeGroupByRegex "com.simibubi.*"
+            includeGroupByRegex "net.createmod.*"
+            includeGroupByRegex "dev.engine-room.*"
+        }
+    }
+    maven {
+        url = "https://mvn.devos.one/snapshots"
+        content {
+            includeGroupByRegex "com.tterrag.*"
+        }
+    }
     maven { // JEI
         url "https://dvs1.progwml6.com/files/maven"
         content {
@@ -117,6 +131,16 @@ dependencies {
     compileOnly project(':SophisticatedCore')
     compileOnly project(':SophisticatedBackpacks')
     compileOnly project(':SophisticatedStorage')
+    compileOnly project(':SophisticatedStorageInMotion')
+    compileOnly project(':SophisticatedStorageCreateIntegration')
+    compileOnly project(':SophisticatedBackpacksCreateIntegration')
+    compileOnly("com.simibubi.create:create-${project(':workspace').create_mc_version}:${project(':workspace').create_version}") {
+        transitive = false
+    }
+    compileOnly("net.createmod.ponder:ponder-neoforge:${project(':workspace').ponder_version}+mc${project(':workspace').create_mc_version}") {
+        transitive = false
+    }
+    compileOnly "com.tterrag.registrate:Registrate:${project(':workspace').registrate_version}"
     compileOnly "dev.emi:emi-neoforge:${emi_version}"
     compileOnly "mezz.jei:jei-${jei_mc_version}-api:${jei_version}"
     compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
