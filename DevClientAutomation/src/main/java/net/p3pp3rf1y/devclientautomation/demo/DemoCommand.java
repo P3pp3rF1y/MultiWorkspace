@@ -18,6 +18,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -48,6 +49,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
@@ -265,6 +267,26 @@ public class DemoCommand {
 										.executes(context -> giveConfiguredBackpack(context.getSource(), StringArgumentType.getString(context, "mode"),
 												parseItemSeeds(StringArgumentType.getString(context, "items")), true))))))
 						.then(Commands.literal("open").executes(context -> openBackpack(context.getSource(), true))))
+				.then(Commands.literal("pipezRepro")
+						.then(Commands.literal("seedBackpack")
+								.then(Commands.argument("pos", BlockPosArgument.blockPos())
+										.executes(context -> seedPipezReproBackpack(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos")))))
+						.then(Commands.literal("configurePipe")
+								.then(Commands.argument("pos", BlockPosArgument.blockPos())
+										.then(Commands.argument("side", StringArgumentType.word())
+												.executes(context -> configurePipezReproPipe(context.getSource(),
+														BlockPosArgument.getLoadedBlockPos(context, "pos"), StringArgumentType.getString(context, "side"))))))
+						.then(Commands.literal("status").then(Commands.argument("backpackPos", BlockPosArgument.blockPos()).then(Commands
+								.argument("pipePos", BlockPosArgument.blockPos())
+								.then(Commands.argument("deployerPos", BlockPosArgument.blockPos())
+										.executes(context -> pipezReproStatus(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "backpackPos"),
+												BlockPosArgument.getLoadedBlockPos(context, "pipePos"),
+												BlockPosArgument.getLoadedBlockPos(context, "deployerPos")))))))
+						.then(Commands.literal("useDeployer").then(Commands.argument("pos", BlockPosArgument.blockPos())
+								.executes(context -> usePipezReproDeployer(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos"), "east"))
+								.then(Commands.argument("side", StringArgumentType.word())
+										.executes(context -> usePipezReproDeployer(context.getSource(), BlockPosArgument.getLoadedBlockPos(context, "pos"),
+												StringArgumentType.getString(context, "side")))))))
 				.then(Commands.literal("step").then(Commands.literal("closeScreen").executes(context -> closeScreen(context.getSource(), true)))
 						.then(Commands.literal("keybind")
 								.then(Commands.argument("action", StringArgumentType.word()).executes(
@@ -1414,6 +1436,193 @@ public class DemoCommand {
 		}
 		inventory.saveInventory();
 		return backpack;
+	}
+
+	private static int seedPipezReproBackpack(CommandSourceStack source, BlockPos pos) {
+		try {
+			BlockEntity blockEntity = source.getLevel().getBlockEntity(pos);
+			if (!(blockEntity instanceof BackpackBlockEntity backpackBlockEntity)) {
+				source.sendFailure(Component.literal("No backpack block entity at " + pos.toShortString()));
+				return 0;
+			}
+
+			IBackpackWrapper wrapper = backpackBlockEntity.getBackpackWrapper();
+			ItemStack backpack = wrapper.getBackpack();
+			if (!(wrapper instanceof BackpackWrapper) || !(backpack.getItem() instanceof BackpackItem)) {
+				backpackBlockEntity.setBackpack(new ItemStack(ModItems.DIAMOND_BACKPACK.get()));
+			}
+
+			wrapper = backpackBlockEntity.getBackpackWrapper();
+			wrapper.setSlotNumbers(27, 1);
+			InventoryHandler inventory = wrapper.getInventoryHandler();
+			UpgradeHandler upgrades = wrapper.getUpgradeHandler();
+			upgrades.setStackInSlot(0, new ItemStack(ModItems.STACK_UPGRADE_TIER_1.get()));
+			upgrades.saveInventory();
+
+			for (int slot = 0; slot < inventory.getSlots(); slot++) {
+				inventory.setStackInSlot(slot, ItemStack.EMPTY);
+			}
+			inventory.setStackInSlot(0, createItemStack("minecraft:diamond_sword", 1));
+			inventory.setStackInSlot(1, createItemStack("minecraft:diamond_sword", 1));
+			inventory.setStackInSlot(2, createItemStack("minecraft:diamond_sword", 1));
+			inventory.saveInventory();
+
+			backpackBlockEntity.setChanged();
+			source.getLevel().sendBlockUpdated(pos, backpackBlockEntity.getBlockState(), backpackBlockEntity.getBlockState(), 3);
+			success(source, () -> Component.literal("Seeded Pipez repro backpack at " + pos.toShortString()));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int configurePipezReproPipe(CommandSourceStack source, BlockPos pos, String sideName) {
+		try {
+			Direction side = Direction.byName(sideName.toLowerCase(Locale.ROOT));
+			if (side == null) {
+				source.sendFailure(Component.literal("Unknown direction " + sideName));
+				return 0;
+			}
+
+			BlockEntity blockEntity = source.getLevel().getBlockEntity(pos);
+			Class<?> pipeClass = Class.forName("de.maxhenkel.pipez.blocks.tileentity.PipeTileEntity");
+			if (!pipeClass.isInstance(blockEntity)) {
+				source.sendFailure(Component.literal("No Pipez pipe block entity at " + pos.toShortString()));
+				return 0;
+			}
+
+			pipeClass.getMethod("setExtracting", Direction.class, boolean.class).invoke(blockEntity, side, true);
+			Class<?> upgradeClass = Class.forName("de.maxhenkel.pipez.blocks.tileentity.UpgradeTileEntity");
+			if (upgradeClass.isInstance(blockEntity)) {
+				Item upgradeItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("pipez", "ultimate_upgrade"));
+				if (upgradeItem != null) {
+					upgradeClass.getMethod("setUpgradeItem", Direction.class, ItemStack.class).invoke(blockEntity, side, new ItemStack(upgradeItem));
+				}
+			}
+
+			blockEntity.setChanged();
+			pipeClass.getMethod("syncData").invoke(blockEntity);
+			source.getLevel().sendBlockUpdated(pos, blockEntity.getBlockState(), blockEntity.getBlockState(), 3);
+			success(source, () -> Component.literal("Configured Pipez pipe at " + pos.toShortString() + " extracting " + side.getName()));
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int pipezReproStatus(CommandSourceStack source, BlockPos backpackPos, BlockPos pipePos, BlockPos deployerPos) {
+		try {
+			ServerLevel level = source.getLevel();
+			BlockEntity backpackBlockEntity = level.getBlockEntity(backpackPos);
+			if (backpackBlockEntity instanceof BackpackBlockEntity backpack) {
+				IBackpackWrapper wrapper = backpack.getBackpackWrapper();
+				if (wrapper instanceof BackpackWrapper backpackWrapper) {
+					source.sendSuccess(() -> Component.literal("Backpack raw: " + summarizeItemHandler(backpackWrapper.getInventoryHandler())), false);
+					source.sendSuccess(() -> Component.literal("Backpack IO: " + summarizeItemHandler(backpackWrapper.getInventoryForInputOutput())), false);
+				}
+				ItemStack upgrade = wrapper.getUpgradeHandler().getStackInSlot(0);
+				source.sendSuccess(() -> Component.literal("Backpack upgrade0: " + formatItemStack(upgrade)), false);
+			}
+			source.sendSuccess(() -> Component.literal("Backpack cap none: " + summarizeItemHandler(getItemHandler(backpackBlockEntity, null))), false);
+			source.sendSuccess(() -> Component.literal("Backpack cap east: " + summarizeItemHandler(getItemHandler(backpackBlockEntity, Direction.EAST))),
+					false);
+
+			BlockEntity pipeBlockEntity = level.getBlockEntity(pipePos);
+			if (pipeBlockEntity != null) {
+				Class<?> pipeClass = Class.forName("de.maxhenkel.pipez.blocks.tileentity.PipeTileEntity");
+				if (pipeClass.isInstance(pipeBlockEntity)) {
+					Method isExtracting = pipeClass.getMethod("isExtracting", Direction.class);
+					StringBuilder sides = new StringBuilder();
+					for (Direction direction : Direction.values()) {
+						if ((boolean) isExtracting.invoke(pipeBlockEntity, direction)) {
+							sides.append(sides.isEmpty() ? "" : ",").append(direction.getName());
+						}
+					}
+					source.sendSuccess(() -> Component.literal("Pipe extracting: " + (sides.isEmpty() ? "none" : sides)), false);
+				}
+			}
+
+			source.sendSuccess(() -> Component.literal("Deployer cap none: " + summarizeItemHandler(getItemHandler(level.getBlockEntity(deployerPos), null))),
+					false);
+			source.sendSuccess(
+					() -> Component.literal("Deployer cap west: " + summarizeItemHandler(getItemHandler(level.getBlockEntity(deployerPos), Direction.WEST))),
+					false);
+			return 1;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static int usePipezReproDeployer(CommandSourceStack source, BlockPos pos, String sideName) {
+		try {
+			Direction side = Direction.byName(sideName.toLowerCase(Locale.ROOT));
+			if (side == null) {
+				source.sendFailure(Component.literal("Unknown direction " + sideName));
+				return 0;
+			}
+			ServerPlayer player = source.getPlayerOrException();
+			Item sword = itemFromName("minecraft:diamond_sword");
+			int before = player.getInventory().countItem(sword);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			Vec3 hitLocation = Vec3.atCenterOf(pos).add(Vec3.atLowerCornerOf(side.getNormal()).scale(0.5D));
+			BlockHitResult hitResult = new BlockHitResult(hitLocation, side, pos, false);
+			InteractionResult result = player.gameMode.useItemOn(player, source.getLevel(), player.getItemInHand(InteractionHand.MAIN_HAND),
+					InteractionHand.MAIN_HAND, hitResult);
+			int after = player.getInventory().countItem(sword);
+			String deployer = summarizeItemHandler(getItemHandler(source.getLevel().getBlockEntity(pos), null));
+			source.sendSuccess(() -> Component.literal(
+					"Used deployer " + side.getName() + ": result=" + result + " swordsBefore=" + before + " swordsAfter=" + after + " deployer=" + deployer),
+					false);
+			return after > before ? 1 : 0;
+		} catch (Exception e) {
+			source.sendFailure(Component.literal(e.getMessage()));
+			return 0;
+		}
+	}
+
+	private static IItemHandler getItemHandler(BlockEntity blockEntity, Direction side) {
+		if (blockEntity == null) {
+			return null;
+		}
+		return (side == null ? blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER) : blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, side))
+				.orElse(null);
+	}
+
+	private static String summarizeItemHandler(IItemHandler itemHandler) {
+		if (itemHandler == null) {
+			return "none";
+		}
+		StringBuilder stacks = new StringBuilder();
+		int nonEmpty = 0;
+		int totalItems = 0;
+		ItemStack firstSimulatedExtract = ItemStack.EMPTY;
+		for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
+			ItemStack stack = itemHandler.getStackInSlot(slot);
+			if (stack.isEmpty()) {
+				continue;
+			}
+			if (firstSimulatedExtract.isEmpty()) {
+				firstSimulatedExtract = itemHandler.extractItem(slot, 64, true);
+			}
+			nonEmpty++;
+			totalItems += stack.getCount();
+			if (stacks.length() < 160) {
+				stacks.append(stacks.isEmpty() ? "" : " ").append('[').append(slot).append('=').append(formatItemStack(stack)).append(']');
+			}
+		}
+		return "slots=" + itemHandler.getSlots() + " nonEmpty=" + nonEmpty + " total=" + totalItems + " firstSimExtract="
+				+ formatItemStack(firstSimulatedExtract) + (stacks.isEmpty() ? "" : " " + stacks);
+	}
+
+	private static String formatItemStack(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return "empty";
+		}
+		ResourceLocation itemName = ForgeRegistries.ITEMS.getKey(stack.getItem());
+		return stack.getCount() + "x" + (itemName == null ? stack.getItem().toString() : itemName.toString());
 	}
 
 	private static ItemStack createItemStack(String itemName, int count) {

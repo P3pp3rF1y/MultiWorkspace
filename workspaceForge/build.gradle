@@ -281,7 +281,8 @@ dependencies {
         implementation project(':SophisticatedInventoryInteractions')
     }
 
-    runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
+    // Disabled for Pipez repro: Jade crashes rendering Pipez overlay before the test can run.
+    // runtimeOnly fg.deobf("curse.maven:jade-324717:4614153")
     //runtimeOnly fg.deobf("curse.maven:rubidium-574856:4767529")
     //runtimeOnly fg.deobf("curse.maven:itemborders-513769:${item_borders_cf_file_id}")
     runtimeOnly fg.deobf("curse.maven:iceberg-520110:${iceberg_cf_file_id}")
@@ -292,6 +293,7 @@ dependencies {
     runtimeOnly fg.deobf("com.simibubi.create:create-${create_mc_version}:${create_version}:all") {
         transitive = false
     }
+    runtimeOnly fg.deobf("curse.maven:pipez-443900:6368313")
 /*
     runtimeOnly fg.deobf("net.createmod.ponder:Ponder-Forge-${create_mc_version}:${ponder_version}") {
         transitive = false
