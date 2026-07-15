@@ -287,7 +287,9 @@ dependencies {
 //    runtimeOnly "curse.maven:blurplus-393563:7830008"
 //    runtimeOnly "curse.maven:midnightlib-488090:7811718"
 //    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
-//    runtimeOnly "curse.maven:colossalchests-237875:7891282"
+    runtimeOnly "curse.maven:biomesoplenty-220318:8377426"
+    runtimeOnly "curse.maven:glitchcore-955399:8332871"
+    runtimeOnly "curse.maven:terrablender-940057:8384516"
 /*
     runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
         transitive = false
