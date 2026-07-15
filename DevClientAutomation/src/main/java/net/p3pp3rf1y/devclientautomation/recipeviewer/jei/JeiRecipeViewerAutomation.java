@@ -281,10 +281,10 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 		boolean visible = active || errorType == IRecipeTransferError.Type.USER_FACING;
 		return "{\"ok\":true," + JsonUtil.property("viewer", "jei") + "," + JsonUtil.property("item", itemId(focusStack))
 				+ ",\"recipeScreenOpen\":true,\"hasParentContainer\":true," + JsonUtil.property("parentContainerClass", parentContainer.getClass().getName())
-				+ "," + JsonUtil.property("recipeId", recipeId(layout.getRecipe())) + "," + JsonUtil.property("category", category.getRecipeType().getUid().toString())
-				+ ",\"hasTransferHandler\":" + handler.isPresent() + ",\"visible\":" + visible + ",\"active\":" + active + ","
-				+ JsonUtil.property("errorType", errorType == null ? null : errorType.name()) + ",\"missingCountHint\":"
-				+ (transferError == null ? 0 : transferError.getMissingCountHint()) + "}";
+				+ "," + JsonUtil.property("recipeId", recipeId(layout.getRecipe())) + ","
+				+ JsonUtil.property("category", category.getRecipeType().getUid().toString()) + ",\"hasTransferHandler\":" + handler.isPresent()
+				+ ",\"visible\":" + visible + ",\"active\":" + active + "," + JsonUtil.property("errorType", errorType == null ? null : errorType.name())
+				+ ",\"missingCountHint\":" + (transferError == null ? 0 : transferError.getMissingCountHint()) + "}";
 	}
 
 	@SuppressWarnings("unchecked")

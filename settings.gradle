@@ -20,6 +20,7 @@ include 'SophisticatedStorageCreateIntegration'
 include 'SophisticatedStorageInMotion'
 include 'SophisticatedItemActions'
 include 'SophisticatedInventoryInteractions'
+include 'SophisticatedAdventureUpgrades'
 include 'DevClientAutomation'
 
 include 'workspace'
