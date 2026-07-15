@@ -48,7 +48,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.biome.Biome;
@@ -75,9 +74,9 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
-import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
+import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
@@ -86,6 +85,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
+import net.p3pp3rf1y.sophisticatedbackpacks.util.InventoryInteractionHelper;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
@@ -548,13 +548,10 @@ public class DevClientAutomationClient {
 			waitForStorageScreen();
 			waitForStorageScreenAndClickSettingsTab();
 			String screenName = waitForSettingsScreenAndOpenItemDisplayTab();
-			return "{\"ok\":true," + jsonProperty("scenario", setupResult.scenario()) + ','
-					+ jsonProperty("displaySide", displaySide.getSerializedName()) + ','
+			return "{\"ok\":true," + jsonProperty("scenario", setupResult.scenario()) + ',' + jsonProperty("displaySide", displaySide.getSerializedName()) + ','
 					+ jsonProperty("menuPos", setupResult.menuPos() == null ? null : setupResult.menuPos().toShortString()) + ','
-					+ jsonProperty("localPos", setupResult.localPos() == null ? null : setupResult.localPos().toShortString()) + ','
-					+ "\"entityId\":" + setupResult.entityId() + ','
-					+ jsonProperty("target", setupResult.target()) + ','
-					+ jsonProperty("screen", screenName) + '}';
+					+ jsonProperty("localPos", setupResult.localPos() == null ? null : setupResult.localPos().toShortString()) + ',' + "\"entityId\":"
+					+ setupResult.entityId() + ',' + jsonProperty("target", setupResult.target()) + ',' + jsonProperty("screen", screenName) + '}';
 		}
 
 		private ItemDisplayPreviewSetupResult setupStorageItemDisplayPreview(ServerPlayer player, String scenario, DisplaySide displaySide) {
@@ -573,13 +570,16 @@ public class DevClientAutomationClient {
 						ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.DOWN), displaySide, false);
 				case "limited_barrel_north" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
 						ModBlocks.LIMITED_BARREL_1.get().defaultBlockState().setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH)
-								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO), displaySide, true);
+								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO),
+						displaySide, true);
 				case "limited_barrel_up" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
 						ModBlocks.LIMITED_BARREL_1.get().defaultBlockState().setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH)
-								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.UP), displaySide, true);
+								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.UP),
+						displaySide, true);
 				case "limited_barrel_down" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
 						ModBlocks.LIMITED_BARREL_1.get().defaultBlockState().setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH)
-								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.DOWN), displaySide, true);
+								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.DOWN),
+						displaySide, true);
 				case "single_chest_north" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
 						ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.SINGLE),
 						displaySide, false);
@@ -588,20 +588,20 @@ public class DevClientAutomationClient {
 						ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.NORTH), displaySide, false);
 				case "shulker_up" -> setupSingleStoragePreview(level, player, normalizedScenario, basePos,
 						ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.UP), displaySide, false);
-				case "moving_minecart_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
-						createStoragePreviewStack("barrel"), 0);
-				case "moving_minecart_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
-						createStoragePreviewStack("chest"), 90);
-				case "moving_minecart_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.MINECART,
-						createStoragePreviewStack("shulker"), 180);
-				case "moving_boat_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
-						createStoragePreviewStack("barrel"), 0);
+				case "moving_minecart_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.MINECART, createStoragePreviewStack("barrel"), 0);
+				case "moving_minecart_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.MINECART, createStoragePreviewStack("chest"), 90);
+				case "moving_minecart_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.MINECART, createStoragePreviewStack("shulker"), 180);
+				case "moving_boat_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.BOAT, createStoragePreviewStack("barrel"), 0);
 				case "moving_boat_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
 						createStoragePreviewStack("chest"), 90);
-				case "moving_boat_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
-						createStoragePreviewStack("shulker"), 180);
-				case "moving_boat_limited_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.BOAT,
-						createStoragePreviewStack("limited_barrel"), 270);
+				case "moving_boat_shulker" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.BOAT, createStoragePreviewStack("shulker"), 180);
+				case "moving_boat_limited_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide,
+						MovingStoragePreviewVehicle.BOAT, createStoragePreviewStack("limited_barrel"), 270);
 				case "llama_barrel" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.LLAMA,
 						createStoragePreviewStack("barrel"), 0);
 				case "llama_chest" -> setupMovingStoragePreview(level, player, normalizedScenario, basePos, displaySide, MovingStoragePreviewVehicle.LLAMA,
@@ -613,13 +613,15 @@ public class DevClientAutomationClient {
 				case "create_cart_barrel_east" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
 						ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.EAST), false, 90);
 				case "create_cart_chest" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
-						ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.SINGLE), false, 180);
+						ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.SINGLE),
+						false, 180);
 				case "create_cart_double_chest" -> setupCreateContraptionDoubleChestPreview(level, player, normalizedScenario, basePos, displaySide, 180);
 				case "create_cart_shulker" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
 						ModBlocks.SHULKER_BOX.get().defaultBlockState().setValue(ShulkerBoxBlock.FACING, Direction.NORTH), false, 270);
 				case "create_cart_limited_barrel" -> setupCreateContraptionStoragePreview(level, player, normalizedScenario, basePos, displaySide,
 						ModBlocks.LIMITED_BARREL_1.get().defaultBlockState().setValue(LimitedBarrelBlock.HORIZONTAL_FACING, Direction.NORTH)
-								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO), true, 0);
+								.setValue(LimitedBarrelBlock.VERTICAL_FACING, VerticalFacing.NO),
+						true, 0);
 				case "create_cart_backpack" -> setupCreateContraptionBackpackPreview(level, player, normalizedScenario, basePos, displaySide, 90);
 				default -> setupSingleStoragePreview(level, player, "barrel_north", basePos,
 						ModBlocks.BARREL.get().defaultBlockState().setValue(BarrelBlock.FACING, Direction.NORTH), displaySide, false);
@@ -683,7 +685,8 @@ public class DevClientAutomationClient {
 			};
 		}
 
-		private ItemDisplayPreviewSetupResult setupDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos leftPos, DisplaySide displaySide) {
+		private ItemDisplayPreviewSetupResult setupDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos leftPos,
+				DisplaySide displaySide) {
 			BlockPos rightPos = leftPos.east();
 			level.setBlock(leftPos,
 					ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.LEFT), 3);
@@ -760,12 +763,12 @@ public class DevClientAutomationClient {
 
 			AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
 			BlockPos localPos = findMountedStorageLocalPos(contraptionEntity);
-			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(), String.valueOf(ForgeRegistries.BLOCKS.getKey(storageState.getBlock())),
-					limitedBarrel, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(),
+					String.valueOf(ForgeRegistries.BLOCKS.getKey(storageState.getBlock())), limitedBarrel, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
 		}
 
-		private ItemDisplayPreviewSetupResult setupCreateContraptionDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
-				DisplaySide displaySide, float cartYaw) {
+		private ItemDisplayPreviewSetupResult setupCreateContraptionDoubleChestPreview(ServerLevel level, ServerPlayer player, String scenario,
+				BlockPos basePos, DisplaySide displaySide, float cartYaw) {
 			BlockPos assemblerPos = basePos;
 			BlockPos leftPos = assemblerPos.above();
 			BlockPos rightPos = leftPos.east();
@@ -773,8 +776,10 @@ public class DevClientAutomationClient {
 			level.setBlock(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
 			level.setBlock(assemblerPos, getCartAssemblerBlock().defaultBlockState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
 					.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true), 3);
-			BlockState leftState = ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.LEFT);
-			BlockState rightState = ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.RIGHT);
+			BlockState leftState = ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE,
+					ChestType.LEFT);
+			BlockState rightState = ModBlocks.CHEST.get().defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE,
+					ChestType.RIGHT);
 			level.setBlock(leftPos, leftState, 3);
 			level.setBlock(rightPos, rightState, 3);
 			level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(leftPos, rightPos)));
@@ -786,8 +791,8 @@ public class DevClientAutomationClient {
 
 			AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
 			BlockPos localPos = findMountedDoubleChestLocalPos(contraptionEntity);
-			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(), String.valueOf(ForgeRegistries.BLOCKS.getKey(ModBlocks.CHEST.get())),
-					false, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(),
+					String.valueOf(ForgeRegistries.BLOCKS.getKey(ModBlocks.CHEST.get())), false, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
 		}
 
 		private ItemDisplayPreviewSetupResult setupCreateContraptionBackpackPreview(ServerLevel level, ServerPlayer player, String scenario, BlockPos basePos,
@@ -813,8 +818,8 @@ public class DevClientAutomationClient {
 
 			AbstractContraptionEntity contraptionEntity = assembleCreateCartContraption(level, assemblerPos, cartYaw);
 			BlockPos localPos = findMountedStorageLocalPos(contraptionEntity);
-			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(), String.valueOf(ForgeRegistries.BLOCKS.getKey(backpackState.getBlock())),
-					false, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
+			return new ItemDisplayPreviewSetupResult(scenario, null, localPos, contraptionEntity.getId(),
+					String.valueOf(ForgeRegistries.BLOCKS.getKey(backpackState.getBlock())), false, ItemDisplayPreviewTargetType.CREATE_CONTRAPTION);
 		}
 
 		private AbstractContraptionEntity assembleCreateCartContraption(ServerLevel level, BlockPos assemblerPos, float cartYaw) {
@@ -824,12 +829,11 @@ public class DevClientAutomationClient {
 			CartAssemblerBlockEntity assemblerBlockEntity = WorldHelper.getBlockEntity(level, assemblerPos, CartAssemblerBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Create cart assembler block entity missing"));
 			assemblerBlockEntity.tryAssemble(cart);
-			return cart.getPassengers().stream()
-					.filter(AbstractContraptionEntity.class::isInstance)
-					.map(AbstractContraptionEntity.class::cast)
-					.findFirst()
-					.orElseThrow(() -> new IllegalStateException("Create cart assembler did not create a mounted contraption"
-							+ (assemblerBlockEntity.getLastAssemblyException() == null ? "" : ": " + assemblerBlockEntity.getLastAssemblyException().component.getString())));
+			return cart.getPassengers().stream().filter(AbstractContraptionEntity.class::isInstance).map(AbstractContraptionEntity.class::cast).findFirst()
+					.orElseThrow(() -> new IllegalStateException(
+							"Create cart assembler did not create a mounted contraption" + (assemblerBlockEntity.getLastAssemblyException() == null
+									? ""
+									: ": " + assemblerBlockEntity.getLastAssemblyException().component.getString())));
 		}
 
 		private CartAssemblerBlock getCartAssemblerBlock() {
@@ -842,21 +846,16 @@ public class DevClientAutomationClient {
 
 		private BlockPos findMountedStorageLocalPos(AbstractContraptionEntity contraptionEntity) {
 			return ContraptionHelper.getMountedItemStorages(contraptionEntity).keySet().stream()
-					.filter(localPos -> ContraptionHelper.getMountedStorage(contraptionEntity, localPos) != null)
-					.findFirst()
+					.filter(localPos -> ContraptionHelper.getMountedStorage(contraptionEntity, localPos) != null).findFirst()
 					.orElseThrow(() -> new IllegalStateException("Create contraption did not contain a mounted sophisticated storage"));
 		}
 
 		private BlockPos findMountedDoubleChestLocalPos(AbstractContraptionEntity contraptionEntity) {
-			return ContraptionHelper.getMountedItemStorages(contraptionEntity).keySet().stream()
-					.filter(localPos -> {
-						MountedStorageBase mountedStorage = ContraptionHelper.getMountedStorage(contraptionEntity, localPos);
-						return mountedStorage != null && mountedStorage.getStorageStack().getItem() instanceof ChestBlockItem
-								&& ChestBlockItem.isDoubleChest(mountedStorage.getStorageStack())
-								&& mountedStorage.getStorageWrapper().getContentsUuid().isPresent();
-					})
-					.findFirst()
-					.orElseGet(() -> findMountedStorageLocalPos(contraptionEntity));
+			return ContraptionHelper.getMountedItemStorages(contraptionEntity).keySet().stream().filter(localPos -> {
+				MountedStorageBase mountedStorage = ContraptionHelper.getMountedStorage(contraptionEntity, localPos);
+				return mountedStorage != null && mountedStorage.getStorageStack().getItem() instanceof ChestBlockItem
+						&& ChestBlockItem.isDoubleChest(mountedStorage.getStorageStack()) && mountedStorage.getStorageWrapper().getContentsUuid().isPresent();
+			}).findFirst().orElseGet(() -> findMountedStorageLocalPos(contraptionEntity));
 		}
 
 		private ItemStack createStoragePreviewStack(String storageType) {
@@ -1091,20 +1090,16 @@ public class DevClientAutomationClient {
 		}
 
 		private enum ItemDisplayPreviewTargetType {
-			PLACED_STORAGE,
-			BACKPACK,
-			MOVING_STORAGE,
-			CREATE_CONTRAPTION
+			PLACED_STORAGE, BACKPACK, MOVING_STORAGE, CREATE_CONTRAPTION
 		}
 
 		private enum MovingStoragePreviewVehicle {
-			MINECART,
-			BOAT,
-			LLAMA
+			MINECART, BOAT, LLAMA
 		}
 
 		private record ItemDisplayPreviewSetupResult(String scenario, BlockPos menuPos, BlockPos localPos, int entityId, String target, boolean limitedBarrel,
-				ItemDisplayPreviewTargetType targetType) {}
+				ItemDisplayPreviewTargetType targetType) {
+		}
 
 		private String setupBackpacks(ServerPlayer player, boolean mainMagnet, int redstoneCount) {
 			player.getInventory().clearContent();
@@ -1212,8 +1207,8 @@ public class DevClientAutomationClient {
 						return false;
 					}
 					ItemStack backpack = player.getInventory().getItem(0);
-					return backpack.getItem() instanceof BackpackItem && new BackpackWrapper(backpack).getUpgradeHandler().getStackInSlot(0)
-							.is(ModItems.CRAFTING_UPGRADE.get());
+					return backpack.getItem() instanceof BackpackItem
+							&& new BackpackWrapper(backpack).getUpgradeHandler().getStackInSlot(0).is(ModItems.CRAFTING_UPGRADE.get());
 				})) {
 					return;
 				}
@@ -1238,8 +1233,10 @@ public class DevClientAutomationClient {
 
 		private String openParentBackpackCraftingTransferRegression(ServerPlayer player) {
 			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, 0);
-			NetworkHooks.openScreen(player, new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
-					Component.literal("Crafting Transfer Regression")), backpackContext::toBuffer);
+			NetworkHooks.openScreen(player,
+					new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
+							Component.literal("Crafting Transfer Regression")),
+					backpackContext::toBuffer);
 			return "{\"ok\":true}";
 		}
 
@@ -1626,6 +1623,10 @@ public class DevClientAutomationClient {
 				sendJsonHandling(exchange, () -> runAdvancedCompactingHighStackRegression(name, body));
 				return;
 			}
+			if ("depositLimitedBarrelGuiState".equals(type)) {
+				sendJsonHandling(exchange, () -> runDepositLimitedBarrelGuiStateRegression(name, body));
+				return;
+			}
 			throw new IllegalArgumentException("Unknown backpack GUI regression type " + type);
 		}
 
@@ -1775,6 +1776,111 @@ public class DevClientAutomationClient {
 					+ result.expectedNuggets() + ",\"actualNuggets\":" + result.actualNuggets() + ",\"expectedIngots\":" + result.expectedIngots()
 					+ ",\"actualIngots\":" + result.actualIngots() + ",\"expectedBlocks\":" + result.expectedBlocks() + ",\"actualBlocks\":"
 					+ result.actualBlocks() + ",\"insertRemainder\":" + result.insertRemainder() + "," + jsonProperty("error", result.error()) + "}";
+		}
+
+		private String runDepositLimitedBarrelGuiStateRegression(String name, String requestBody) {
+			int depositCount = extractInt(requestBody, "depositCount").orElse(64);
+			int targetFreeSpace = extractInt(requestBody, "targetFreeSpace").orElse(16);
+			boolean locked = extractBoolean(requestBody, "locked").orElse(true);
+			boolean inventoryFilter = extractBoolean(requestBody, "inventoryFilter").orElse(true);
+
+			List<DepositLimitedBarrelGuiStateResult> results = runOnServer(
+					player -> runDepositLimitedBarrelGuiStateRegression(player, name, depositCount, targetFreeSpace, locked, inventoryFilter));
+			boolean passed = results.stream().allMatch(DepositLimitedBarrelGuiStateResult::passed);
+
+			StringBuilder json = new StringBuilder("{\"ok\":").append(passed).append(',').append(jsonProperty("name", name)).append(",\"depositCount\":")
+					.append(depositCount).append(",\"targetFreeSpace\":").append(targetFreeSpace).append(",\"locked\":").append(locked)
+					.append(",\"inventoryFilter\":").append(inventoryFilter).append(",\"results\":[");
+			for (int i = 0; i < results.size(); i++) {
+				if (i > 0) {
+					json.append(',');
+				}
+				DepositLimitedBarrelGuiStateResult result = results.get(i);
+				json.append('{').append(jsonProperty("scenario", result.scenario())).append(",\"passed\":").append(result.passed())
+						.append(",\"backpackOpened\":").append(result.backpackOpened()).append(",\"barrelOpened\":").append(result.barrelOpened())
+						.append(",\"handled\":").append(result.handled()).append(",\"slotLimit\":").append(result.slotLimit()).append(",\"backpackBefore\":")
+						.append(result.backpackBefore()).append(",\"backpackAfter\":").append(result.backpackAfter()).append(",\"barrelBefore\":")
+						.append(result.barrelBefore()).append(",\"barrelAfter\":").append(result.barrelAfter()).append(",\"totalBefore\":")
+						.append(result.totalBefore()).append(",\"totalAfter\":").append(result.totalAfter()).append(',')
+						.append(jsonProperty("error", result.error())).append('}');
+			}
+			json.append("]}");
+			return json.toString();
+		}
+
+		private List<DepositLimitedBarrelGuiStateResult> runDepositLimitedBarrelGuiStateRegression(ServerPlayer player, String name, int depositCount,
+				int targetFreeSpace, boolean locked, boolean inventoryFilter) {
+			player.getInventory().clearContent();
+			ServerLevel level = player.serverLevel();
+			BlockPos basePos = player.blockPosition().offset(3, 0, 0);
+			List<DepositLimitedBarrelGuiStateScenario> scenarios = List.of(new DepositLimitedBarrelGuiStateScenario("neitherOpened", false, false),
+					new DepositLimitedBarrelGuiStateScenario("backpackOpenedOnly", true, false),
+					new DepositLimitedBarrelGuiStateScenario("barrelOpenedOnly", false, true),
+					new DepositLimitedBarrelGuiStateScenario("bothOpened", true, true));
+
+			List<DepositLimitedBarrelGuiStateResult> results = new ArrayList<>();
+			for (int i = 0; i < scenarios.size(); i++) {
+				results.add(runDepositLimitedBarrelGuiStateScenario(player, name, scenarios.get(i), level, basePos.offset(i * 2, 0, 0), depositCount,
+						targetFreeSpace, locked, inventoryFilter));
+			}
+			return results;
+		}
+
+		private DepositLimitedBarrelGuiStateResult runDepositLimitedBarrelGuiStateScenario(ServerPlayer player, String name,
+				DepositLimitedBarrelGuiStateScenario scenario, ServerLevel level, BlockPos pos, int depositCount, int targetFreeSpace, boolean locked,
+				boolean inventoryFilter) {
+			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			placeBlockWithItem(level, player, pos, new ItemStack(ModBlocks.LIMITED_BARREL_1_ITEM.get()));
+			StorageBlockEntity storage = level.getBlockEntity(pos, ModBlocks.LIMITED_BARREL_BLOCK_ENTITY_TYPE.get()).map(be -> (StorageBlockEntity) be)
+					.orElseThrow(() -> new IllegalStateException("Missing limited barrel storage at " + pos));
+
+			InventoryHandler barrelInventory = storage.getStorageWrapper().getInventoryHandler();
+			ItemStack barrelStack = new ItemStack(Items.DIAMOND);
+			int slotLimit = barrelInventory.getStackLimit(0, barrelStack);
+			int barrelStartCount = Math.max(0, slotLimit - targetFreeSpace);
+			barrelInventory.setStackInSlot(0, new ItemStack(Items.DIAMOND, barrelStartCount));
+			barrelInventory.saveInventory();
+			if (locked && !storage.isLocked()) {
+				storage.toggleLock();
+			}
+
+			ItemStack backpack = createBackpackStack();
+			IBackpackWrapper wrapper = new BackpackWrapper(backpack);
+			wrapper.setSlotNumbers(9, 5);
+			InventoryHandler backpackInventory = wrapper.getInventoryHandler();
+			ItemStack depositUpgrade = new ItemStack(ModItems.DEPOSIT_UPGRADE.get());
+			depositUpgrade.getOrCreateTag().putBoolean("filterByInventory", inventoryFilter);
+			wrapper.getUpgradeHandler().setStackInSlot(0, depositUpgrade);
+			wrapper.getUpgradeHandler().saveInventory();
+			backpackInventory.setStackInSlot(0, new ItemStack(Items.DIAMOND, depositCount));
+			backpackInventory.saveInventory();
+			player.getInventory().setItem(0, backpack);
+			player.getInventory().setChanged();
+
+			if (scenario.backpackOpened()) {
+				BackpackContainer container = new BackpackContainer(0, player, new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, 0));
+				container.removed(player);
+				backpack = player.getInventory().getItem(0);
+			}
+
+			if (scenario.barrelOpened()) {
+				StorageContainerMenu container = new StorageContainerMenu(0, player, pos);
+				container.removed(player);
+			}
+
+			int backpackBefore = countItems(new BackpackWrapper(backpack).getInventoryHandler(), Items.DIAMOND);
+			int barrelBefore = countItems(barrelInventory, Items.DIAMOND);
+			boolean handled = InventoryInteractionHelper.tryInventoryInteraction(pos, level, backpack, Direction.NORTH, player);
+			int backpackAfter = countItems(new BackpackWrapper(player.getInventory().getItem(0)).getInventoryHandler(), Items.DIAMOND);
+			int barrelAfter = countItems(barrelInventory, Items.DIAMOND);
+			int totalBefore = backpackBefore + barrelBefore;
+			int totalAfter = backpackAfter + barrelAfter;
+			boolean passed = handled && totalBefore == totalAfter;
+			String error = passed ? null : "Deposit interaction did not preserve item count";
+
+			// Keep the final scenario visible in the player inventory/world for manual inspection after the endpoint returns.
+			return new DepositLimitedBarrelGuiStateResult(name + ":" + scenario.name(), scenario.backpackOpened(), scenario.barrelOpened(), handled, slotLimit,
+					backpackBefore, backpackAfter, barrelBefore, barrelAfter, totalBefore, totalAfter, passed, error);
 		}
 
 		private ColumnUpgradeRegressionSuite loadColumnUpgradeRegressionSuite() {
@@ -2968,6 +3074,12 @@ public class DevClientAutomationClient {
 				String error) {
 		}
 
+		private record DepositLimitedBarrelGuiStateScenario(String name, boolean backpackOpened, boolean barrelOpened) {
+		}
+
+		private record DepositLimitedBarrelGuiStateResult(String scenario, boolean backpackOpened, boolean barrelOpened, boolean handled, int slotLimit,
+				int backpackBefore, int backpackAfter, int barrelBefore, int barrelAfter, int totalBefore, int totalAfter, boolean passed, String error) {
+		}
 
 		private record ControllerFilterStorageSpec(String name, BlockPos pos, Item filterItem, boolean allowList, PrimaryMatch primaryMatch) {
 		}
