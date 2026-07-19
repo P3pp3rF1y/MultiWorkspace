@@ -50,6 +50,17 @@ the in-game setup and interaction for each declarative scenario through
 `POST /backpack/gui-regression/run`; the script owns suite loading, startup,
 assertions, and result aggregation.
 
+## Inventory Interaction Regression
+
+Run the vanilla and Sophisticated inventory keybind regression with:
+
+```powershell
+.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
+```
+
+The regression covers both transfer directions with and without the Shift
+override, plus sorting vanilla chests, player inventory, and backpacks.
+
 ## Storage Controller Filter Regression
 
 Run the controller filter routing regression with:
