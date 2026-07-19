@@ -54,6 +54,7 @@ import net.minecraft.world.entity.animal.equine.Llama;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.minecart.Minecart;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -90,6 +91,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
@@ -117,6 +119,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitter;
+import net.p3pp3rf1y.sophisticatedcore.client.ClientEventHandler;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageSettingsTab;
@@ -244,6 +247,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/quick-move-column-upgrade-in-regression", this::backpackQuickMoveColumnUpgradeInRegression);
 				httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
+				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/controller-ae2-profile-setup", this::storageControllerAe2ProfileSetup);
 				httpServer.createContext("/storage/controller-ae2-profile-simulate-query", this::storageControllerAe2ProfileSimulateQuery);
@@ -435,6 +439,11 @@ public class DevClientAutomation {
 			requireMethod(exchange, "POST");
 			String body = readBody(exchange);
 			sendJsonHandling(exchange, () -> runBackpackGuiRegression(body));
+		}
+
+		private void inventoryInteractionsKeybindRegression(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, this::runInventoryInteractionsKeybindRegression);
 		}
 
 		private void storageControllerFilterRegressions(HttpExchange exchange) throws IOException {
@@ -943,6 +952,310 @@ public class DevClientAutomation {
 			private boolean matches(String expectedEntityClass) {
 				return hasEntity && entityClass.equals(expectedEntityClass) && storageSlots > 0;
 			}
+		}
+
+		private String runInventoryInteractionsKeybindRegression() {
+			InventoryInteractionKeyMappings originalMappings = runOnClient(this::configureInventoryInteractionKeyMappings);
+			List<String> cases = new ArrayList<>();
+			try {
+				runTransferKeybindRegression(false, true, false);
+				cases.add("vanillaTransferToStorageFiltered");
+				runTransferKeybindRegression(false, true, true);
+				cases.add("vanillaTransferToStorageAll");
+				runTransferKeybindRegression(false, false, false);
+				cases.add("vanillaTransferToPlayerFiltered");
+				runTransferKeybindRegression(false, false, true);
+				cases.add("vanillaTransferToPlayerAll");
+				runTransferKeybindRegression(true, true, false);
+				cases.add("backpackTransferToStorageFiltered");
+				runTransferKeybindRegression(true, true, true);
+				cases.add("backpackTransferToStorageAll");
+				runTransferKeybindRegression(true, false, false);
+				cases.add("backpackTransferToPlayerFiltered");
+				runTransferKeybindRegression(true, false, true);
+				cases.add("backpackTransferToPlayerAll");
+				runVanillaSortKeybindRegression();
+				cases.add("vanillaSort");
+				runPlayerInventorySortKeybindRegression();
+				cases.add("playerInventorySort");
+				runBackpackSortKeybindRegression();
+				cases.add("backpackSort");
+				return "{\"ok\":true,\"cases\":[\"" + String.join("\",\"", cases) + "\"]}";
+			} finally {
+				runOnClient(() -> {
+					restoreInventoryInteractionKeyMappings(originalMappings);
+					return null;
+				});
+				runOnServer(player -> {
+					player.closeContainer();
+					return null;
+				});
+			}
+		}
+
+		private InventoryInteractionKeyMappings configureInventoryInteractionKeyMappings() {
+			InventoryInteractionKeyMappings originalMappings = new InventoryInteractionKeyMappings(ClientEventHandler.SORT_KEYBIND.getKey(),
+					ClientEventHandler.TRANSFER_TO_STORAGE_KEYBIND.getKey(), ClientEventHandler.TRANSFER_TO_INVENTORY_KEYBIND.getKey());
+			ClientEventHandler.SORT_KEYBIND.setKey(InputConstants.Type.MOUSE.getOrCreate(GLFW.GLFW_MOUSE_BUTTON_MIDDLE));
+			ClientEventHandler.TRANSFER_TO_STORAGE_KEYBIND.setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_LEFT_BRACKET));
+			ClientEventHandler.TRANSFER_TO_INVENTORY_KEYBIND.setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_RIGHT_BRACKET));
+			KeyMapping.resetMapping();
+			return originalMappings;
+		}
+
+		private void restoreInventoryInteractionKeyMappings(InventoryInteractionKeyMappings originalMappings) {
+			ClientEventHandler.SORT_KEYBIND.setKey(originalMappings.sort());
+			ClientEventHandler.TRANSFER_TO_STORAGE_KEYBIND.setKey(originalMappings.transferToStorage());
+			ClientEventHandler.TRANSFER_TO_INVENTORY_KEYBIND.setKey(originalMappings.transferToInventory());
+			KeyMapping.resetMapping();
+		}
+
+		private void runTransferKeybindRegression(boolean backpack, boolean toStorage, boolean shift) {
+			int containerId = runOnServer(player -> prepareTransferKeybindRegression(player, backpack, toStorage));
+			if (backpack) {
+				waitForClientBackpackInHotbar();
+				containerId = runOnServer(player -> {
+					openItemBackpackPreview(player);
+					return player.containerMenu.containerId;
+				});
+			}
+			int expectedContainerId = containerId;
+			waitForClientScreen(backpack ? "backpack" : "vanilla chest", () -> Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen
+					&& screen.getMenu().containerId == expectedContainerId);
+			requireHandled(pressTransferKeybind(toStorage, shift), (backpack ? "Backpack" : "Vanilla") + " transfer keybind was not handled");
+			waitForServerCondition("transfer", player -> transferMatches(player, backpack, toStorage, shift));
+		}
+
+		private int prepareTransferKeybindRegression(ServerPlayer player, boolean backpack, boolean toStorage) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+			if (backpack) {
+				ItemStack backpackStack = createBackpackStack(27);
+				InventoryHandler inventory = BackpackWrapper.fromStackNoCache(backpackStack).getInventoryHandler();
+				inventory.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
+				if (!toStorage) {
+					inventory.setStackInSlot(1, new ItemStack(Items.DIRT));
+				}
+				inventory.saveInventory();
+				player.getInventory().setItem(0, backpackStack);
+			} else {
+				SimpleContainer container = new SimpleContainer(27);
+				container.setItem(0, new ItemStack(Items.COBBLESTONE));
+				if (!toStorage) {
+					container.setItem(1, new ItemStack(Items.DIRT));
+				}
+				player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> ChestMenu.threeRows(windowId, inventory, container),
+						Component.literal("Inventory interaction regression")));
+			}
+			player.getInventory().setItem(9, new ItemStack(Items.COBBLESTONE));
+			if (toStorage) {
+				player.getInventory().setItem(10, new ItemStack(Items.DIRT));
+			}
+			player.getInventory().setChanged();
+			return player.containerMenu.containerId;
+		}
+
+		private boolean transferMatches(ServerPlayer player, boolean backpack, boolean toStorage, boolean shift) {
+			int containerCobblestone;
+			int containerDirt;
+			if (backpack) {
+				InventoryHandler inventory = BackpackWrapper.fromStackNoCache(player.getInventory().getItem(0)).getInventoryHandler();
+				containerCobblestone = countItems(inventory, Items.COBBLESTONE);
+				containerDirt = countItems(inventory, Items.DIRT);
+			} else if (player.containerMenu instanceof ChestMenu menu) {
+				SimpleContainer container = (SimpleContainer) menu.getContainer();
+				containerCobblestone = countItems(container, Items.COBBLESTONE);
+				containerDirt = countItems(container, Items.DIRT);
+			} else {
+				return false;
+			}
+			int playerCobblestone = countItems(player, Items.COBBLESTONE);
+			int playerDirt = countItems(player, Items.DIRT);
+			return toStorage
+					? containerCobblestone == 2 && containerDirt == (shift ? 1 : 0) && playerCobblestone == 0 && playerDirt == (shift ? 0 : 1)
+					: containerCobblestone == 0 && containerDirt == (shift ? 0 : 1) && playerCobblestone == 2 && playerDirt == (shift ? 1 : 0);
+		}
+
+		private void runVanillaSortKeybindRegression() {
+			int containerId = runOnServer(player -> openVanillaSortRegression(player));
+			waitForClientScreen("vanilla chest",
+					() -> Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen && screen.getMenu().containerId == containerId);
+			requireHandled(pressSortKeybind(0), "Vanilla sort keybind was not handled");
+			waitForServerCondition("vanilla sort",
+					player -> player.containerMenu instanceof ChestMenu menu && countItems((SimpleContainer) menu.getContainer(), Items.COBBLESTONE) == 3
+							&& countStacks((SimpleContainer) menu.getContainer(), Items.COBBLESTONE) == 1);
+		}
+
+		private int openVanillaSortRegression(ServerPlayer player) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+			SimpleContainer container = new SimpleContainer(27);
+			container.setItem(0, new ItemStack(Items.COBBLESTONE));
+			container.setItem(5, new ItemStack(Items.COBBLESTONE, 2));
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> ChestMenu.threeRows(windowId, inventory, container),
+					Component.literal("Inventory interaction regression")));
+			return player.containerMenu.containerId;
+		}
+
+		private void runPlayerInventorySortKeybindRegression() {
+			int containerId = runOnServer(player -> {
+				player.closeContainer();
+				player.getInventory().clearContent();
+				player.getInventory().setItem(9, new ItemStack(Items.COBBLESTONE));
+				player.getInventory().setItem(10, new ItemStack(Items.COBBLESTONE, 2));
+				player.getInventory().setChanged();
+				SimpleContainer container = new SimpleContainer(27);
+				player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> ChestMenu.threeRows(windowId, inventory, container),
+						Component.literal("Inventory interaction regression")));
+				return player.containerMenu.containerId;
+			});
+			waitForClientScreen("vanilla chest player inventory",
+					() -> Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen && screen.getMenu().containerId == containerId);
+			requireHandled(pressSortKeybind(27), "Player inventory sort keybind was not handled");
+			waitForServerCondition("player inventory sort",
+					player -> countItems(player, Items.COBBLESTONE) == 3 && countStacks(player, Items.COBBLESTONE) == 1);
+		}
+
+		private void runBackpackSortKeybindRegression() {
+			runOnServer(player -> {
+				player.closeContainer();
+				player.getInventory().clearContent();
+				ItemStack backpack = createBackpackStack(27);
+				InventoryHandler inventory = BackpackWrapper.fromStackNoCache(backpack).getInventoryHandler();
+				inventory.setStackInSlot(0, new ItemStack(Items.COBBLESTONE));
+				inventory.setStackInSlot(5, new ItemStack(Items.COBBLESTONE, 2));
+				inventory.saveInventory();
+				player.getInventory().setItem(0, backpack);
+				player.getInventory().setChanged();
+				return null;
+			});
+			waitForClientBackpackInHotbar();
+			int containerId = runOnServer(player -> {
+				openItemBackpackPreview(player);
+				return player.containerMenu.containerId;
+			});
+			waitForClientScreen("backpack",
+					() -> Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen && screen.getMenu().containerId == containerId);
+			requireHandled(pressSortKeybind(0), "Backpack sort keybind was not handled");
+			waitForServerCondition("backpack sort", player -> {
+				InventoryHandler inventory = BackpackWrapper.fromStackNoCache(player.getInventory().getItem(0)).getInventoryHandler();
+				return countItems(inventory, Items.COBBLESTONE) == 3 && countStacks(inventory, Items.COBBLESTONE) == 1;
+			});
+		}
+
+		private boolean pressTransferKeybind(boolean toStorage, boolean shift) {
+			return runOnClient(() -> {
+				Screen screen = Minecraft.getInstance().gui.screen();
+				if (screen == null) {
+					throw new IllegalStateException("No screen is open for the transfer keybind");
+				}
+				return ClientHooks.onScreenKeyPressedPre(screen,
+						new KeyEvent(toStorage ? GLFW.GLFW_KEY_LEFT_BRACKET : GLFW.GLFW_KEY_RIGHT_BRACKET, 0, shift ? GLFW.GLFW_MOD_SHIFT : 0));
+			});
+		}
+
+		private boolean pressSortKeybind(int menuSlot) {
+			return runOnClient(() -> {
+				if (!(Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen)) {
+					throw new IllegalStateException("No container screen is open for the sort keybind");
+				}
+				Slot slot = screen.getMenu().slots.get(menuSlot);
+				double x = screen.getGuiLeft() + slot.x + 8;
+				double y = screen.getGuiTop() + slot.y + 8;
+				Minecraft minecraft = Minecraft.getInstance();
+				GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), x * minecraft.getWindow().getGuiScale(), y * minecraft.getWindow().getGuiScale());
+				screen.mouseMoved(x, y);
+				setHoveredSlot(screen, slot);
+				return ClientHooks.onScreenMouseClickedPre(screen, new MouseButtonEvent(x, y, new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_MIDDLE, 0)), false);
+			});
+		}
+
+		private void setHoveredSlot(AbstractContainerScreen<?> screen, Slot slot) {
+			try {
+				Field hoveredSlot = AbstractContainerScreen.class.getDeclaredField("hoveredSlot");
+				hoveredSlot.setAccessible(true);
+				hoveredSlot.set(screen, slot);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException("Failed to set the hovered container slot", e);
+			}
+		}
+
+		private void waitForClientScreen(String description, BooleanSupplier condition) {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(condition::getAsBoolean)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for " + description);
+		}
+
+		private void waitForServerCondition(String description, Function<ServerPlayer, Boolean> condition) {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (System.nanoTime() < deadline) {
+				if (runOnServer(condition)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for " + description);
+		}
+
+		private void requireHandled(boolean handled, String message) {
+			if (!handled) {
+				throw new IllegalStateException(message);
+			}
+		}
+
+		private int countItems(SimpleContainer container, Item item) {
+			int count = 0;
+			for (int slot = 0; slot < container.getContainerSize(); slot++) {
+				if (container.getItem(slot).is(item)) {
+					count += container.getItem(slot).getCount();
+				}
+			}
+			return count;
+		}
+
+		private int countItems(ServerPlayer player, Item item) {
+			int count = 0;
+			for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+				if (player.getInventory().getItem(slot).is(item)) {
+					count += player.getInventory().getItem(slot).getCount();
+				}
+			}
+			return count;
+		}
+
+		private int countStacks(SimpleContainer container, Item item) {
+			int stacks = 0;
+			for (int slot = 0; slot < container.getContainerSize(); slot++) {
+				if (container.getItem(slot).is(item)) {
+					stacks++;
+				}
+			}
+			return stacks;
+		}
+
+		private int countStacks(ServerPlayer player, Item item) {
+			int stacks = 0;
+			for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+				if (player.getInventory().getItem(slot).is(item)) {
+					stacks++;
+				}
+			}
+			return stacks;
+		}
+
+		private int countStacks(InventoryHandler inventory, Item item) {
+			int stacks = 0;
+			for (int slot = 0; slot < inventory.size(); slot++) {
+				if (inventory.getStackInSlot(slot).is(item)) {
+					stacks++;
+				}
+			}
+			return stacks;
 		}
 
 		private String runBackpackGuiRegression(String body) {
@@ -4581,6 +4894,9 @@ public class DevClientAutomation {
 		}
 
 		private record ServerTaskContext(MinecraftServer server, UUID playerUuid) {
+		}
+
+		private record InventoryInteractionKeyMappings(InputConstants.Key sort, InputConstants.Key transferToStorage, InputConstants.Key transferToInventory) {
 		}
 
 		private static Optional<String> extractString(String json, String key) {
