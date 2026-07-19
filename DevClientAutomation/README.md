@@ -36,6 +36,17 @@ runtime viewer API data exposed by `DevClientAutomation`; the existing JUnit
 When the regression runner starts the client itself, it stops that client through
 `POST /client/stop` in a `finally` block after the suite completes or fails.
 
+## Inventory Interaction Regression
+
+Run the vanilla and Sophisticated inventory keybind regression with:
+
+```powershell
+.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
+```
+
+The regression covers both transfer directions with and without the Shift
+override, plus sorting vanilla chests, player inventory, and backpacks.
+
 ## Storage Controller Filter Regression
 
 Run the controller filter routing regression with:
