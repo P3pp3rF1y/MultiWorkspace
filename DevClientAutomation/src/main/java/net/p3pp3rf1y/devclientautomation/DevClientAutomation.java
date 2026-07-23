@@ -8,10 +8,15 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
+import com.simibubi.create.content.contraptions.bearing.MechanicalBearingBlockEntity;
 import com.simibubi.create.content.contraptions.glue.SuperGlueEntity;
 import com.simibubi.create.content.contraptions.mounted.CartAssembleRailType;
 import com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock;
 import com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockEntity;
+import com.simibubi.create.content.logistics.chute.SmartChuteBlock;
+import com.simibubi.create.content.logistics.chute.SmartChuteBlockEntity;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.client.KeyMapping;
@@ -62,6 +67,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.level.block.state.properties.WoodType;
@@ -78,6 +84,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.ClientHooks;
@@ -207,6 +214,7 @@ public class DevClientAutomation {
 		private HttpServer httpServer;
 		private volatile String curiosColumnUpgradeRegressionIdentifier;
 		private volatile ItemStack curiosColumnUpgradeRegressionBackpack = ItemStack.EMPTY;
+		private volatile Issue23SetupResult issue23SetupResult;
 
 		void start() {
 			try {
@@ -248,6 +256,9 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
+				httpServer.createContext("/storage/issue-23-reproduce", this::reproduceStorageIssue23);
+				httpServer.createContext("/storage/issue-23-status", this::issue23Status);
+				httpServer.createContext("/storage/issue-23-open-source", this::openIssue23SourceStorage);
 				httpServer.createContext("/backpack/dropped-items", this::droppedItemsStatus);
 				httpServer.createContext("/backpack/clear-dropped-items", this::clearDroppedItems);
 				httpServer.createContext("/screenshot", this::screenshot);
@@ -539,6 +550,49 @@ public class DevClientAutomation {
 			String scenario = extractString(body, "scenario").orElse("barrel_north");
 			DisplaySide displaySide = DisplaySide.fromName(extractString(body, "displaySide").orElse(DisplaySide.FRONT.getSerializedName()));
 			sendJsonHandling(exchange, () -> openStorageItemDisplayPreview(scenario, displaySide));
+		}
+
+		private void reproduceStorageIssue23(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			requireCreateForIssue23();
+			issue23SetupResult = runOnServer(player -> CreateIssue23Automation.setupStorageIssue23Reproduction(this, player));
+			Issue23SetupResult setupResult = getIssue23SetupResult();
+			waitForServerCondition("Smart Chute to transfer exactly 64 items",
+					player -> CreateIssue23Automation.countItemsInStorage(this, player.serverLevel(), setupResult.receiverPos(), Items.COBBLESTONE) == 64);
+			// Allow repeated exact-mode attempts to run after the first completed batch.
+			sleep(5000);
+			sendJsonHandling(exchange, () -> runOnServer(player -> CreateIssue23Automation.issue23ReproductionResultJson(this, player, setupResult)));
+		}
+
+		private void issue23Status(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "GET");
+			requireCreateForIssue23();
+			Issue23SetupResult setupResult = getIssue23SetupResult();
+			sendJsonHandling(exchange, () -> runOnServer(player -> CreateIssue23Automation.issue23ReproductionResultJson(this, player, setupResult)));
+		}
+
+		private void openIssue23SourceStorage(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			requireCreateForIssue23();
+			Issue23SetupResult setupResult = getIssue23SetupResult();
+			sendJsonHandling(exchange, () -> {
+				runOnServer(player -> CreateItemDisplayPreviewAutomation.openCreateContraptionStorage(player, setupResult.contraptionEntityId(),
+						setupResult.mountedStoragePos()));
+				return "{\"ok\":true}";
+			});
+		}
+
+		private Issue23SetupResult getIssue23SetupResult() {
+			if (issue23SetupResult == null) {
+				throw new IllegalStateException("Issue #23 reproduction has not been set up");
+			}
+			return issue23SetupResult;
+		}
+
+		private void requireCreateForIssue23() {
+			if (!ModList.get().isLoaded("create")) {
+				throw new IllegalStateException("Issue #23 automation requires Create to be loaded");
+			}
 		}
 
 		private void droppedItemsStatus(HttpExchange exchange) throws IOException {
@@ -1019,7 +1073,7 @@ public class DevClientAutomation {
 				runOnServer(player -> openMovingStorageInventory(player, setupResult.entityId()));
 			} else if (setupResult.targetType() == ItemDisplayPreviewTargetType.CREATE_CONTRAPTION) {
 				waitForClientEntity(setupResult.entityId());
-				runOnServer(player -> openCreateContraptionStorage(player, setupResult.entityId(), setupResult.localPos()));
+				runOnServer(player -> CreateItemDisplayPreviewAutomation.openCreateContraptionStorage(player, setupResult.entityId(), setupResult.localPos()));
 			}
 			waitForStorageScreen();
 			waitForStorageScreenAndClickSettingsTab();
@@ -1351,18 +1405,6 @@ public class DevClientAutomation {
 			return "";
 		}
 
-		private String openCreateContraptionStorage(ServerPlayer player, int entityId, BlockPos localPos) {
-			Entity entity = player.serverLevel().getEntity(entityId);
-			if (!(entity instanceof AbstractContraptionEntity contraptionEntity)) {
-				throw new IllegalStateException("Create contraption entity missing for id " + entityId);
-			}
-			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-			if (!contraptionEntity.handlePlayerInteraction(player, localPos, Direction.UP, InteractionHand.MAIN_HAND)) {
-				throw new IllegalStateException("Create contraption did not open mounted storage at " + localPos);
-			}
-			return "";
-		}
-
 		private Direction getStorageOpenHitDirection(BlockState state) {
 			if (state.getBlock() instanceof BarrelBlock barrelBlock && barrelBlock.getFacing(state) == Direction.UP) {
 				return Direction.NORTH;
@@ -1502,6 +1544,18 @@ public class DevClientAutomation {
 		}
 
 		private static class CreateItemDisplayPreviewAutomation {
+			private static String openCreateContraptionStorage(ServerPlayer player, int entityId, BlockPos localPos) {
+				Entity entity = player.serverLevel().getEntity(entityId);
+				if (!(entity instanceof AbstractContraptionEntity contraptionEntity)) {
+					throw new IllegalStateException("Create contraption entity missing for id " + entityId);
+				}
+				player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+				if (!contraptionEntity.handlePlayerInteraction(player, localPos, Direction.UP, InteractionHand.MAIN_HAND)) {
+					throw new IllegalStateException("Create contraption did not open mounted storage at " + localPos);
+				}
+				return "";
+			}
+
 			private static ItemDisplayPreviewSetupResult setupStoragePreview(AutomationServer server, ServerLevel level, ServerPlayer player, String scenario,
 					BlockPos basePos, DisplaySide displaySide, BlockState storageState, boolean limitedBarrel, float cartYaw, Optional<WoodType> woodType) {
 				BlockPos assemblerPos = basePos;
@@ -1607,6 +1661,113 @@ public class DevClientAutomation {
 							&& ChestBlockItem.isDoubleChest(mountedStorage.getStorageStack())
 							&& mountedStorage.getStorageStack().has(ModCoreDataComponents.STORAGE_UUID);
 				}).findFirst().orElseGet(() -> findMountedStorageLocalPos(contraptionEntity));
+			}
+		}
+
+		private static class CreateIssue23Automation {
+			private static Issue23SetupResult setupStorageIssue23Reproduction(AutomationServer server, ServerPlayer player) {
+				ServerLevel level = player.serverLevel();
+				BlockPos motorPos = player.blockPosition().offset(10, 0, 0);
+				BlockPos bearingPos = motorPos.above();
+				BlockPos rootPlankPos = bearingPos.above();
+				BlockPos leftChestPos = rootPlankPos.above();
+				BlockPos rightChestPos = leftChestPos.east();
+				BlockPos movingPsiPos = rightChestPos.east();
+				clearIssue23ReproductionArea(level, motorPos);
+				for (int x = -5; x <= 12; x++) {
+					for (int z = -5; z <= 5; z++) {
+						level.setBlock(motorPos.offset(x, -1, z), Blocks.STONE.defaultBlockState(), 3);
+					}
+				}
+
+				level.setBlock(motorPos, AllBlocks.CREATIVE_MOTOR.getDefaultState().setValue(BlockStateProperties.FACING, Direction.UP), 3);
+				level.setBlock(bearingPos, AllBlocks.MECHANICAL_BEARING.getDefaultState().setValue(BlockStateProperties.FACING, Direction.UP), 3);
+				for (int x = 0; x < 3; x++) {
+					level.setBlock(rootPlankPos.east(x), Blocks.OAK_PLANKS.defaultBlockState(), 3);
+				}
+				level.setBlock(leftChestPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState()
+						.setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.LEFT), 3);
+				level.setBlock(rightChestPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState()
+						.setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.RIGHT), 3);
+				StorageBlockEntity storage = WorldHelper.getBlockEntity(level, rightChestPos, StorageBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Issue #23 double-chest source block entity missing"));
+				storage.getStorageWrapper().getInventoryHandler().setStackInSlot(0, new ItemStack(Items.COBBLESTONE, 64));
+				storage.getStorageWrapper().getInventoryHandler().setStackInSlot(1, new ItemStack(Items.COBBLESTONE, 32));
+				storage.setChanged();
+				level.setBlock(movingPsiPos, AllBlocks.PORTABLE_STORAGE_INTERFACE.getDefaultState().setValue(BlockStateProperties.FACING, Direction.EAST), 3);
+				level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(rootPlankPos, rootPlankPos.east(2))));
+				level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(rootPlankPos, leftChestPos)));
+				level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(leftChestPos, rightChestPos)));
+				level.addFreshEntity(new SuperGlueEntity(level, SuperGlueEntity.span(rightChestPos, movingPsiPos)));
+
+				MechanicalBearingBlockEntity bearing = WorldHelper.getBlockEntity(level, bearingPos, MechanicalBearingBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Issue #23 mechanical bearing block entity missing"));
+				bearing.assemble();
+				ControlledContraptionEntity contraptionEntity = Optional.ofNullable(bearing.getMovedContraption())
+						.orElseThrow(() -> new IllegalStateException("Issue #23 mechanical bearing did not assemble the contraption"));
+				BlockPos mountedStoragePos = CreateItemDisplayPreviewAutomation.findMountedDoubleChestLocalPos(contraptionEntity);
+				BlockPos movingPsiLocalPos = mountedStoragePos.east();
+				Vec3 movingPsiConnectionPoint = contraptionEntity
+						.toGlobalVector(Vec3.atCenterOf(movingPsiLocalPos).add(Vec3.atLowerCornerOf(Direction.EAST.getUnitVec3i()).scale(1.85F)), 1);
+				BlockPos stationaryPsiPos = BlockPos.containing(movingPsiConnectionPoint);
+				Direction movingPsiFacing = Direction
+						.getApproximateNearest(contraptionEntity.applyRotation(Vec3.atLowerCornerOf(Direction.EAST.getUnitVec3i()), 1));
+				BlockPos chutePos = stationaryPsiPos.below();
+				BlockPos receiverPos = chutePos.below();
+				level.setBlock(stationaryPsiPos,
+						AllBlocks.PORTABLE_STORAGE_INTERFACE.getDefaultState().setValue(BlockStateProperties.FACING, movingPsiFacing.getOpposite()), 3);
+				level.setBlock(chutePos, AllBlocks.SMART_CHUTE.getDefaultState().setValue(SmartChuteBlock.POWERED, false), 3);
+				SmartChuteBlockEntity chute = WorldHelper.getBlockEntity(level, chutePos, SmartChuteBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Issue #23 Smart Chute block entity missing"));
+				FilteringBehaviour filtering = chute.getBehaviour(FilteringBehaviour.TYPE);
+				filtering.count = 64;
+				filtering.upTo = false;
+				chute.setChanged();
+				level.setBlock(receiverPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST.get().defaultBlockState()
+						.setValue(ChestBlock.FACING, Direction.NORTH).setValue(ChestBlock.TYPE, ChestType.SINGLE), 3);
+				server.setPreviewWoodType(level, receiverPos, WoodType.ACACIA);
+
+				return new Issue23SetupResult(contraptionEntity.getId(), mountedStoragePos, receiverPos);
+			}
+
+			private static void clearIssue23ReproductionArea(ServerLevel level, BlockPos motorPos) {
+				level.getEntitiesOfClass(Entity.class, new AABB(motorPos).inflate(10), entity -> !(entity instanceof ServerPlayer)).forEach(Entity::discard);
+				for (int x = -4; x <= 10; x++) {
+					for (int y = -2; y <= 4; y++) {
+						for (int z = -3; z <= 3; z++) {
+							level.setBlock(motorPos.offset(x, y, z), Blocks.AIR.defaultBlockState(), 3);
+						}
+					}
+				}
+			}
+
+			private static String issue23ReproductionResultJson(AutomationServer server, ServerPlayer player, Issue23SetupResult setupResult) {
+				Entity entity = player.serverLevel().getEntity(setupResult.contraptionEntityId());
+				if (!(entity instanceof AbstractContraptionEntity contraptionEntity)) {
+					throw new IllegalStateException("Issue #23 contraption is no longer present");
+				}
+				MountedStorageBase mountedStorage = ContraptionHelper.getMountedStorage(contraptionEntity, setupResult.mountedStoragePos());
+				if (mountedStorage == null) {
+					throw new IllegalStateException("Issue #23 mounted storage is no longer present");
+				}
+				int sourceSlot0 = countInMountedStorageSlot(mountedStorage, 0, Items.COBBLESTONE);
+				int sourceSlot1 = countInMountedStorageSlot(mountedStorage, 1, Items.COBBLESTONE);
+				int receiver = countItemsInStorage(server, player.serverLevel(), setupResult.receiverPos(), Items.COBBLESTONE);
+				return "{\"ok\":true,\"sourceSlot0\":" + sourceSlot0 + ",\"sourceSlot1\":" + sourceSlot1 + ",\"sourceTotal\":" + (sourceSlot0 + sourceSlot1)
+						+ ",\"receiver\":" + receiver + ',' + jsonProperty("mountedStoragePos", setupResult.mountedStoragePos().toShortString()) + ','
+						+ jsonProperty("receiverPos", setupResult.receiverPos().toShortString()) + ",\"contraptionEntityId\":"
+						+ setupResult.contraptionEntityId() + '}';
+			}
+
+			private static int countInMountedStorageSlot(MountedStorageBase mountedStorage, int slot, Item item) {
+				ItemStack stack = mountedStorage.getStackInSlot(slot);
+				return stack.is(item) ? stack.getCount() : 0;
+			}
+
+			private static int countItemsInStorage(AutomationServer server, ServerLevel level, BlockPos pos, Item item) {
+				StorageBlockEntity storage = WorldHelper.getBlockEntity(level, pos, StorageBlockEntity.class)
+						.orElseThrow(() -> new IllegalStateException("Issue #23 receiver storage block entity missing"));
+				return server.countItems(storage.getStorageWrapper().getInventoryHandler(), item);
 			}
 		}
 
@@ -4237,6 +4398,9 @@ public class DevClientAutomation {
 		}
 
 		private record ServerTaskContext(MinecraftServer server, UUID playerUuid) {
+		}
+
+		private record Issue23SetupResult(int contraptionEntityId, BlockPos mountedStoragePos, BlockPos receiverPos) {
 		}
 
 		private record InventoryInteractionKeyMappings(InputConstants.Key sort, InputConstants.Key transferToStorage, InputConstants.Key transferToInventory) {
