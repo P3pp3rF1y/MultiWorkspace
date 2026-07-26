@@ -87,8 +87,10 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
+import net.p3pp3rf1y.devclientautomation.demo.DemoMouseMotion;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -134,14 +136,19 @@ import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.BarrelBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.block.DecorationTableBlock;
+import net.p3pp3rf1y.sophisticatedstorage.block.DecorationTableBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.LimitedBarrelBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.LimitedBarrelBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.ShulkerBoxBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.VerticalFacing;
 import net.p3pp3rf1y.sophisticatedstorage.block.WoodStorageBlockEntity;
+import net.p3pp3rf1y.sophisticatedstorage.client.gui.DecorationTableScreen;
+import net.p3pp3rf1y.sophisticatedstorage.common.gui.DecorationTableMenu;
 import net.p3pp3rf1y.sophisticatedstorage.entity.MovingStorageWrapper;
 import net.p3pp3rf1y.sophisticatedstorage.item.ChestBlockItem;
+import net.p3pp3rf1y.sophisticatedstorage.item.SimpleMaterialBlockItem;
 import net.p3pp3rf1y.sophisticatedstorage.item.WoodStorageBlockItem;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageBoat;
@@ -235,6 +242,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
+				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
 				httpServer.createContext("/storage/issue-23-reproduce", this::reproduceStorageIssue23);
 				httpServer.createContext("/storage/issue-23-status", this::issue23Status);
 				httpServer.createContext("/storage/issue-23-open-source", this::openIssue23SourceStorage);
@@ -490,6 +498,12 @@ public class DevClientAutomation {
 			String scenario = extractString(body, "scenario").orElse("barrel_north");
 			DisplaySide displaySide = DisplaySide.fromName(extractString(body, "displaySide").orElse(DisplaySide.FRONT.getSerializedName()));
 			sendJsonHandling(exchange, () -> openStorageItemDisplayPreview(scenario, displaySide));
+		}
+
+		private void openDecorationTableRenderPreview(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String itemName = extractString(readBody(exchange), "item").orElse("storage_io");
+			sendJsonHandling(exchange, () -> openDecorationTableRenderPreview(itemName));
 		}
 
 		private void reproduceStorageIssue23(HttpExchange exchange) throws IOException {
@@ -2246,6 +2260,88 @@ public class DevClientAutomation {
 					+ setupResult.entityId() + ',' + jsonProperty("target", setupResult.target()) + ',' + jsonProperty("screen", screenName) + '}';
 		}
 
+		private String openDecorationTableRenderPreview(String itemName) {
+			DecorationTableRenderPreviewSetupResult setupResult = runOnServer(player -> setupDecorationTableRenderPreview(player, itemName));
+			waitForClientDecorationTable(setupResult.tablePos(), setupResult.resultItem());
+			runOnServer(player -> {
+				openDecorationTableScreen(player, setupResult.tablePos());
+				return "";
+			});
+			waitForClientDecorationTableScreen();
+			return "{\"ok\":true," + jsonProperty("item", setupResult.itemName()) + ',' + jsonProperty("tablePos", setupResult.tablePos().toShortString()) + ','
+					+ runOnClient(this::getDecorationTableRenderBoundsJson) + '}';
+		}
+
+		private void openDecorationTableScreen(ServerPlayer player, BlockPos tablePos) {
+			player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new DecorationTableMenu(windowId, menuPlayer, tablePos),
+					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DECORATION_TABLE.get().getName()), tablePos);
+		}
+
+		private DecorationTableRenderPreviewSetupResult setupDecorationTableRenderPreview(ServerPlayer player, String itemName) {
+			ServerLevel level = player.serverLevel();
+			BlockPos tablePos = player.blockPosition().offset(4, 0, 0);
+			clearDecorationTableRenderPreviewArea(level, tablePos);
+			player.getInventory().clearContent();
+			player.getInventory().setSelectedSlot(0);
+			player.inventoryMenu.broadcastChanges();
+			level.setBlock(tablePos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DECORATION_TABLE.get().defaultBlockState()
+					.setValue(DecorationTableBlock.FACING, Direction.NORTH), 3);
+			DecorationTableBlockEntity table = WorldHelper.getBlockEntity(level, tablePos, DecorationTableBlockEntity.class)
+					.orElseThrow(() -> new IllegalStateException("Decoration table block entity missing"));
+			ItemStack resultItem = getDecorationTablePreviewItem(itemName);
+			insertDecorationTableStack(table.getStorageBlock(), 0, resultItem);
+			if (resultItem.is(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get())) {
+				insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
+				insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.GOLD_BLOCK));
+				insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.EMERALD_BLOCK));
+			} else if (resultItem.getItem() instanceof SimpleMaterialBlockItem
+					|| resultItem.is(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_3_ITEM.get())) {
+				insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
+			} else {
+				table.setMainColor(0xFFFF00FF);
+			}
+
+			BlockPos cameraPos = tablePos.south(3);
+			if (!player.teleportTo(level, cameraPos.getX() + 0.5D, cameraPos.getY(), cameraPos.getZ() + 0.5D, Set.of(), 180.0F, 7.0F, false)) {
+				throw new IllegalStateException("Failed to position player for decoration table render preview");
+			}
+			return new DecorationTableRenderPreviewSetupResult(itemName, tablePos, resultItem.getItem());
+		}
+
+		private void clearDecorationTableRenderPreviewArea(ServerLevel level, BlockPos tablePos) {
+			level.getEntitiesOfClass(Entity.class, new AABB(tablePos).inflate(8), entity -> !(entity instanceof ServerPlayer)).forEach(Entity::discard);
+			for (int x = -4; x <= 4; x++) {
+				for (int y = -1; y <= 4; y++) {
+					for (int z = -4; z <= 4; z++) {
+						level.setBlock(tablePos.offset(x, y, z), y == -1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+					}
+				}
+			}
+			level.getEntitiesOfClass(Entity.class, new AABB(tablePos).inflate(8), entity -> !(entity instanceof ServerPlayer)).forEach(Entity::discard);
+		}
+
+		private ItemStack getDecorationTablePreviewItem(String itemName) {
+			return switch (itemName.toLowerCase(Locale.ROOT)) {
+				case "backpack" -> new ItemStack(ModItems.BACKPACK.get());
+				case "barrel" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get());
+				case "chest" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_ITEM.get());
+				case "controller" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_ITEM.get());
+				case "leather_boots" -> new ItemStack(Items.LEATHER_BOOTS);
+				case "leather_chestplate" -> new ItemStack(Items.LEATHER_CHESTPLATE);
+				case "leather_helmet" -> new ItemStack(Items.LEATHER_HELMET);
+				case "leather_leggings" -> new ItemStack(Items.LEATHER_LEGGINGS);
+				case "limited_barrel_3" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_3_ITEM.get());
+				case "shulker_box" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX_ITEM.get());
+				case "storage_link" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.STORAGE_LINK_ITEM.get());
+				case "storage_io" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.STORAGE_IO_ITEM.get());
+				default -> throw new IllegalArgumentException("Unknown decoration table preview item " + itemName);
+			};
+		}
+
+		private void insertDecorationTableStack(ItemStackHandler handler, int slot, ItemStack stack) {
+			handler.setStackInSlot(slot, stack);
+		}
+
 		private ItemDisplayPreviewSetupResult setupStorageItemDisplayPreview(ServerPlayer player, String scenario, DisplaySide displaySide) {
 			ServerLevel level = player.serverLevel();
 			BlockPos basePos = player.blockPosition().offset(4, 0, 0);
@@ -2699,6 +2795,50 @@ public class DevClientAutomation {
 			throw new IllegalStateException("Item display settings tab was not present on " + screen.getClass().getSimpleName());
 		}
 
+		private void waitForClientDecorationTable(BlockPos pos, Item resultItem) {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> Minecraft.getInstance().level != null
+						&& WorldHelper.getBlockEntity(Minecraft.getInstance().level, pos, DecorationTableBlockEntity.class)
+								.map(table -> table.getResult().is(resultItem)).orElse(false))) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for client decoration table at " + pos);
+		}
+
+		private void waitForClientDecorationTableScreen() {
+			waitForClientScreen("decoration table screen", () -> Minecraft.getInstance().screen instanceof DecorationTableScreen);
+		}
+
+		private String getDecorationTableRenderBoundsJson() {
+			Screen screen = Minecraft.getInstance().screen;
+			if (!(screen instanceof DecorationTableScreen decorationTableScreen)) {
+				throw new IllegalStateException("Decoration table screen is not open");
+			}
+			DecorationTableMenu menu = decorationTableScreen.getMenu();
+			Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().numberOfSlots() - 1);
+			Slot resultSlot = menu.getResultSlot();
+			int x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26;
+			int y = decorationTableScreen.getGuiTop() + lastDyeSlot.y;
+			int resultSlotX = decorationTableScreen.getGuiLeft() + resultSlot.x;
+			int resultSlotY = decorationTableScreen.getGuiTop() + resultSlot.y;
+			return "\"preview\":{\"x\":" + x + ",\"y\":" + y + ",\"width\":80,\"height\":" + (resultSlot.y - lastDyeSlot.y + 20) + "},\"resultSlot\":{\"x\":"
+					+ resultSlotX + ",\"y\":" + resultSlotY + ",\"width\":16,\"height\":16},\"rotationTargets\":{\"topCore\":"
+					+ getDecorationTableRotationTargetJson(decorationTableScreen, menu, DecorationTableBlockEntity.TOP_CORE_SLOT) + ",\"sideCore\":"
+					+ getDecorationTableRotationTargetJson(decorationTableScreen, menu, DecorationTableBlockEntity.SIDE_CORE_SLOT) + ",\"bottomCore\":"
+					+ getDecorationTableRotationTargetJson(decorationTableScreen, menu, DecorationTableBlockEntity.BOTTOM_CORE_SLOT) + '}';
+		}
+
+		private String getDecorationTableRotationTargetJson(DecorationTableScreen screen, DecorationTableMenu menu, int slotIndex) {
+			Slot slot = menu.getSlot(slotIndex);
+			var rotation = DecorationTableScreen.getPreviewRotationTarget(slotIndex)
+					.orElseThrow(() -> new IllegalStateException("Missing Decoration Table preview rotation for slot " + slotIndex));
+			return "{\"x\":" + (screen.getGuiLeft() + slot.x + 8) + ",\"y\":" + (screen.getGuiTop() + slot.y + 8) + ",\"rotationX\":" + (int) rotation.x
+					+ ",\"rotationY\":" + (int) rotation.y + '}';
+		}
+
 		private <T extends GuiEventListener> Optional<T> findChild(GuiEventListener parent, Class<T> childClass) {
 			if (childClass.isInstance(parent)) {
 				return Optional.of(childClass.cast(parent));
@@ -2954,6 +3094,9 @@ public class DevClientAutomation {
 				ItemDisplayPreviewTargetType targetType) {
 		}
 
+		private record DecorationTableRenderPreviewSetupResult(String itemName, BlockPos tablePos, Item resultItem) {
+		}
+
 		private record Issue23SetupResult(int contraptionEntityId, BlockPos mountedStoragePos, BlockPos receiverPos) {
 		}
 
@@ -3107,6 +3250,23 @@ public class DevClientAutomation {
 			}
 			double scale = minecraft.getWindow().getGuiScale();
 			GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), targetX * scale, targetY * scale);
+			try {
+				Object mouseHandler = minecraft.mouseHandler;
+				Field xpos = mouseHandler.getClass().getDeclaredField("xpos");
+				Field ypos = mouseHandler.getClass().getDeclaredField("ypos");
+				xpos.setAccessible(true);
+				ypos.setAccessible(true);
+				xpos.setDouble(mouseHandler, targetX * (double) minecraft.getWindow().getScreenWidth() / minecraft.getWindow().getGuiScaledWidth());
+				ypos.setDouble(mouseHandler, targetY * (double) minecraft.getWindow().getScreenHeight() / minecraft.getWindow().getGuiScaledHeight());
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException("Failed to move mouse", e);
+			}
+			if (minecraft.screen != null) {
+				minecraft.screen.mouseMoved(targetX, targetY);
+			}
+			DemoMouseMotion.init();
+			DemoMouseMotion.moveTo(targetX, targetY, 12, () -> {
+			});
 			return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
 		}
 
