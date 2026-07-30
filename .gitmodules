@@ -1,32 +1,36 @@
 [submodule "SophisticatedStorage"]
 	path = SophisticatedStorage
 	url = https://github.com/P3pp3rF1y/SophisticatedStorage.git
-	branch = 1.19.x-dev
+	branch = 26.2
 [submodule "SophisticatedBackpacks"]
 	path = SophisticatedBackpacks
 	url = https://github.com/P3pp3rF1y/SophisticatedBackpacks.git
-	branch = 1.19.x-dev
+	branch = 26.2
 [submodule "SophisticatedCore"]
 	path = SophisticatedCore
 	url = https://github.com/P3pp3rF1y/SophisticatedCore.git
-	branch = 1.19.x-dev
+	branch = 26.2
 [submodule "SophisticatedStorageInMotion"]
 	path = SophisticatedStorageInMotion
 	url = https://github.com/P3pp3rF1y/SophisticatedStorageInMotion.git
-	branch = 1.21.x
+	branch = 26.2
 [submodule "SophisticatedStorageCreateIntegration"]
 	path = SophisticatedStorageCreateIntegration
 	url = https://github.com/P3pp3rF1y/SophisticatedStorageCreateIntegration.git
+	branch = 26.2
 [submodule "SophisticatedBackpacksCreateIntegration"]
 	path = SophisticatedBackpacksCreateIntegration
 	url = https://github.com/P3pp3rF1y/SophisticatedBackpacksCreateIntegration.git
+	branch = 26.2
 [submodule "Reliquary"]
 	path = Reliquary
 	url = https://github.com/P3pp3rF1y/Reliquary.git
+	branch = 26.2
 [submodule "SophisticatedItemActions"]
 	path = SophisticatedItemActions
 	url = https://github.com/P3pp3rF1y/SophisticatedItemActions.git
+	branch = 26.2
 [submodule "SophisticatedInventoryInteractions"]
 	path = SophisticatedInventoryInteractions
 	url = https://github.com/P3pp3rF1y/SophisticatedInventoryInteractions.git
-	branch = 1.21.11
+	branch = 26.2
