@@ -1294,8 +1294,7 @@ public class DemoCommand {
 		}
 
 		Vec3 localHitPosition = entity.getBoundingBox().getCenter().subtract(entity.position());
-		PlayerInteractEvent.EntityInteractSpecific event = new PlayerInteractEvent.EntityInteractSpecific(player, InteractionHand.MAIN_HAND, entity,
-				localHitPosition);
+		PlayerInteractEvent.EntityInteract event = new PlayerInteractEvent.EntityInteract(player, InteractionHand.MAIN_HAND, entity, localHitPosition);
 		NeoForge.EVENT_BUS.post(event);
 		return event.getCancellationResult();
 	}
