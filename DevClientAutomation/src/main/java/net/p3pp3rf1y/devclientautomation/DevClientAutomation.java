@@ -22,6 +22,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -102,6 +103,7 @@ import net.neoforged.neoforge.client.ClientHooks;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
@@ -163,6 +165,7 @@ import net.p3pp3rf1y.sophisticatedstorage.block.WoodStorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.client.gui.DecorationTableScreen;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.DecorationTableMenu;
 import net.p3pp3rf1y.sophisticatedstorage.entity.MovingStorageWrapper;
+import net.p3pp3rf1y.sophisticatedstorage.item.BarrelBlockItem;
 import net.p3pp3rf1y.sophisticatedstorage.item.ChestBlockItem;
 import net.p3pp3rf1y.sophisticatedstorage.item.SimpleMaterialBlockItem;
 import net.p3pp3rf1y.sophisticatedstorage.item.WoodStorageBlockItem;
@@ -271,6 +274,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/storage/stash-left-click-regression", this::storageStashLeftClickRegression);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
+				httpServer.createContext("/storage/decoration-table-render-preview/drag", this::dragDecorationTableRenderPreview);
 				httpServer.createContext("/storage/issue-23-reproduce", this::reproduceStorageIssue23);
 				httpServer.createContext("/storage/issue-23-status", this::issue23Status);
 				httpServer.createContext("/storage/issue-23-open-source", this::openIssue23SourceStorage);
@@ -531,6 +535,14 @@ public class DevClientAutomation {
 			requireMethod(exchange, "POST");
 			String itemName = extractString(readBody(exchange), "item").orElse("storage_io");
 			sendJsonHandling(exchange, () -> openDecorationTableRenderPreview(itemName));
+		}
+
+		private void dragDecorationTableRenderPreview(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			double dragX = extractInt(body, "dragX").orElse(0);
+			double dragY = extractInt(body, "dragY").orElse(0);
+			sendJsonHandling(exchange, () -> runOnClient(() -> dragDecorationTableRenderPreview(dragX, dragY)));
 		}
 
 		private void storageControllerAe2ProfileSetup(HttpExchange exchange) throws IOException {
@@ -2592,7 +2604,21 @@ public class DevClientAutomation {
 			}
 			double scale = minecraft.getWindow().getGuiScale();
 			GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), targetX * scale, targetY * scale);
+			updateMouseHandlerPosition(minecraft, targetX * scale, targetY * scale);
+			if (minecraft.gui.screen() != null) {
+				minecraft.gui.screen().mouseMoved(targetX, targetY);
+			}
 			return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
+		}
+
+		private void updateMouseHandlerPosition(Minecraft minecraft, double x, double y) {
+			try {
+				Method onMove = MouseHandler.class.getDeclaredMethod("onMove", long.class, double.class, double.class);
+				onMove.setAccessible(true);
+				onMove.invoke(minecraft.mouseHandler, minecraft.getWindow().handle(), x, y);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException("Failed to update the client mouse position", e);
+			}
 		}
 
 		private String maximizeWindow() {
@@ -3014,6 +3040,23 @@ public class DevClientAutomation {
 					+ runOnClient(this::getDecorationTableRenderBoundsJson) + '}';
 		}
 
+		private String dragDecorationTableRenderPreview(double dragX, double dragY) {
+			Screen screen = Minecraft.getInstance().gui.screen();
+			if (!(screen instanceof DecorationTableScreen decorationTableScreen)) {
+				throw new IllegalStateException("Decoration table screen is not open");
+			}
+			DecorationTableMenu menu = decorationTableScreen.getMenu();
+			Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().size() - 1);
+			Slot resultSlot = menu.getResultSlot();
+			double x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 66;
+			double y = decorationTableScreen.getGuiTop() + lastDyeSlot.y + (resultSlot.y - lastDyeSlot.y + 20) / 2D;
+			MouseButtonEvent mouseEvent = new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0));
+			decorationTableScreen.mouseClicked(mouseEvent, false);
+			boolean dragged = decorationTableScreen.mouseDragged(mouseEvent, dragX, dragY);
+			decorationTableScreen.mouseReleased(mouseEvent);
+			return "{\"ok\":true,\"dragged\":" + dragged + '}';
+		}
+
 		private void openDecorationTableScreen(ServerPlayer player, BlockPos tablePos) {
 			player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new DecorationTableMenu(windowId, menuPlayer, tablePos),
 					net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.DECORATION_TABLE.get().getName()), tablePos);
@@ -3031,10 +3074,20 @@ public class DevClientAutomation {
 			DecorationTableBlockEntity table = WorldHelper.getBlockEntity(level, tablePos, DecorationTableBlockEntity.class)
 					.orElseThrow(() -> new IllegalStateException("Decoration table block entity missing"));
 			ItemStack resultItem = getDecorationTablePreviewItem(itemName);
-			insertDecorationTableStack(table.getStorageBlock(), resultItem);
-			if (resultItem.getItem() instanceof SimpleMaterialBlockItem || resultItem.is(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get())
+			insertDecorationTableStack(table.getStorageBlock(), 0, resultItem);
+			if (resultItem.getItem() instanceof BarrelBlockItem) {
+				if (itemName.equalsIgnoreCase("barrel_directional") || itemName.equalsIgnoreCase("limited_barrel_3_directional")) {
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.JIGSAW));
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.FURNACE));
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.STRUCTURE_BLOCK));
+				} else {
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.GOLD_BLOCK));
+					insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.EMERALD_BLOCK));
+				}
+			} else if (resultItem.getItem() instanceof SimpleMaterialBlockItem
 					|| resultItem.is(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_3_ITEM.get())) {
-				insertDecorationTableStack(table.getDecorativeBlocks(), new ItemStack(Blocks.DIAMOND_BLOCK));
+				insertDecorationTableStack(table.getDecorativeBlocks(), DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
 			} else {
 				table.setMainColor(0xFFFF00FF);
 			}
@@ -3061,14 +3114,15 @@ public class DevClientAutomation {
 		private ItemStack getDecorationTablePreviewItem(String itemName) {
 			return switch (itemName.toLowerCase(Locale.ROOT)) {
 				case "backpack" -> new ItemStack(ModItems.BACKPACK.get());
-				case "barrel" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get());
+				case "barrel", "barrel_directional" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get());
 				case "chest" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CHEST_ITEM.get());
 				case "controller" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_ITEM.get());
 				case "leather_boots" -> new ItemStack(Items.LEATHER_BOOTS);
 				case "leather_chestplate" -> new ItemStack(Items.LEATHER_CHESTPLATE);
 				case "leather_helmet" -> new ItemStack(Items.LEATHER_HELMET);
 				case "leather_leggings" -> new ItemStack(Items.LEATHER_LEGGINGS);
-				case "limited_barrel_3" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_3_ITEM.get());
+				case "limited_barrel_3", "limited_barrel_3_directional" ->
+					new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.LIMITED_BARREL_3_ITEM.get());
 				case "shulker_box" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.SHULKER_BOX_ITEM.get());
 				case "storage_link" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.STORAGE_LINK_ITEM.get());
 				case "storage_io" -> new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.STORAGE_IO_ITEM.get());
@@ -3076,9 +3130,9 @@ public class DevClientAutomation {
 			};
 		}
 
-		private void insertDecorationTableStack(ResourceHandler<ItemResource> handler, ItemStack stack) {
+		private void insertDecorationTableStack(ItemStacksResourceHandler handler, int slot, ItemStack stack) {
 			try (Transaction transaction = Transaction.openRoot()) {
-				int inserted = handler.insert(ItemResource.of(stack), stack.getCount(), transaction);
+				int inserted = handler.insert(slot, ItemResource.of(stack), stack.getCount(), transaction);
 				if (inserted != stack.getCount()) {
 					throw new IllegalStateException("Failed to insert decoration table preview stack " + stack);
 				}
@@ -3475,12 +3529,24 @@ public class DevClientAutomation {
 			DecorationTableMenu menu = decorationTableScreen.getMenu();
 			Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().size() - 1);
 			Slot resultSlot = menu.getResultSlot();
+			Slot topCoreSlot = menu.getSlot(DecorationTableBlockEntity.TOP_CORE_SLOT);
+			Slot sideCoreSlot = menu.getSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT);
+			Slot bottomCoreSlot = menu.getSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT);
 			int x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26;
 			int y = decorationTableScreen.getGuiTop() + lastDyeSlot.y;
 			int resultSlotX = decorationTableScreen.getGuiLeft() + resultSlot.x;
 			int resultSlotY = decorationTableScreen.getGuiTop() + resultSlot.y;
 			return "\"preview\":{\"x\":" + x + ",\"y\":" + y + ",\"width\":80,\"height\":" + (resultSlot.y - lastDyeSlot.y + 20) + "},\"resultSlot\":{\"x\":"
-					+ resultSlotX + ",\"y\":" + resultSlotY + ",\"width\":16,\"height\":16}";
+					+ resultSlotX + ",\"y\":" + resultSlotY + ",\"width\":16,\"height\":16},\"rotationTargets\":{"
+					+ decorationTableRotationTargetJson("top", decorationTableScreen, topCoreSlot, -90, 180, 0) + ','
+					+ decorationTableRotationTargetJson("side", decorationTableScreen, sideCoreSlot, 0, 180, 0) + ','
+					+ decorationTableRotationTargetJson("bottom", decorationTableScreen, bottomCoreSlot, 90, 180, 0) + '}';
+		}
+
+		private String decorationTableRotationTargetJson(String name, DecorationTableScreen screen, Slot slot, int xAxisRotation, int yAxisRotation,
+				int zAxisRotation) {
+			return "\"" + name + "\":{\"x\":" + (screen.getGuiLeft() + slot.x + 8) + ",\"y\":" + (screen.getGuiTop() + slot.y + 8) + ",\"xAxisRotation\":"
+					+ xAxisRotation + ",\"yAxisRotation\":" + yAxisRotation + ",\"zAxisRotation\":" + zAxisRotation + '}';
 		}
 
 		private void waitForClientBackpackInHotbar() {
