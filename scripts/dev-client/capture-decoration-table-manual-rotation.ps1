@@ -61,6 +61,22 @@ function Get-PixelDifferenceCount {
     } finally { $second.Dispose(); $first.Dispose() }
 }
 
+function Get-HandleSidePixelCounts {
+    param([string]$ScreenshotPath)
+    $bitmap = [System.Drawing.Bitmap]::FromFile($ScreenshotPath)
+    try {
+        $left = 0; $right = 0
+        for ($y = [int]($bitmap.Height * 0.27); $y -lt [int]($bitmap.Height * 0.73); $y++) {
+            for ($x = 0; $x -lt $bitmap.Width; $x++) {
+                $color = $bitmap.GetPixel($x, $y)
+                if ($color.R -lt 100 -or $color.G -lt 100 -or $color.B -lt 100 -or [Math]::Abs($color.R - $color.G) -gt 15 -or [Math]::Abs($color.G - $color.B) -gt 15) { continue }
+                if ($x -lt $bitmap.Width / 2) { $left++ } else { $right++ }
+            }
+        }
+        return [pscustomobject]@{ left = $left; right = $right }
+    } finally { $bitmap.Dispose() }
+}
+
 function Save-ComparisonImage {
     param([string]$ReferencePath, [string]$CandidatePath, [string]$OutputPath)
     $reference = [System.Drawing.Bitmap]::FromFile($ReferencePath)
@@ -105,7 +121,8 @@ try {
     Start-Sleep -Milliseconds 2250
     $steps = @(
         [pscustomobject]@{ name = "default"; dragX = 0; dragY = 0 },
-        [pscustomobject]@{ name = "yaw-90"; dragX = 45; dragY = 0 },
+        [pscustomobject]@{ name = "yaw-initial"; dragX = 1; dragY = 0 },
+        [pscustomobject]@{ name = "yaw-90"; dragX = 44; dragY = 0 },
         [pscustomobject]@{ name = "yaw-180"; dragX = 45; dragY = 0 },
         [pscustomobject]@{ name = "pitch-90"; dragX = 0; dragY = 45 }
     )
@@ -127,6 +144,8 @@ try {
         $result | Add-Member -NotePropertyName changedPixels -NotePropertyValue (Get-PixelDifferenceCount -FirstPath $defaultCrop -SecondPath $result.crop)
         Assert-True ($result.changedPixels -ge 30) "Decoration Table preview did not visibly change after $($result.step) drag."
     }
+    $firstYawHandlePixels = Get-HandleSidePixelCounts (Join-Path $cropDirectory "yaw-initial.png")
+    Assert-True ($firstYawHandlePixels.right -ge 10 -and $firstYawHandlePixels.right -gt $firstYawHandlePixels.left) "The first horizontal drag flipped the chest latch to the opposite side."
     if (-not [string]::IsNullOrWhiteSpace($ReferenceDirectory)) {
         $comparisonDirectory = Join-Path $ScreenshotDirectory "comparison-with-reference"
         New-Item -ItemType Directory -Path $comparisonDirectory -Force | Out-Null
