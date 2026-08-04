@@ -17,7 +17,7 @@ function Invoke-BridgeJson { param([string]$Method, [string]$Path, [object]$Body
 function Stop-AutomationClient { param([int]$ProcessId) try { Invoke-BridgeJson Post "/client/stop" | Out-Null } catch { Write-Warning "Failed to stop dev client: $($_.Exception.Message)" }; if ($ProcessId -gt 0 -and $null -ne (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) { & taskkill.exe /PID $ProcessId /T /F | Out-Null } }
 function Save-PreviewCrop { param([string]$ScreenshotPath, [string]$CropPath, [object]$State, [object]$Preview) $image = [System.Drawing.Bitmap]::FromFile($ScreenshotPath); try { $bounds = [System.Drawing.Rectangle]::new([int][Math]::Round($Preview.x * $image.Width / [double]$State.guiWidth), [int][Math]::Round($Preview.y * $image.Height / [double]$State.guiHeight), [int][Math]::Round($Preview.width * $image.Width / [double]$State.guiWidth), [int][Math]::Round($Preview.height * $image.Height / [double]$State.guiHeight)); $crop = $image.Clone($bounds, $image.PixelFormat); try { $crop.Save($CropPath, [System.Drawing.Imaging.ImageFormat]::Png) } finally { $crop.Dispose() } } finally { $image.Dispose() } }
 function Get-PixelDifferenceCount { param([string]$FirstPath, [string]$SecondPath) $first = [System.Drawing.Bitmap]::FromFile($FirstPath); $second = [System.Drawing.Bitmap]::FromFile($SecondPath); try { Assert-True ($first.Width -eq $second.Width -and $first.Height -eq $second.Height) "Rotation crops have different dimensions."; $count = 0; for ($y = 0; $y -lt $first.Height; $y++) { for ($x = 0; $x -lt $first.Width; $x++) { $a = $first.GetPixel($x, $y); $b = $second.GetPixel($x, $y); if ([Math]::Abs($a.R - $b.R) + [Math]::Abs($a.G - $b.G) + [Math]::Abs($a.B - $b.B) -ge 45) { $count++ } } }; return $count } finally { $second.Dispose(); $first.Dispose() } }
-function Get-HandleSidePixelCount { param([string]$FirstPath, [string]$SecondPath) $first = [System.Drawing.Bitmap]::FromFile($FirstPath); $second = [System.Drawing.Bitmap]::FromFile($SecondPath); try { Assert-True ($first.Width -eq $second.Width -and $first.Height -eq $second.Height) "Rotation crops have different dimensions."; $count = 0; $startX = [int][Math]::Floor($first.Width * 0.625); for ($y = 0; $y -lt $first.Height; $y++) { for ($x = $startX; $x -lt $first.Width; $x++) { $a = $first.GetPixel($x, $y); $b = $second.GetPixel($x, $y); if ([Math]::Abs($a.R - $b.R) + [Math]::Abs($a.G - $b.G) + [Math]::Abs($a.B - $b.B) -ge 45) { $count++ } } }; return $count } finally { $second.Dispose(); $first.Dispose() } }
+function Get-HandleSidePixelCounts { param([string]$ScreenshotPath) $bitmap = [System.Drawing.Bitmap]::FromFile($ScreenshotPath); try { $left = 0; $right = 0; for ($y = [int]($bitmap.Height * 0.27); $y -lt [int]($bitmap.Height * 0.73); $y++) { for ($x = 0; $x -lt $bitmap.Width; $x++) { $color = $bitmap.GetPixel($x, $y); if ($color.R -lt 100 -or $color.G -lt 100 -or $color.B -lt 100 -or [Math]::Abs($color.R - $color.G) -gt 15 -or [Math]::Abs($color.G - $color.B) -gt 15) { continue }; if ($x -lt $bitmap.Width / 2) { $left++ } else { $right++ } } }; return [pscustomobject]@{ left = $left; right = $right } } finally { $bitmap.Dispose() } }
 
 $startedClient = $false; $clientProcessId = 0
 try {
@@ -34,7 +34,7 @@ try {
     Start-Sleep -Milliseconds 2250
     $steps = @(
         [pscustomobject]@{ name = "default"; dragX = 0; dragY = 0 },
-        [pscustomobject]@{ name = "yaw-2"; dragX = 1; dragY = 0 },
+        [pscustomobject]@{ name = "yaw-initial"; dragX = 1; dragY = 0 },
         [pscustomobject]@{ name = "yaw-90"; dragX = 44; dragY = 0 },
         [pscustomobject]@{ name = "pitch-90"; dragX = 0; dragY = 45 }
     )
@@ -56,9 +56,8 @@ try {
         $result | Add-Member changedPixels (Get-PixelDifferenceCount $default $result.crop)
         Assert-True ($result.changedPixels -ge 30) "Preview did not visibly change after $($result.step)."
     }
-    $firstYawDrag = $results | Where-Object step -eq "yaw-2"
-    $firstYawDrag | Add-Member handleSidePixels (Get-HandleSidePixelCount $default $firstYawDrag.crop)
-    Assert-True ($firstYawDrag.handleSidePixels -le 300) "The first horizontal drag rotated the chest away from its handle side."
+    $firstYawHandlePixels = Get-HandleSidePixelCounts (Join-Path $cropDirectory "yaw-initial.png")
+    Assert-True ($firstYawHandlePixels.right -ge 10 -and $firstYawHandlePixels.right -gt $firstYawHandlePixels.left) "The first horizontal drag flipped the chest latch to the opposite side."
     if (-not [string]::IsNullOrWhiteSpace($ReferenceDirectory)) {
         foreach ($result in $results) {
             $reference = Join-Path $ReferenceDirectory "$($result.step).png"
