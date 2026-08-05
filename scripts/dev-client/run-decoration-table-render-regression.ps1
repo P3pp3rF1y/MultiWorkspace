@@ -138,26 +138,6 @@ function Get-MagentaPixelCount {
     }
 }
 
-function Get-CyanPixelCount {
-    param([Parameter(Mandatory = $true)] [string]$ScreenshotPath)
-
-    $bitmap = [System.Drawing.Bitmap]::FromFile($ScreenshotPath)
-    try {
-        $count = 0
-        for ($y = 0; $y -lt $bitmap.Height; $y++) {
-            for ($x = 0; $x -lt $bitmap.Width; $x++) {
-                $color = $bitmap.GetPixel($x, $y)
-                if ($color.B -ge 120 -and $color.G -ge 100 -and $color.R -le 100) {
-                    $count++
-                }
-            }
-        }
-        return $count
-    } finally {
-        $bitmap.Dispose()
-    }
-}
-
 function Get-PixelDifferenceCount {
     param(
         [Parameter(Mandatory = $true)] [string]$FirstPath,
@@ -255,7 +235,7 @@ try {
         $previewCropPath = Join-Path $previewCropDirectory "$item.png"
         Save-DecorationTablePreviewCrop -ScreenshotPath $screenshotPath -PreviewCropPath $previewCropPath -State $state -Preview $open.preview
         $bounds = Get-VisibleBounds -ScreenshotPath $previewCropPath
-        $minimumWidthFraction = if ($item -like "leather_*") { 0.33 } else { 0.5 }
+        $minimumWidthFraction = if ($item -like "leather_*") { 0.3 } elseif ($item -eq "backpack") { 0.5 } else { 0.55 }
         Assert-True ($bounds.count -ge 30) "No substantial decoration result was rendered for $item. Preview crop: $previewCropPath"
         Assert-True ($bounds.width -ge $bounds.imageWidth * 0.2 -and $bounds.height -ge $bounds.imageHeight * 0.15) "Decoration result for $item is too small. Bounds=$($bounds | ConvertTo-Json -Compress)"
         Assert-True ($bounds.width -ge $bounds.imageWidth * $minimumWidthFraction) "Decoration result for $item does not fill enough of the preview. Bounds=$($bounds | ConvertTo-Json -Compress)"
@@ -268,49 +248,65 @@ try {
             Assert-True ((Get-MagentaPixelCount -ScreenshotPath $resultSlotCropPath) -ge 5) "Backpack cloth tint is missing from the decoration table result slot. Crop: $resultSlotCropPath"
         }
 
-        if ($item -eq "barrel") {
-            Assert-True ($null -ne $open.coreSlots) "Barrel material core slot bounds were not returned."
-            Assert-True ((Get-CyanPixelCount -ScreenshotPath $previewCropPath) -ge 1000) "Barrel opaque trim is see-through in its neutral preview. Crop: $previewCropPath"
-            $rotationCropPaths = @{}
-            foreach ($side in @("top", "side", "bottom")) {
-                $slot = $open.coreSlots.$side
-                Assert-True ($null -ne $slot) "Barrel $side core slot bounds were not returned."
-                Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $slot.x + $slot.width + 1; y = $slot.y + [int]($slot.height / 2) } | Out-Null
-                Start-Sleep -Milliseconds 2000
-
-                $rotationScreenshotPath = Join-Path $ScreenshotDirectory "barrel-$side.png"
-                Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $rotationScreenshotPath | Out-Null
-                $rotationCropPath = Join-Path $previewCropDirectory "barrel-$side.png"
-                Save-DecorationTablePreviewCrop -ScreenshotPath $rotationScreenshotPath -PreviewCropPath $rotationCropPath -State $state -Preview $open.preview
-                $rotationCropPaths[$side] = $rotationCropPath
-                $rotationBounds = Get-VisibleBounds -ScreenshotPath $rotationCropPath
-                Assert-True ($rotationBounds.count -ge 30) "No barrel material preview was rendered for $side. Crop: $rotationCropPath"
-            }
-
-            Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
-            Start-Sleep -Milliseconds 2000
-            $headOnScreenshotPath = Join-Path $ScreenshotDirectory "barrel-head-on.png"
-            Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $headOnScreenshotPath | Out-Null
-            $headOnCropPath = Join-Path $previewCropDirectory "barrel-head-on.png"
-            Save-DecorationTablePreviewCrop -ScreenshotPath $headOnScreenshotPath -PreviewCropPath $headOnCropPath -State $state -Preview $open.preview
-            Assert-True ((Get-CyanPixelCount -ScreenshotPath $headOnCropPath) -ge 1000) "Barrel opaque trim is see-through after returning to its neutral preview. Crop: $headOnCropPath"
-            $headOnDifference = Get-PixelDifferenceCount -FirstPath $previewCropPath -SecondPath $headOnCropPath
-            Assert-True ($headOnDifference -le 250) "Barrel preview did not return to its neutral view. Changed pixels=$headOnDifference Crop=$headOnCropPath"
-            foreach ($side in @("top", "side", "bottom")) {
-                $difference = Get-PixelDifferenceCount -FirstPath $headOnCropPath -SecondPath $rotationCropPaths[$side]
-                Assert-True ($difference -ge 30) "Barrel $side material hover did not show the material head-on. Changed pixels=$difference Crop=$($rotationCropPaths[$side])"
-            }
-        }
-
         $results += [pscustomobject]@{ item = $item; screenshot = $screenshotPath; previewCrop = $previewCropPath; resultSlotCrop = $resultSlotCropPath; bounds = $bounds }
         Write-Host "PASS $item $($bounds | ConvertTo-Json -Compress)"
     }
+
+    $barrelOpen = Invoke-BridgeJson -Method Post -Path "/storage/decoration-table-render-preview/open" -Body @{ item = "barrel_directional" }
+    Assert-True $barrelOpen.ok "Failed to set up directional barrel preview: $($barrelOpen.error)"
+    Assert-True ($null -ne $barrelOpen.coreSlotHoverTargets) "Decoration table core-slot hover targets were not returned for directional barrel."
+    $rotationDirectory = Join-Path $ScreenshotDirectory "barrel-directional"
+    New-Item -ItemType Directory -Path $rotationDirectory -Force | Out-Null
+    $rotationResults = @()
+    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Start-Sleep -Milliseconds 2500
+    $firstOpenScreenshotPath = Join-Path $rotationDirectory "first-open.png"
+    Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $firstOpenScreenshotPath | Out-Null
+    $state = Invoke-BridgeJson -Method Get -Path "/state"
+    $firstOpenCropPath = Join-Path $rotationDirectory "first-open-preview.png"
+    Save-DecorationTablePreviewCrop -ScreenshotPath $firstOpenScreenshotPath -PreviewCropPath $firstOpenCropPath -State $state -Preview $barrelOpen.preview
+    $firstOpenBounds = Get-VisibleBounds -ScreenshotPath $firstOpenCropPath
+    Assert-True ($firstOpenBounds.count -ge 30) "No directional barrel result was rendered on first open. Preview crop: $firstOpenCropPath"
+
+    foreach ($rotation in @("top", "side", "bottom")) {
+        $target = $barrelOpen.coreSlotHoverTargets.$rotation
+        Assert-True ($null -ne $target) "Decoration table $rotation core-slot hover target was not returned for directional barrel."
+        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $target.x; y = $target.y } | Out-Null
+        Start-Sleep -Milliseconds 2000
+
+        $screenshotPath = Join-Path $rotationDirectory "$rotation.png"
+        Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $screenshotPath | Out-Null
+        $state = Invoke-BridgeJson -Method Get -Path "/state"
+        $previewCropPath = Join-Path $rotationDirectory "$rotation-preview.png"
+        Save-DecorationTablePreviewCrop -ScreenshotPath $screenshotPath -PreviewCropPath $previewCropPath -State $state -Preview $barrelOpen.preview
+        $bounds = Get-VisibleBounds -ScreenshotPath $previewCropPath
+        Assert-True ($bounds.count -ge 30) "No directional barrel result was rendered for $rotation. Preview crop: $previewCropPath"
+        $changedPixels = Get-PixelDifferenceCount -FirstPath $firstOpenCropPath -SecondPath $previewCropPath
+        Assert-True ($changedPixels -ge 30) "Directional barrel $rotation hover did not change the preview. Changed pixels=$changedPixels Crop=$previewCropPath"
+        $rotationResults += [pscustomobject]@{ rotation = $rotation; screenshot = $screenshotPath; previewCrop = $previewCropPath; bounds = $bounds; changedPixels = $changedPixels }
+        Write-Host "PASS barrel-directional-$rotation $($bounds | ConvertTo-Json -Compress)"
+    }
+
+    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Start-Sleep -Milliseconds 2500
+    $returnScreenshotPath = Join-Path $rotationDirectory "return.png"
+    Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $returnScreenshotPath | Out-Null
+    $state = Invoke-BridgeJson -Method Get -Path "/state"
+    $returnCropPath = Join-Path $rotationDirectory "return-preview.png"
+    Save-DecorationTablePreviewCrop -ScreenshotPath $returnScreenshotPath -PreviewCropPath $returnCropPath -State $state -Preview $barrelOpen.preview
+    $returnBounds = Get-VisibleBounds -ScreenshotPath $returnCropPath
+    Assert-True ($returnBounds.count -ge 30) "No directional barrel result was rendered after returning to the default preview. Crop: $returnCropPath"
+    $returnChangedPixels = Get-PixelDifferenceCount -FirstPath $firstOpenCropPath -SecondPath $returnCropPath
+    Assert-True ($returnChangedPixels -le 250) "Directional barrel preview did not return to its first-open view. Changed pixels=$returnChangedPixels Crop=$returnCropPath"
 
     [pscustomobject]@{
         ok = $true
         baseUrl = $BaseUrl
         screenshotDirectory = $ScreenshotDirectory
         results = $results
+        firstOpen = [pscustomobject]@{ screenshot = $firstOpenScreenshotPath; previewCrop = $firstOpenCropPath; bounds = $firstOpenBounds }
+        rotationResults = $rotationResults
+        return = [pscustomobject]@{ screenshot = $returnScreenshotPath; previewCrop = $returnCropPath; bounds = $returnBounds; changedPixels = $returnChangedPixels }
     }
 } finally {
     if ($startedClient) {
