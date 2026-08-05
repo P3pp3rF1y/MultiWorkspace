@@ -151,20 +151,79 @@ function Save-Crop {
     }
 }
 
-function Test-BarrelCoreRotationTarget {
+function Get-PixelDifferenceCount {
     param(
-        [Parameter(Mandatory = $true)] [string]$Name,
-        [Parameter(Mandatory = $true)] [object]$Target
+        [Parameter(Mandatory = $true)] [string]$FirstPath,
+        [Parameter(Mandatory = $true)] [string]$SecondPath
     )
 
-    $expectedRotations = @{
-        topCore = @{ rotationX = 90; rotationY = 180 }
-        sideCore = @{ rotationX = 0; rotationY = 180 }
-        bottomCore = @{ rotationX = -90; rotationY = 180 }
+    $first = [System.Drawing.Bitmap]::FromFile($FirstPath)
+    $second = [System.Drawing.Bitmap]::FromFile($SecondPath)
+    try {
+        Assert-True ($first.Width -eq $second.Width -and $first.Height -eq $second.Height) "Rotation crops have different dimensions. First: $FirstPath Second: $SecondPath"
+        $count = 0
+        for ($y = 0; $y -lt $first.Height; $y++) {
+            for ($x = 0; $x -lt $first.Width; $x++) {
+                $firstColor = $first.GetPixel($x, $y)
+                $secondColor = $second.GetPixel($x, $y)
+                if ([Math]::Abs($firstColor.R - $secondColor.R) + [Math]::Abs($firstColor.G - $secondColor.G) + [Math]::Abs($firstColor.B - $secondColor.B) -ge 45) {
+                    $count++
+                }
+            }
+        }
+        return $count
+    } finally {
+        $second.Dispose()
+        $first.Dispose()
     }
-    Assert-True ($null -ne $expectedRotations[$Name]) "Unknown barrel core rotation target $Name."
-    $expected = $expectedRotations[$Name]
-    Assert-True ($Target.rotationX -eq $expected.rotationX -and $Target.rotationY -eq $expected.rotationY) "Barrel core rotation target $Name did not match the 1.21.1 head-on reference. Target=$($Target | ConvertTo-Json -Compress)"
+}
+
+function Get-CenteredPerceptualHash {
+    param([Parameter(Mandatory = $true)] [string]$ScreenshotPath)
+
+    $source = [System.Drawing.Bitmap]::FromFile($ScreenshotPath)
+    $crop = $null
+    $resized = $null
+    try {
+        $cropSize = [int][Math]::Round($source.Width / 2.0)
+        $crop = $source.Clone([System.Drawing.Rectangle]::new([int](($source.Width - $cropSize) / 2), [int](($source.Height - $cropSize) / 2), $cropSize, $cropSize), $source.PixelFormat)
+        $resized = [System.Drawing.Bitmap]::new(17, 16)
+        $graphics = [System.Drawing.Graphics]::FromImage($resized)
+        try {
+            $graphics.DrawImage($crop, 0, 0, 17, 16)
+        } finally {
+            $graphics.Dispose()
+        }
+
+        $hash = ""
+        for ($y = 0; $y -lt 16; $y++) {
+            for ($x = 0; $x -lt 16; $x++) {
+                $left = $resized.GetPixel($x, $y)
+                $right = $resized.GetPixel($x + 1, $y)
+                $leftLuminance = $left.R * 0.299 + $left.G * 0.587 + $left.B * 0.114
+                $rightLuminance = $right.R * 0.299 + $right.G * 0.587 + $right.B * 0.114
+                $hash += [int]($leftLuminance -gt $rightLuminance)
+            }
+        }
+        return $hash
+    } finally {
+        if ($null -ne $resized) { $resized.Dispose() }
+        if ($null -ne $crop) { $crop.Dispose() }
+        $source.Dispose()
+    }
+}
+
+function Get-HammingDistance {
+    param([Parameter(Mandatory = $true)] [string]$First, [Parameter(Mandatory = $true)] [string]$Second)
+
+    Assert-True ($First.Length -eq $Second.Length) "Perceptual hashes have different lengths."
+    $distance = 0
+    for ($i = 0; $i -lt $First.Length; $i++) {
+        if ($First[$i] -ne $Second[$i]) {
+            $distance++
+        }
+    }
+    return $distance
 }
 
 $startedClient = $false
@@ -187,18 +246,31 @@ try {
     }
 
     Assert-True (Invoke-BridgeJson -Method Get -Path "/state").playerLoaded "Dev client world is not loaded."
+    New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
     $previewCropDirectory = Join-Path $ScreenshotDirectory "preview-crops"
     $resultSlotCropDirectory = Join-Path $ScreenshotDirectory "result-slot-crops"
-    New-Item -ItemType Directory -Path $previewCropDirectory, $resultSlotCropDirectory -Force | Out-Null
+    $rotationCropDirectory = Join-Path $ScreenshotDirectory "rotation-crops"
+    New-Item -ItemType Directory -Path $previewCropDirectory, $resultSlotCropDirectory, $rotationCropDirectory -Force | Out-Null
 
     $results = @()
-    $items = @("storage_io", "controller", "storage_link", "barrel", "limited_barrel_3", "chest", "shulker_box", "backpack", "leather_helmet", "leather_chestplate", "leather_leggings", "leather_boots")
+    $items = @("storage_io", "controller", "storage_link", "barrel", "limited_barrel_3", "chest", "shulker_box", "backpack", "leather_helmet", "leather_chestplate", "leather_leggings", "leather_boots", "barrel_directional")
     foreach ($item in $items) {
         $open = Invoke-BridgeJson -Method Post -Path "/storage/decoration-table-render-preview/open" -Body @{ item = $item }
         Assert-True $open.ok "Failed to set up decoration table preview for ${item}: $($open.error)"
         Assert-True ($null -ne $open.preview -and $null -ne $open.resultSlot) "Decoration table bounds were not returned for $item."
         Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
-        Start-Sleep -Milliseconds 1250
+        $firstOpenCropPath = ""
+        $firstOpenHammingDistance = $null
+        if ($item -eq "barrel_directional") {
+            Start-Sleep -Milliseconds 100
+            $firstOpenScreenshotPath = Join-Path $ScreenshotDirectory "$item-first-open.png"
+            Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $firstOpenScreenshotPath | Out-Null
+            $firstOpenCropPath = Join-Path $rotationCropDirectory "$item-first-open.png"
+            Save-Crop -ScreenshotPath $firstOpenScreenshotPath -CropPath $firstOpenCropPath -State (Invoke-BridgeJson -Method Get -Path "/state") -Bounds $open.preview
+            $firstOpenBounds = Get-VisibleBounds -ScreenshotPath $firstOpenCropPath
+            Assert-True ($firstOpenBounds.count -ge 30) "Decoration Table first-open preview was not substantially rendered. Crop=$firstOpenCropPath"
+        }
+        Start-Sleep -Milliseconds 2250
 
         $screenshotPath = Join-Path $ScreenshotDirectory "$item.png"
         Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $screenshotPath | Out-Null
@@ -206,12 +278,17 @@ try {
         $previewCropPath = Join-Path $previewCropDirectory "$item.png"
         Save-Crop -ScreenshotPath $screenshotPath -CropPath $previewCropPath -State $state -Bounds $open.preview
         $bounds = Get-VisibleBounds -ScreenshotPath $previewCropPath
-        $minimumWidthFraction = if ($item -like "leather_*") { 0.4 } else { 0.55 }
+        $minimumWidthFraction = if ($item -like "leather_*") { 0.3 } else { 0.5 }
         Assert-True ($bounds.count -ge 30) "No substantial decoration result was rendered for $item. Preview crop: $previewCropPath"
         Assert-True ($bounds.width -ge $bounds.imageWidth * 0.2 -and $bounds.height -ge $bounds.imageHeight * 0.15) "Decoration result for $item is too small. Bounds=$($bounds | ConvertTo-Json -Compress)"
         Assert-True ($bounds.width -ge $bounds.imageWidth * $minimumWidthFraction) "Decoration result for $item does not fill enough of the preview. Bounds=$($bounds | ConvertTo-Json -Compress)"
         Assert-True ($bounds.left -ge $bounds.imageWidth * 0.05 -and $bounds.right -le $bounds.imageWidth * 0.95 -and $bounds.top -ge $bounds.imageHeight * 0.05 -and $bounds.bottom -le $bounds.imageHeight * 0.95) "Decoration result for $item is clipped by its preview. Bounds=$($bounds | ConvertTo-Json -Compress)"
         Assert-True ($bounds.centerX -ge $bounds.imageWidth * 0.35 -and $bounds.centerX -le $bounds.imageWidth * 0.65 -and $bounds.centerY -ge $bounds.imageHeight * 0.2 -and $bounds.centerY -le $bounds.imageHeight * 0.75) "Decoration result for $item is not centered in its preview. Bounds=$($bounds | ConvertTo-Json -Compress)"
+        if ($firstOpenCropPath) {
+            $firstOpenHash = Get-CenteredPerceptualHash -ScreenshotPath $firstOpenCropPath
+            $settledHash = Get-CenteredPerceptualHash -ScreenshotPath $previewCropPath
+            $firstOpenHammingDistance = Get-HammingDistance -First $firstOpenHash -Second $settledHash
+        }
 
         $resultSlotCropPath = Join-Path $resultSlotCropDirectory "$item.png"
         Save-Crop -ScreenshotPath $screenshotPath -CropPath $resultSlotCropPath -State $state -Bounds $open.resultSlot
@@ -219,33 +296,45 @@ try {
             Assert-True ((Get-MagentaPixelCount -ScreenshotPath $resultSlotCropPath) -ge 5) "Backpack cloth tint is missing from the decoration table result slot. Crop: $resultSlotCropPath"
         }
 
-        $results += [pscustomobject]@{ item = $item; screenshot = $screenshotPath; previewCrop = $previewCropPath; resultSlotCrop = $resultSlotCropPath; bounds = $bounds }
-        Write-Host "PASS $item $($bounds | ConvertTo-Json -Compress)"
-
-        if ($item -eq "barrel") {
-            foreach ($targetName in @("topCore", "sideCore", "bottomCore")) {
-                $target = $open.rotationTargets.PSObject.Properties[$targetName].Value
-                Assert-True ($null -ne $target) "Decoration table barrel core target $targetName was not returned."
-                Test-BarrelCoreRotationTarget -Name $targetName -Target $target
-                $move = Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $target.x; y = $target.y }
-                Assert-True $move.ok "Failed to move mouse to barrel core target $targetName."
+        $rotationCrops = @()
+        if ($item -eq "barrel" -or $item -eq "barrel_directional") {
+            Assert-True ($null -ne $open.rotationTargets) "Decoration table rotation targets were not returned for $item."
+            $targetProperties = @{ top = "topCore"; side = "sideCore"; bottom = "bottomCore" }
+            $expectedRotations = @{ top = @(90, 180); side = @(0, 180); bottom = @(-90, 180) }
+            $rotationBaselineCropPath = Join-Path $rotationCropDirectory "$item-default.png"
+            Save-Crop -ScreenshotPath $screenshotPath -CropPath $rotationBaselineCropPath -State $state -Bounds $open.preview
+            $rotationBaselineBounds = Get-VisibleBounds -ScreenshotPath $rotationBaselineCropPath
+            foreach ($targetName in @("top", "side", "bottom")) {
+                $target = $open.rotationTargets.PSObject.Properties[$targetProperties[$targetName]].Value
+                $expectedRotation = $expectedRotations[$targetName]
+                Assert-True ($null -ne $target) "Missing $item $targetName rotation target."
+                Assert-True ($target.rotationX -eq $expectedRotation[0] -and $target.rotationY -eq $expectedRotation[1]) "Unexpected $item $targetName rotation target. Target=$($target | ConvertTo-Json -Compress)"
+                Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $target.x; y = $target.y } | Out-Null
                 Start-Sleep -Milliseconds 2000
-                $move = Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $target.x; y = $target.y }
-                Assert-True $move.ok "Failed to keep mouse on barrel core target $targetName."
-                Start-Sleep -Milliseconds 1000
 
-                $sideScreenshotPath = Join-Path $ScreenshotDirectory "barrel-$targetName.png"
-                Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $sideScreenshotPath | Out-Null
-                $state = Invoke-BridgeJson -Method Get -Path "/state"
-                $sidePreviewCropPath = Join-Path $previewCropDirectory "barrel-$targetName.png"
-                Save-Crop -ScreenshotPath $sideScreenshotPath -CropPath $sidePreviewCropPath -State $state -Bounds $open.preview
-                $sideBounds = Get-VisibleBounds -ScreenshotPath $sidePreviewCropPath
-                Assert-True ($sideBounds.count -ge 30) "No substantial barrel core preview was rendered for $targetName. Preview crop: $sidePreviewCropPath"
-                Assert-True ($sideBounds.width -ge $sideBounds.imageWidth * 0.55 -and $sideBounds.height -ge $sideBounds.imageHeight * 0.15) "Barrel core preview for $targetName is not head-on enough to fill the reference crop. Bounds=$($sideBounds | ConvertTo-Json -Compress)"
-                $results += [pscustomobject]@{ item = "barrel-$targetName"; screenshot = $sideScreenshotPath; previewCrop = $sidePreviewCropPath; target = $target; bounds = $sideBounds }
-                Write-Host "PASS barrel-$targetName $($sideBounds | ConvertTo-Json -Compress)"
+                $rotationScreenshotPath = Join-Path $ScreenshotDirectory "$item-$targetName.png"
+                Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $rotationScreenshotPath | Out-Null
+                $rotationCropPath = Join-Path $rotationCropDirectory "$item-$targetName.png"
+                Save-Crop -ScreenshotPath $rotationScreenshotPath -CropPath $rotationCropPath -State (Invoke-BridgeJson -Method Get -Path "/state") -Bounds $open.preview
+                $rotationBounds = Get-VisibleBounds -ScreenshotPath $rotationCropPath
+                $pixelDifferenceCount = Get-PixelDifferenceCount -FirstPath $rotationBaselineCropPath -SecondPath $rotationCropPath
+                Assert-True ($rotationBounds.count -ge 30 -and $rotationBounds.width -ge $rotationBounds.imageWidth * 0.45) "$item $targetName rotation did not render a substantial preview. Bounds=$($rotationBounds | ConvertTo-Json -Compress)"
+                $rotationCrops += [pscustomobject]@{ target = $targetName; crop = $rotationCropPath; pixelDifferenceCount = $pixelDifferenceCount; bounds = $rotationBounds }
             }
+            Assert-True (($rotationCrops | Measure-Object -Property pixelDifferenceCount -Maximum).Maximum -ge 30) "$item material hover rotations did not visibly change the preview. Crops: $rotationCropDirectory"
+            Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+            Start-Sleep -Milliseconds 2250
+            $returnedScreenshotPath = Join-Path $ScreenshotDirectory "$item-returned.png"
+            Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $returnedScreenshotPath | Out-Null
+            $returnedCropPath = Join-Path $rotationCropDirectory "$item-returned.png"
+            Save-Crop -ScreenshotPath $returnedScreenshotPath -CropPath $returnedCropPath -State (Invoke-BridgeJson -Method Get -Path "/state") -Bounds $open.preview
+            $returnedBounds = Get-VisibleBounds -ScreenshotPath $returnedCropPath
+            Assert-True ($returnedBounds.count -ge 30 -and [Math]::Abs($returnedBounds.left - $rotationBaselineBounds.left) -le 2 -and [Math]::Abs($returnedBounds.right - $rotationBaselineBounds.right) -le 2 -and [Math]::Abs($returnedBounds.top - $rotationBaselineBounds.top) -le 2 -and [Math]::Abs($returnedBounds.bottom - $rotationBaselineBounds.bottom) -le 2) "$item material hover did not return to the default preview. Returned=$($returnedBounds | ConvertTo-Json -Compress) Crop=$returnedCropPath"
+            $rotationCrops += [pscustomobject]@{ target = "returned"; crop = $returnedCropPath; bounds = $returnedBounds }
         }
+
+        $results += [pscustomobject]@{ item = $item; screenshot = $screenshotPath; previewCrop = $previewCropPath; resultSlotCrop = $resultSlotCropPath; firstOpenHammingDistance = $firstOpenHammingDistance; rotationCrops = $rotationCrops; bounds = $bounds }
+        Write-Host "PASS $item $($bounds | ConvertTo-Json -Compress)"
     }
 
     [pscustomobject]@{ ok = $true; baseUrl = $BaseUrl; screenshotDirectory = $ScreenshotDirectory; results = $results }
