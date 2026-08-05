@@ -111,10 +111,10 @@ import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.refill.RefillUpgradeWrapper
 import net.p3pp3rf1y.sophisticatedbackpacks.util.InventoryInteractionHelper;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
-import net.p3pp3rf1y.sophisticatedcore.client.ClientEventHandler;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitResult;
 import net.p3pp3rf1y.sophisticatedcore.api.InventoryLayoutFitter;
+import net.p3pp3rf1y.sophisticatedcore.client.ClientEventHandler;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageSettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
@@ -279,6 +279,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/storage/simple-material-overlay-comparison-setup", this::simpleMaterialOverlayComparisonSetup);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
+				httpServer.createContext("/storage/decoration-table-render-preview/drag", this::dragDecorationTableRenderPreview);
 				httpServer.createContext("/storage/issue-23-reproduce", this::reproduceStorageIssue23);
 				httpServer.createContext("/storage/issue-23-status", this::issue23Status);
 				httpServer.createContext("/storage/issue-23-open-source", this::openIssue23SourceStorage);
@@ -645,6 +646,14 @@ public class DevClientAutomation {
 			sendJsonHandling(exchange, () -> openDecorationTableRenderPreview(itemName));
 		}
 
+		private void dragDecorationTableRenderPreview(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			double dragX = extractInt(body, "dragX").orElse(0);
+			double dragY = extractInt(body, "dragY").orElse(0);
+			sendJsonHandling(exchange, () -> runOnClient(() -> dragDecorationTableRenderPreview(dragX, dragY)));
+		}
+
 		private void reproduceStorageIssue23(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "POST");
 			issue23SetupResult = runOnServer(this::setupStorageIssue23Reproduction);
@@ -714,6 +723,20 @@ public class DevClientAutomation {
 					+ runOnClient(this::getDecorationTableRenderBoundsJson) + '}';
 		}
 
+		private String dragDecorationTableRenderPreview(double dragX, double dragY) {
+			Screen screen = Minecraft.getInstance().screen;
+			if (!(screen instanceof DecorationTableScreen decorationTableScreen)) {
+				throw new IllegalStateException("Decoration table screen is not open");
+			}
+			DecorationTableMenu menu = decorationTableScreen.getMenu();
+			Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().numberOfSlots() - 1);
+			Slot resultSlot = menu.getResultSlot();
+			double x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26 + 40D;
+			double y = decorationTableScreen.getGuiTop() + lastDyeSlot.y + (resultSlot.y - lastDyeSlot.y + 20) / 2D;
+			boolean dragged = decorationTableScreen.mouseDragged(x, y, 0, dragX, dragY);
+			return "{\"ok\":true,\"dragged\":" + dragged + '}';
+		}
+
 		private void openDecorationTableScreen(ServerPlayer player, BlockPos tablePos) {
 			player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new DecorationTableMenu(windowId, menuPlayer, tablePos),
 					ModBlocks.DECORATION_TABLE.get().getName()), tablePos);
@@ -731,7 +754,11 @@ public class DevClientAutomation {
 					.orElseThrow(() -> new IllegalStateException("Decoration table block entity missing"));
 			ItemStack resultItem = getDecorationTablePreviewItem(itemName);
 			insertDecorationTableStack(table.getStorageBlock(), resultItem);
-			if (resultItem.is(ModBlocks.BARREL_ITEM.get())) {
+			if ("barrel_directional".equalsIgnoreCase(itemName)) {
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.JIGSAW));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.FURNACE));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.STRUCTURE_BLOCK));
+			} else if (resultItem.is(ModBlocks.BARREL_ITEM.get())) {
 				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
 				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.REDSTONE_BLOCK));
 				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.GOLD_BLOCK));
@@ -740,6 +767,7 @@ public class DevClientAutomation {
 			} else {
 				table.setMainColor(0xFFFF00FF);
 			}
+			WorldHelper.notifyBlockUpdate(table);
 
 			BlockPos cameraPos = tablePos.south(3);
 			if (!player.teleportTo(level, cameraPos.getX() + 0.5D, cameraPos.getY(), cameraPos.getZ() + 0.5D, Set.of(), 180.0F, 7.0F)) {
@@ -763,7 +791,7 @@ public class DevClientAutomation {
 		private ItemStack getDecorationTablePreviewItem(String itemName) {
 			return switch (itemName.toLowerCase(Locale.ROOT)) {
 				case "backpack" -> new ItemStack(ModItems.BACKPACK.get());
-				case "barrel" -> new ItemStack(ModBlocks.BARREL_ITEM.get());
+				case "barrel", "barrel_directional" -> new ItemStack(ModBlocks.BARREL_ITEM.get());
 				case "chest" -> new ItemStack(ModBlocks.CHEST_ITEM.get());
 				case "controller" -> new ItemStack(ModBlocks.CONTROLLER_ITEM.get());
 				case "leather_boots" -> new ItemStack(Items.LEATHER_BOOTS);
