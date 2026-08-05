@@ -24,6 +24,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -236,6 +237,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/click-widget", this::clickWidget);
 				httpServer.createContext("/key", this::key);
 				httpServer.createContext("/mouse/move", this::moveMouse);
+				httpServer.createContext("/mouse/click", this::clickMouse);
 				httpServer.createContext("/command", this::command);
 				httpServer.createContext("/screen/move-to-slot", this::moveToSlot);
 				httpServer.createContext("/screen/throw-slot", this::throwSlot);
@@ -340,6 +342,16 @@ public class DevClientAutomation {
 			int x = extractInt(body, "x").orElse(-1);
 			int y = extractInt(body, "y").orElse(-1);
 			sendJson(exchange, runOnClient(() -> moveMouse(position, x, y)));
+		}
+
+		private void clickMouse(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			int x = extractInt(body, "x").orElse(-1);
+			int y = extractInt(body, "y").orElse(-1);
+			int button = extractInt(body, "button").orElse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+			boolean shift = extractBoolean(body, "shift").orElse(false);
+			sendJsonHandling(exchange, () -> runOnClient(() -> clickMouse(x, y, button, shift)));
 		}
 
 		private void command(HttpExchange exchange) throws IOException {
@@ -703,6 +715,7 @@ public class DevClientAutomation {
 				runOnServer(player -> openCreateContraptionStorage(player, setupResult.entityId(), setupResult.localPos()));
 			}
 			waitForStorageScreen();
+			waitForStorageScreenContents();
 			waitForStorageScreenAndClickSettingsTab();
 			String screenName = waitForSettingsScreenAndOpenItemDisplayTab();
 			return "{\"ok\":true," + jsonProperty("scenario", setupResult.scenario()) + ',' + jsonProperty("displaySide", displaySide.getSerializedName()) + ','
@@ -1417,6 +1430,18 @@ public class DevClientAutomation {
 				sleep(50);
 			}
 			throw new IllegalStateException("Timed out waiting for storage screen");
+		}
+
+		private void waitForStorageScreenContents() {
+			long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5_000L);
+			while (System.nanoTime() < deadline) {
+				if (runOnClient(() -> Minecraft.getInstance().screen instanceof AbstractContainerScreen<?> screen
+						&& screen.getMenu() instanceof StorageContainerMenuBase<?> && screen.getMenu().getStateId() > 0)) {
+					return;
+				}
+				sleep(50);
+			}
+			throw new IllegalStateException("Timed out waiting for storage screen contents");
 		}
 
 		private void waitForStorageScreenAndClickSettingsTab() {
@@ -5745,6 +5770,34 @@ public class DevClientAutomation {
 			DemoMouseMotion.moveTo(targetX, targetY, 12, () -> {
 			});
 			return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
+		}
+
+		private String clickMouse(int x, int y, int button, boolean shift) {
+			Minecraft minecraft = Minecraft.getInstance();
+			if (minecraft.screen == null) {
+				return "{\"ok\":false,\"error\":\"No screen is open\"}";
+			}
+			if (x < 0 || y < 0 || x >= minecraft.getWindow().getGuiScaledWidth() || y >= minecraft.getWindow().getGuiScaledHeight()) {
+				return "{\"ok\":false,\"error\":\"Mouse coordinates are outside the screen\"}";
+			}
+
+			try {
+				MouseHandler mouseHandler = minecraft.mouseHandler;
+				Field xpos = MouseHandler.class.getDeclaredField("xpos");
+				Field ypos = MouseHandler.class.getDeclaredField("ypos");
+				Method onPress = MouseHandler.class.getDeclaredMethod("onPress", long.class, int.class, int.class, int.class);
+				xpos.setAccessible(true);
+				ypos.setAccessible(true);
+				onPress.setAccessible(true);
+				xpos.setDouble(mouseHandler, x * (double) minecraft.getWindow().getScreenWidth() / minecraft.getWindow().getGuiScaledWidth());
+				ypos.setDouble(mouseHandler, y * (double) minecraft.getWindow().getScreenHeight() / minecraft.getWindow().getGuiScaledHeight());
+				int modifiers = shift ? GLFW.GLFW_MOD_SHIFT : 0;
+				onPress.invoke(mouseHandler, minecraft.getWindow().getWindow(), button, GLFW.GLFW_PRESS, modifiers);
+				onPress.invoke(mouseHandler, minecraft.getWindow().getWindow(), button, GLFW.GLFW_RELEASE, modifiers);
+				return "{\"ok\":true,\"x\":" + x + ",\"y\":" + y + ",\"button\":" + button + ",\"shift\":" + shift + "}";
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException("Failed to dispatch mouse input", e);
+			}
 		}
 
 		private String maximizeWindow() {

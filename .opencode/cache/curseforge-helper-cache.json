@@ -1,4 +1,133 @@
 {
-  "projectAliases": {},
-  "fileSelections": {}
+  "projectAliases": {
+    "220318": {
+      "title": "Biomes O' Plenty",
+      "slug": "biomes-o-plenty",
+      "projectId": 220318,
+      "author": "Forstride"
+    },
+    "496913": {
+      "title": "Twigs",
+      "slug": "twigs",
+      "projectId": 496913,
+      "author": "Ninnih",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/twigs"
+    },
+    "628539": {
+      "title": "Every Compat (Wood Good)",
+      "slug": "every-compat",
+      "projectId": 628539,
+      "author": "MehVahdJukaar",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/every-compat"
+    },
+    "940057": {
+      "title": "TerraBlender (NeoForge)",
+      "slug": "terrablender-neoforge",
+      "projectId": 940057,
+      "author": "TheAdubbz"
+    },
+    "955399": {
+      "title": "GlitchCore",
+      "slug": "glitchcore",
+      "projectId": 955399,
+      "author": "TheAdubbz"
+    },
+    "every compat": {
+      "title": "Every Compat (Wood Good)",
+      "slug": "every-compat",
+      "projectId": 628539,
+      "author": "MehVahdJukaar",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/every-compat"
+    },
+    "every-compat": {
+      "title": "Every Compat (Wood Good)",
+      "slug": "every-compat",
+      "projectId": 628539,
+      "author": "MehVahdJukaar",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/every-compat"
+    },
+    "every compat wood good": {
+      "title": "Every Compat (Wood Good)",
+      "slug": "every-compat",
+      "projectId": 628539,
+      "author": "MehVahdJukaar",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/every-compat"
+    },
+    "twigs": {
+      "title": "Twigs",
+      "slug": "twigs",
+      "projectId": 496913,
+      "author": "Ninnih",
+      "url": "https://www.curseforge.com/minecraft/mc-mods/twigs"
+    },
+    "terrablender neoforge": {
+      "title": "TerraBlender (NeoForge)",
+      "slug": "terrablender-neoforge",
+      "projectId": 940057,
+      "author": "TheAdubbz"
+    },
+    "terrablender-neoforge": {
+      "title": "TerraBlender (NeoForge)",
+      "slug": "terrablender-neoforge",
+      "projectId": 940057,
+      "author": "TheAdubbz"
+    },
+    "glitchcore": {
+      "title": "GlitchCore",
+      "slug": "glitchcore",
+      "projectId": 955399,
+      "author": "TheAdubbz"
+    },
+    "biomes o plenty": {
+      "title": "Biomes O' Plenty",
+      "slug": "biomes-o-plenty",
+      "projectId": 220318,
+      "author": "Forstride"
+    },
+    "biomes-o-plenty": {
+      "title": "Biomes O' Plenty",
+      "slug": "biomes-o-plenty",
+      "projectId": 220318,
+      "author": "Forstride"
+    }
+  },
+  "fileSelections": {
+    "628539::1.21.1::neoforge": {
+      "fileId": 8316235,
+      "name": "everycomp-1.21-2.11.46-neoforge",
+      "minecraftVersion": "1.21.1",
+      "loader": "NeoForge",
+      "releaseType": "R",
+      "uploaded": "Jun 25, 2026"
+    },
+    "496913::1.21.1::neoforge": {
+      "fileId": 8191595,
+      "name": "[1.21.1]Twigs v3.1.2-neoforge",
+      "minecraftVersion": "1.21.1",
+      "loader": "NeoForge",
+      "releaseType": "R",
+      "uploaded": "Jun 3, 2026"
+    },
+    "940057::26.2::neoforge": {
+      "fileId": 8384516,
+      "title": "TerraBlender NeoForge 26.2-26.2.0.0.2",
+      "gameVersion": "26.2",
+      "loader": "NeoForge",
+      "releaseType": "B"
+    },
+    "955399::26.2::neoforge": {
+      "fileId": 8332871,
+      "title": "GlitchCore NeoForge 26.2-26.2.0.0.0",
+      "gameVersion": "26.2",
+      "loader": "NeoForge",
+      "releaseType": "B"
+    },
+    "220318::26.2::neoforge": {
+      "fileId": 8377426,
+      "title": "Biomes O' Plenty NeoForge 26.2-26.1.2.0.40",
+      "gameVersion": "26.2",
+      "loader": "NeoForge",
+      "releaseType": "R"
+    }
+  }
 }
