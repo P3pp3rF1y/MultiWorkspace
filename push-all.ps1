@@ -3,9 +3,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ---------------------------------------------------------------------
-# Push repos in dependency order.
-# For repos marked WaitForCI = $true, wait for GitHub Actions workflow
-# "Mod Build" (matching the pushed commit SHA) to complete before continuing.
+# Push root repo first, then child repos in dependency order.
+# For repos marked WaitForCI = $true, wait for the GitHub Actions workflow
+# at .github/workflows/gradle.yml (matching the pushed commit SHA) to complete before continuing.
 # Script is expected to live in MultiWorkspace root (repo folders are subdirs).
 # ---------------------------------------------------------------------
 
@@ -15,15 +15,16 @@ $workspaceRoot = $PSScriptRoot
 
 $owner        = "P3pp3rF1y"
 $branch       = "1.20.x"
-$workflowName = "Mod Build"
+$workflowPath = ".github/workflows/gradle.yml"
 
 # Polling behavior
 $pollSeconds        = 10
 $runLookback        = 50
 $maxRunFindAttempts = 60   # 60 * 10s = ~10 minutes to find the run after push
 
-# Repos in dependency order
+# Root repo first, then child repos in dependency order
 $repos = @(
+    @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false },
     @{ Name = "Reliquary";                               Path = "Reliquary";                               WaitForCI = $true  },
     @{ Name = "SophisticatedCore";                       Path = "SophisticatedCore";                       WaitForCI = $true  },
     @{ Name = "SophisticatedInventoryInteractions";      Path = "SophisticatedInventoryInteractions";      WaitForCI = $false },
@@ -32,8 +33,7 @@ $repos = @(
     @{ Name = "SophisticatedStorage";                    Path = "SophisticatedStorage";                    WaitForCI = $true  },
     @{ Name = "SophisticatedStorageCreateIntegration";   Path = "SophisticatedStorageCreateIntegration";   WaitForCI = $false },
     @{ Name = "SophisticatedStorageInMotion";            Path = "SophisticatedStorageInMotion";            WaitForCI = $true  },
-    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false },
-    @{ Name = "MultiWorkspace";                          Path = ".";                                       WaitForCI = $false }
+    @{ Name = "SophisticatedItemActions";                Path = "SophisticatedItemActions";                WaitForCI = $false }
 )
 
 # ---------------------------------------------------------------------
@@ -46,14 +46,6 @@ function Require-Command([string]$cmd) {
     }
 }
 
-function Get-WorkflowId([string]$repoFull) {
-    $id = gh workflow list -R $repoFull --json name,id --jq ".[] | select(.name==`"$workflowName`") | .id" 2>$null
-    if (-not $id) {
-        throw "Workflow '$workflowName' not found in $repoFull."
-    }
-    return [int]$id
-}
-
 function Test-HasChangesToPush([string]$branchName) {
     git fetch origin $branchName *> $null
     if ($LASTEXITCODE -ne 0) {
@@ -64,11 +56,11 @@ function Test-HasChangesToPush([string]$branchName) {
     return ([int]$aheadCount -gt 0)
 }
 
-function Get-RunIdForSha([string]$repoFull, [int]$workflowId, [string]$sha) {
+function Get-RunIdForSha([string]$repoFull, [string]$sha) {
     $json = gh run list `
         -R $repoFull `
         -b $branch `
-        -w $workflowId `
+        -w $workflowPath `
         -L $runLookback `
         --json databaseId,headSha `
         2>$null
@@ -172,14 +164,11 @@ foreach ($repo in $repos) {
             continue
         }
 
-        # Resolve workflow id only for repos that must wait on CI.
-        $workflowId = Get-WorkflowId -repoFull $repoFull
-
-        Write-Host "WaitForCI = true, waiting for workflow '$workflowName' (id=$workflowId) to complete..."
+        Write-Host "WaitForCI = true, waiting for workflow '$workflowPath' to complete..."
 
         $runId = ""
         for ($i = 0; $i -lt $maxRunFindAttempts; $i++) {
-            $runId = Get-RunIdForSha -repoFull $repoFull -workflowId $workflowId -sha $sha
+            $runId = Get-RunIdForSha -repoFull $repoFull -sha $sha
             if ($runId) { break }
             Start-Sleep -Seconds $pollSeconds
         }
@@ -198,4 +187,4 @@ foreach ($repo in $repos) {
     }
 }
 
-Write-Host "`n🎉 All repositories processed in dependency order." -ForegroundColor Green
+Write-Host "`n🎉 All repositories processed." -ForegroundColor Green
