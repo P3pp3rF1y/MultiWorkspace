@@ -238,6 +238,7 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
+				httpServer.createContext("/storage/decoration-table-render-preview/drag", this::dragDecorationTableRenderPreview);
 				httpServer.createContext("/storage/issue-23-reproduce", this::reproduceStorageIssue23);
 				httpServer.createContext("/storage/issue-23-status", this::issue23Status);
 				httpServer.createContext("/storage/issue-23-open-source", this::openIssue23SourceStorage);
@@ -568,6 +569,14 @@ public class DevClientAutomationClient {
 			sendJsonHandling(exchange, () -> openDecorationTableRenderPreview(itemName));
 		}
 
+		private void dragDecorationTableRenderPreview(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			double dragX = extractInt(body, "dragX").orElse(0);
+			double dragY = extractInt(body, "dragY").orElse(0);
+			sendJsonHandling(exchange, () -> runOnClient(() -> dragDecorationTableRenderPreview(dragX, dragY)));
+		}
+
 		private String openStorageItemDisplayPreview(String scenario, DisplaySide displaySide) {
 			ItemDisplayPreviewSetupResult setupResult = runOnServer(player -> setupStorageItemDisplayPreview(player, scenario, displaySide));
 			if (setupResult.targetType() == ItemDisplayPreviewTargetType.PLACED_STORAGE) {
@@ -604,6 +613,20 @@ public class DevClientAutomationClient {
 					+ runOnClient(this::getDecorationTableRenderBoundsJson) + '}';
 		}
 
+		private String dragDecorationTableRenderPreview(double dragX, double dragY) {
+			Screen screen = Minecraft.getInstance().screen;
+			if (!(screen instanceof DecorationTableScreen decorationTableScreen)) {
+				throw new IllegalStateException("Decoration table screen is not open");
+			}
+			DecorationTableMenu menu = decorationTableScreen.getMenu();
+			Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().numberOfSlots() - 1);
+			Slot resultSlot = menu.getResultSlot();
+			double x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26 + 40D;
+			double y = decorationTableScreen.getGuiTop() + lastDyeSlot.y + (resultSlot.y - lastDyeSlot.y + 20) / 2D;
+			boolean dragged = decorationTableScreen.mouseDragged(x, y, 0, dragX, dragY);
+			return "{\"ok\":true,\"dragged\":" + dragged + '}';
+		}
+
 		private void openDecorationTableScreen(ServerPlayer player, BlockPos tablePos) {
 			NetworkHooks.openScreen(player, new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new DecorationTableMenu(windowId, menuPlayer, tablePos),
 					ModBlocks.DECORATION_TABLE.get().getName()), tablePos);
@@ -621,14 +644,14 @@ public class DevClientAutomationClient {
 					.orElseThrow(() -> new IllegalStateException("Decoration table block entity missing"));
 			ItemStack resultItem = getDecorationTablePreviewItem(itemName);
 			table.getStorageBlock().setStackInSlot(0, resultItem);
-			if (resultItem.is(ModBlocks.BARREL_ITEM.get())) {
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_INNER_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_TRIM_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.RED_GLAZED_TERRACOTTA));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.BLUE_GLAZED_TERRACOTTA));
-				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.GREEN_GLAZED_TERRACOTTA));
+			if ("barrel_directional".equalsIgnoreCase(itemName)) {
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.JIGSAW));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.FURNACE));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.STRUCTURE_BLOCK));
+			} else if (resultItem.is(ModBlocks.BARREL_ITEM.get())) {
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.TOP_CORE_SLOT, new ItemStack(Blocks.DIAMOND_BLOCK));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT, new ItemStack(Blocks.REDSTONE_BLOCK));
+				table.getDecorativeBlocks().setStackInSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT, new ItemStack(Blocks.GOLD_BLOCK));
 			} else if (resultItem.getItem() instanceof SimpleMaterialBlockItem || resultItem.is(ModBlocks.LIMITED_BARREL_3_ITEM.get())) {
 				table.getDecorativeBlocks().setStackInSlot(0, new ItemStack(Blocks.DIAMOND_BLOCK));
 			} else {
@@ -658,7 +681,7 @@ public class DevClientAutomationClient {
 		private ItemStack getDecorationTablePreviewItem(String itemName) {
 			return switch (itemName.toLowerCase(Locale.ROOT)) {
 				case "backpack" -> new ItemStack(ModItems.BACKPACK.get());
-				case "barrel" -> new ItemStack(ModBlocks.BARREL_ITEM.get());
+				case "barrel", "barrel_directional" -> new ItemStack(ModBlocks.BARREL_ITEM.get());
 				case "chest" -> new ItemStack(ModBlocks.CHEST_ITEM.get());
 				case "controller" -> new ItemStack(ModBlocks.CONTROLLER_ITEM.get());
 				case "leather_boots" -> new ItemStack(Items.LEATHER_BOOTS);
@@ -1277,11 +1300,18 @@ public class DevClientAutomationClient {
 			Slot resultSlot = menu.getResultSlot();
 			int x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26;
 			int y = decorationTableScreen.getGuiTop() + lastDyeSlot.y;
+			Slot topCoreSlot = menu.getSlot(DecorationTableBlockEntity.TOP_CORE_SLOT);
+			Slot sideCoreSlot = menu.getSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT);
+			Slot bottomCoreSlot = menu.getSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT);
 			return "\"preview\":{\"x\":" + x + ",\"y\":" + y + ",\"width\":80,\"height\":" + (resultSlot.y - lastDyeSlot.y + 20) + "},\"resultSlot\":"
-					+ getSlotBoundsJson(decorationTableScreen, resultSlot) + ",\"coreSlots\":{\"top\":"
-					+ getSlotBoundsJson(decorationTableScreen, menu.getSlot(DecorationTableBlockEntity.TOP_CORE_SLOT)) + ",\"side\":"
-					+ getSlotBoundsJson(decorationTableScreen, menu.getSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT)) + ",\"bottom\":"
-					+ getSlotBoundsJson(decorationTableScreen, menu.getSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT)) + '}';
+					+ getSlotBoundsJson(decorationTableScreen, resultSlot) + ",\"coreSlotHoverTargets\":{\"top\":"
+					+ getDecorationTableCoreSlotHoverTargetJson(decorationTableScreen, topCoreSlot) + ",\"side\":"
+					+ getDecorationTableCoreSlotHoverTargetJson(decorationTableScreen, sideCoreSlot) + ",\"bottom\":"
+					+ getDecorationTableCoreSlotHoverTargetJson(decorationTableScreen, bottomCoreSlot) + '}';
+		}
+
+		private String getDecorationTableCoreSlotHoverTargetJson(DecorationTableScreen screen, Slot slot) {
+			return "{\"x\":" + (screen.getGuiLeft() + slot.x + 8) + ",\"y\":" + (screen.getGuiTop() + slot.y + 8) + '}';
 		}
 
 		private String getSlotBoundsJson(DecorationTableScreen decorationTableScreen, Slot slot) {
