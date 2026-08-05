@@ -27,7 +27,7 @@ foreach ($discoveryPath in $discoveryPaths) {
 
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
-$gradleCommand = "gradlew.bat :workspace:runClient"
+$gradleCommand = "gradlew.bat :DevClientAutomation:jar :workspace:runClient"
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
 } elseif ($MinimalRuntime) {
