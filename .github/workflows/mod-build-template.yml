@@ -7,7 +7,7 @@ on:
         required: false
         type: string
         default: ""
-      # ForgeGradle 6 can cache a malformed userdev download on hosted runners.
+      # ForgeGradle 6 can cache malformed userdev and InstallerTools downloads on hosted runners.
       # Projects that still use it may opt into a verified prefetch until they migrate.
       forge_userdev_version:
         required: false
@@ -71,8 +71,8 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
 
-      # Work around ForgeGradle 6 accepting and caching corrupt userdev downloads.
-      - name: Verify legacy Forge userdev
+      # Work around ForgeGradle 6 accepting and caching corrupt Maven downloads.
+      - name: Verify legacy Forge tooling
         if: inputs.forge_userdev_version != ''
         env:
           FORGE_USERDEV_VERSION: ${{ inputs.forge_userdev_version }}
@@ -82,26 +82,41 @@ jobs:
           set -euo pipefail
           [[ -n "$FORGE_USERDEV_MD5" ]] || { echo "forge_userdev_md5 is required" >&2; exit 1; }
 
+          download_and_verify() {
+            local url="$1" target="$2" expected_md5="$3" temporary_file actual_md5
+            mkdir -p "$(dirname "$target")"
+
+            if [[ -f "$target" ]] && [[ "$(md5sum "$target" | awk '{print $1}')" == "$expected_md5" ]] && unzip -tqq "$target"; then
+              printf '%s' "$expected_md5" > "$target.md5"
+              return
+            fi
+
+            temporary_file="$(mktemp "$(dirname "$target")/.${target##*/}.XXXXXX")"
+            if ! curl --fail --location --retry 5 --retry-all-errors --output "$temporary_file" "$url"; then
+              rm -f "$temporary_file"
+              return 1
+            fi
+
+            actual_md5="$(md5sum "$temporary_file" | awk '{print $1}')"
+            if [[ "$actual_md5" != "$expected_md5" ]] || ! unzip -tqq "$temporary_file"; then
+              rm -f "$temporary_file"
+              echo "Downloaded checksum or ZIP validation failed: $url" >&2
+              return 1
+            fi
+
+            mv "$temporary_file" "$target"
+            printf '%s' "$expected_md5" > "$target.md5"
+          }
+
           userdev_file="forge-${FORGE_USERDEV_VERSION}-userdev.jar"
-          cache_dir="$HOME/.gradle/caches/forge_gradle/maven_downloader/net/neoforged/forge/${FORGE_USERDEV_VERSION}"
-          target="$cache_dir/$userdev_file"
-          mkdir -p "$cache_dir"
-
-          if [[ -f "$target" ]] && [[ "$(md5sum "$target" | awk '{print $1}')" == "$FORGE_USERDEV_MD5" ]] && unzip -tqq "$target"; then
-            printf '%s' "$FORGE_USERDEV_MD5" > "$target.md5"
-            exit 0
-          fi
-
-          temporary_file="$(mktemp "$cache_dir/.${userdev_file}.XXXXXX")"
-          trap 'rm -f "$temporary_file"' EXIT
-          curl --fail --location --retry 5 --retry-all-errors --output "$temporary_file" \
-            "https://maven.neoforged.net/releases/net/neoforged/forge/${FORGE_USERDEV_VERSION}/${userdev_file}"
-
-          actual_md5="$(md5sum "$temporary_file" | awk '{print $1}')"
-          [[ "$actual_md5" == "$FORGE_USERDEV_MD5" ]] || { echo "Downloaded userdev checksum does not match" >&2; exit 1; }
-          unzip -tqq "$temporary_file"
-          mv "$temporary_file" "$target"
-          printf '%s' "$FORGE_USERDEV_MD5" > "$target.md5"
+          download_and_verify \
+            "https://maven.neoforged.net/releases/net/neoforged/forge/${FORGE_USERDEV_VERSION}/${userdev_file}" \
+            "$HOME/.gradle/caches/forge_gradle/maven_downloader/net/neoforged/forge/${FORGE_USERDEV_VERSION}/${userdev_file}" \
+            "$FORGE_USERDEV_MD5"
+          download_and_verify \
+            "https://maven.neoforged.net/releases/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar" \
+            "$HOME/.gradle/caches/forge_gradle/maven_downloader/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar" \
+            "c97b3ed8e21044c4ccda77932390fb44"
 
       - name: Build with Gradle
         env:
