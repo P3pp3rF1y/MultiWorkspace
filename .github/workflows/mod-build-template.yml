@@ -67,8 +67,8 @@ jobs:
         uses: nick-invision/retry@v3
         with:
           timeout_minutes: 10
-          max_attempts: 3
-          command: ./gradlew build
+          max_attempts: 1
+          command: ./gradlew build --stacktrace --info
 
       - name: Upload Gradle reports
         if: always()
