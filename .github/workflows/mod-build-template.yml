@@ -7,6 +7,16 @@ on:
         required: false
         type: string
         default: ""
+      # ForgeGradle 6 can cache a malformed userdev download on hosted runners.
+      # Projects that still use it may opt into a verified prefetch until they migrate.
+      forge_userdev_version:
+        required: false
+        type: string
+        default: ""
+      forge_userdev_md5:
+        required: false
+        type: string
+        default: ""
 
 env:
   JAVA_VERSION: "17"
@@ -60,6 +70,38 @@ jobs:
           key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+
+      # Work around ForgeGradle 6 accepting and caching corrupt userdev downloads.
+      - name: Verify legacy Forge userdev
+        if: inputs.forge_userdev_version != ''
+        env:
+          FORGE_USERDEV_VERSION: ${{ inputs.forge_userdev_version }}
+          FORGE_USERDEV_MD5: ${{ inputs.forge_userdev_md5 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$FORGE_USERDEV_MD5" ]] || { echo "forge_userdev_md5 is required" >&2; exit 1; }
+
+          userdev_file="forge-${FORGE_USERDEV_VERSION}-userdev.jar"
+          cache_dir="$HOME/.gradle/caches/forge_gradle/maven_downloader/net/neoforged/forge/${FORGE_USERDEV_VERSION}"
+          target="$cache_dir/$userdev_file"
+          mkdir -p "$cache_dir"
+
+          if [[ -f "$target" ]] && [[ "$(md5sum "$target" | awk '{print $1}')" == "$FORGE_USERDEV_MD5" ]] && unzip -tqq "$target"; then
+            printf '%s' "$FORGE_USERDEV_MD5" > "$target.md5"
+            exit 0
+          fi
+
+          temporary_file="$(mktemp "$cache_dir/.${userdev_file}.XXXXXX")"
+          trap 'rm -f "$temporary_file"' EXIT
+          curl --fail --location --retry 5 --retry-all-errors --output "$temporary_file" \
+            "https://maven.neoforged.net/releases/net/neoforged/forge/${FORGE_USERDEV_VERSION}/${userdev_file}"
+
+          actual_md5="$(md5sum "$temporary_file" | awk '{print $1}')"
+          [[ "$actual_md5" == "$FORGE_USERDEV_MD5" ]] || { echo "Downloaded userdev checksum does not match" >&2; exit 1; }
+          unzip -tqq "$temporary_file"
+          mv "$temporary_file" "$target"
+          printf '%s' "$FORGE_USERDEV_MD5" > "$target.md5"
 
       - name: Build with Gradle
         env:
