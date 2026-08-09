@@ -64,7 +64,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.gradle/caches/modules-2/metadata-2.106
-          key: gradle-v4-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Restore NeoForm runtime cache
         id: neoformruntime-cache
@@ -73,7 +73,7 @@ jobs:
           path: |
             ~/.gradle/caches/neoformruntime/artifacts
             ~/.gradle/caches/neoformruntime/intermediate_results
-          key: gradle-v4-neoforge-runtime-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-runtime-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build with Gradle
         env:
@@ -188,7 +188,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.gradle/caches/modules-2/metadata-2.106
-          key: gradle-v4-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -330,7 +330,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.gradle/caches/modules-2/metadata-2.106
-          key: gradle-v4-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -367,7 +367,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.gradle/caches/modules-2/metadata-2.106
-          key: gradle-v4-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -400,7 +400,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.gradle/caches/modules-2/metadata-2.106
-          key: gradle-v4-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-v5-neoforge-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
