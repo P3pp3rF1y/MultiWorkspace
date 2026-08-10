@@ -52,14 +52,26 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: zulu
 
-      - uses: actions/cache@v5
+      - name: Restore Gradle wrapper
+        id: wrapper-cache
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+          path: ~/.gradle/wrapper
+          key: gradle-v5-wrapper-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore Gradle dependency metadata
+        id: dependency-metadata-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: gradle-v5-neoforgegradle-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore NeoForgeGradle cache
+        id: forge-gradle-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/forge_gradle
+          key: gradle-v5-neoforgegradle-runtime-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build with Gradle
         env:
@@ -69,6 +81,27 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: ./gradlew build
+
+      - name: Save Gradle wrapper
+        if: github.ref_name == github.event.repository.default_branch && steps.wrapper-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ steps.wrapper-cache.outputs.cache-primary-key }}
+
+      - name: Save Gradle dependency metadata
+        if: steps.dependency-metadata-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: ${{ steps.dependency-metadata-cache.outputs.cache-primary-key }}
+
+      - name: Save NeoForgeGradle cache
+        if: steps.forge-gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.gradle/caches/forge_gradle
+          key: ${{ steps.forge-gradle-cache.outputs.cache-primary-key }}
 
       - name: Upload Gradle reports
         if: always()
@@ -141,14 +174,17 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: zulu
 
-      - uses: actions/cache@v5
+      - name: Restore Gradle wrapper
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+          path: ~/.gradle/wrapper
+          key: gradle-v5-wrapper-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore Gradle dependency metadata
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: gradle-v5-neoforgegradle-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -280,14 +316,17 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: zulu
-      - uses: actions/cache@v5
+      - name: Restore Gradle wrapper
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+          path: ~/.gradle/wrapper
+          key: gradle-v5-wrapper-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore Gradle dependency metadata
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: gradle-v5-neoforgegradle-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -314,14 +353,17 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: zulu
-      - uses: actions/cache@v5
+      - name: Restore Gradle wrapper
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+          path: ~/.gradle/wrapper
+          key: gradle-v5-wrapper-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore Gradle dependency metadata
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: gradle-v5-neoforgegradle-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -344,14 +386,17 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: zulu
 
-      - uses: actions/cache@v5
+      - name: Restore Gradle wrapper
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-jdk${{ env.JAVA_VERSION }}-wrapper${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-branch-${{ needs.gate.outputs.branch_name }}-
+          path: ~/.gradle/wrapper
+          key: gradle-v5-wrapper-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore Gradle dependency metadata
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.gradle/caches/modules-2/metadata-2.105
+          key: gradle-v5-neoforgegradle-dependency-metadata-${{ runner.os }}-jdk${{ env.JAVA_VERSION }}-${{ hashFiles('**/*.gradle', '!**/build/**', '!**/.gradle/**', '**/gradle.properties', '**/gradle/wrapper/gradle-wrapper.properties') }}
 
       - uses: actions/download-artifact@v7
         with:
