@@ -47,6 +47,18 @@ Run the vanilla and Sophisticated inventory keybind regression with:
 The regression covers both transfer directions with and without the Shift
 override, plus sorting vanilla chests, player inventory, and backpacks.
 
+## Backpack Regression
+
+Run the Sophisticated Backpacks GUI regression with:
+
+```powershell
+.\scripts\dev-client\run-backpack-regression.ps1 -MinimalRuntime
+```
+
+The suite includes an Inception magnet persistence scenario. It opens a
+backpack GUI, triggers a real item-entity pickup, closes the GUI, restarts the
+client, and checks the nested backpack after world reload.
+
 ## Storage Controller Filter Regression
 
 Run the controller filter routing regression with:

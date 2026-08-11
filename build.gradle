@@ -8,6 +8,10 @@ if (requestedTaskNames.any { it == ':SophisticatedCore:test' || it == 'Sophistic
 	testPrepTaskNames.add(':Reliquary:compileJava')
 }
 
+if (requestedTaskNames.any { it == ':SophisticatedBackpacks:test' || it == 'SophisticatedBackpacks:test' }) {
+	testPrepTaskNames.addAll([':Reliquary:compileJava', ':SophisticatedCore:compileJava'])
+}
+
 if (requestedTaskNames.any { it == ':SophisticatedStorage:test' || it == 'SophisticatedStorage:test' }) {
 	testPrepTaskNames.addAll([':Reliquary:compileJava', ':SophisticatedBackpacks:compileJava'])
 }

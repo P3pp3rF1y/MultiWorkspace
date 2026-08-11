@@ -123,6 +123,7 @@ $discovery = Get-BridgeDiscovery
 [pscustomobject]@{
     host = $discovery.host
     port = $discovery.port
+    processId = $discovery.processId
     baseUrl = "http://$($discovery.host):$($discovery.port)"
     state = Invoke-BridgeJson -Method Get -Path "/state"
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
