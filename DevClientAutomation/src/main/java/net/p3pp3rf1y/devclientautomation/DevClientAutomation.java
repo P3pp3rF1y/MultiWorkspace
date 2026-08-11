@@ -105,6 +105,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.network.BackpackOpenPayload;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.inception.InventoryOrder;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.InventoryInteractionHelper;
@@ -239,6 +240,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/inventoryessentials/drop-by-type", this::inventoryEssentialsDropByType);
 				httpServer.createContext("/window/maximize", this::maximizeWindow);
 				httpServer.createContext("/wait", this::waitFor);
+				httpServer.createContext("/client/shutdown-world", this::shutdownWorld);
 				httpServer.createContext("/client/stop", this::stopClient);
 				httpServer.createContext("/world/load", this::loadWorld);
 				httpServer.createContext("/world/survival", this::setSurvivalMode);
@@ -250,6 +252,9 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/open-nested", this::openNestedBackpack);
 				httpServer.createContext("/backpack/empty", this::emptyBackpacks);
 				httpServer.createContext("/backpack/clear-cache", this::clearBackpackCache);
+				httpServer.createContext("/backpack/inception-magnet-persistence/setup", this::setupInceptionMagnetPersistence);
+				httpServer.createContext("/backpack/inception-magnet-persistence/pickup", this::pickupWithInceptionMagnet);
+				httpServer.createContext("/backpack/inception-magnet-persistence/status", this::inceptionMagnetPersistenceStatus);
 				httpServer.createContext("/backpack/magnet-settings", this::changeMagnetSettings);
 				httpServer.createContext("/backpack/move", this::moveBackpacks);
 				httpServer.createContext("/backpack/spread-nested", this::spreadNestedBackpacks);
@@ -396,6 +401,18 @@ public class DevClientAutomation {
 			Minecraft.getInstance().execute(() -> Minecraft.getInstance().stop());
 		}
 
+		private void shutdownWorld(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> {
+				MinecraftServer server = runOnClient(Minecraft.getInstance()::getSingleplayerServer);
+				if (server == null) {
+					throw new IllegalStateException("Singleplayer server is not loaded");
+				}
+				server.halt(true);
+				return "{\"ok\":true,\"shutdown\":true}";
+			});
+		}
+
 		private void screenshot(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "GET");
 			byte[] bytes = runOnClient(() -> {
@@ -463,6 +480,21 @@ public class DevClientAutomation {
 				StorageWrapperRepository.clearCache();
 				return "{\"ok\":true}";
 			});
+		}
+
+		private void setupInceptionMagnetPersistence(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::setupInceptionMagnetPersistence));
+		}
+
+		private void pickupWithInceptionMagnet(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::pickupWithInceptionMagnet));
+		}
+
+		private void inceptionMagnetPersistenceStatus(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "GET");
+			sendJsonHandling(exchange, () -> runOnServer(this::inceptionMagnetPersistenceStatus));
 		}
 
 		private void changeMagnetSettings(HttpExchange exchange) throws IOException {
@@ -717,6 +749,72 @@ public class DevClientAutomation {
 					+ jsonProperty("nested0Uuid", BackpackWrapper.fromStack(firstNestedBackpack).getContentsUuid().map(Object::toString).orElse(null)) + ","
 					+ jsonProperty("nested1Uuid", BackpackWrapper.fromStack(secondNestedBackpack).getContentsUuid().map(Object::toString).orElse(null)) + ","
 					+ "\"mainMagnet\":" + mainMagnet + "," + "\"redstoneCount\":" + redstoneCount + "}";
+		}
+
+		private String setupInceptionMagnetPersistence(ServerPlayer player) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+
+			ItemStack mainBackpack = createBackpackStack();
+			IBackpackWrapper mainWrapper = BackpackWrapper.fromStack(mainBackpack);
+			ItemStack inceptionUpgrade = new ItemStack(ModItems.INCEPTION_UPGRADE.get());
+			inceptionUpgrade.set(net.p3pp3rf1y.sophisticatedbackpacks.init.ModDataComponents.INVENTORY_ORDER, InventoryOrder.INCEPTED_FIRST);
+			UpgradeHandler upgrades = mainWrapper.getUpgradeHandler();
+			upgrades.setStackInSlot(0, inceptionUpgrade);
+			upgrades.setStackInSlot(1, new ItemStack(ModItems.MAGNET_UPGRADE.get()));
+			setMagnetFilterType(mainWrapper, ContentsFilterType.BLOCK);
+			setMagnetPickupAndCount(mainWrapper, true);
+			upgrades.saveInventory();
+
+			ItemStack nestedBackpack = new ItemStack(ModItems.BACKPACK.get());
+			mainWrapper.getInventoryHandler().setStackInSlot(0, nestedBackpack);
+			mainWrapper.getInventoryHandler().saveInventory();
+			player.getInventory().setItem(0, mainBackpack);
+			player.getInventory().selected = 0;
+			player.getInventory().setChanged();
+
+			String openResult = openMainBackpack(player);
+			return "{\"ok\":true,\"nestedHasUuid\":" + (nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID) != null) + ","
+					+ jsonProperty("openResult", openResult) + "}";
+		}
+
+		private String pickupWithInceptionMagnet(ServerPlayer player) {
+			ItemEntity itemEntity = new ItemEntity(player.serverLevel(), player.getX(), player.getY() + 0.5D, player.getZ(), new ItemStack(Items.DIAMOND));
+			itemEntity.setPickUpDelay(0);
+			player.serverLevel().addFreshEntity(itemEntity);
+			itemEntity.playerTouch(player);
+			player.closeContainer();
+
+			ItemStack nestedBackpack = BackpackWrapper.fromStack(player.getInventory().getItem(0)).getInventoryHandler().getStackInSlot(0);
+			UUID nestedUuid = nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID);
+			IBackpackWrapper nestedWrapper = nestedUuid == null ? null : BackpackWrapper.fromStack(nestedBackpack);
+			UUID wrapperUuid = nestedWrapper == null ? null : nestedWrapper.getContentsUuid().orElse(null);
+			int nestedDiamonds = nestedWrapper == null ? 0 : countItems(nestedWrapper.getInventoryHandler(), Items.DIAMOND);
+			return "{\"ok\":" + (nestedUuid != null && nestedDiamonds == 1) + ",\"nestedHasUuid\":" + (nestedUuid != null) + ",\"nestedDiamonds\":"
+					+ nestedDiamonds + "," + jsonProperty("nestedUuid", nestedUuid == null ? null : nestedUuid.toString()) + ","
+					+ jsonProperty("wrapperUuid", wrapperUuid == null ? null : wrapperUuid.toString()) + ","
+					+ jsonProperty("threadGroup", Thread.currentThread().getThreadGroup().getName()) + "}";
+		}
+
+		private String inceptionMagnetPersistenceStatus(ServerPlayer player) {
+			ItemStack mainBackpack = player.getInventory().getItem(0);
+			if (!(mainBackpack.getItem() instanceof BackpackItem)) {
+				return "{\"ok\":false,\"error\":\"No backpack in player inventory slot 0\"}";
+			}
+
+			ItemStack nestedBackpack = BackpackWrapper.fromStack(mainBackpack).getInventoryHandler().getStackInSlot(0);
+			if (!(nestedBackpack.getItem() instanceof BackpackItem)) {
+				return "{\"ok\":false,\"error\":\"No nested backpack in slot 0\"}";
+			}
+
+			UUID nestedUuid = nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID);
+			if (nestedUuid == null) {
+				return "{\"ok\":false,\"nestedHasUuid\":false,\"nestedDiamonds\":0,\"error\":\"Nested backpack UUID was not persisted\"}";
+			}
+
+			int nestedDiamonds = countItems(BackpackWrapper.fromStack(nestedBackpack).getInventoryHandler(), Items.DIAMOND);
+			return "{\"ok\":" + (nestedDiamonds == 1) + ",\"nestedHasUuid\":true,\"nestedDiamonds\":" + nestedDiamonds + ","
+					+ jsonProperty("nestedUuid", nestedUuid.toString()) + "}";
 		}
 
 		private String runCommand(ServerPlayer player, String command) {
@@ -3975,7 +4073,7 @@ public class DevClientAutomation {
 		private void writeDiscoveryFile(int port) {
 			Minecraft minecraft = Minecraft.getInstance();
 			Path discoveryFile = minecraft.gameDirectory.toPath().resolve("dev-client-automation.json");
-			String json = "{\"host\":\"127.0.0.1\",\"port\":" + port + "}";
+			String json = "{\"host\":\"127.0.0.1\",\"port\":" + port + ",\"processId\":" + ProcessHandle.current().pid() + "}";
 			try {
 				Files.writeString(discoveryFile, json, StandardCharsets.UTF_8);
 			} catch (IOException e) {
