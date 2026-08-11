@@ -29,6 +29,10 @@
       "expectedNuggets": 12936,
       "expectedIngots": 4,
       "expectedBlocks": 1820
+    },
+    {
+      "name": "inception_magnet_pickup_into_new_nested_backpack_survives_client_restart",
+      "type": "inceptionMagnetPersistence"
     }
   ]
 }
