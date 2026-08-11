@@ -176,7 +176,7 @@ try {
         host = $discovery.host
         port = $discovery.port
         baseUrl = "http://$($discovery.host):$($discovery.port)"
-        processId = $launcherProcess.Id
+        processId = $discovery.processId
         state = Invoke-BridgeJson -Method Get -Path "/state"
         recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
     }
