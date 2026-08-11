@@ -50,6 +50,10 @@ the in-game setup and interaction for each declarative scenario through
 `POST /backpack/gui-regression/run`; the script owns suite loading, startup,
 assertions, and result aggregation.
 
+The Sophisticated Backpacks suite also includes an Inception magnet persistence
+scenario. It opens a backpack GUI, triggers a real item-entity pickup, closes
+the GUI, restarts the client, and checks the nested backpack after world reload.
+
 ## Inventory Interaction Regression
 
 Run the vanilla and Sophisticated inventory keybind regression with:

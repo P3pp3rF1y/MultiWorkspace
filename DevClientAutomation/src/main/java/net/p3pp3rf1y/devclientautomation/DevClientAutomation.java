@@ -112,6 +112,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.compat.CompatModIds;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.network.BackpackOpenPayload;
+import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.inception.InventoryOrder;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.InventoryInteractionHelper;
@@ -139,6 +140,7 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeItem;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.PrimaryMatch;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.filter.FilterUpgradeWrapper;
+import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.BarrelBlock;
@@ -238,6 +240,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/mouse/move", this::moveMouse);
 				httpServer.createContext("/window/maximize", this::maximizeWindow);
 				httpServer.createContext("/wait", this::waitFor);
+				httpServer.createContext("/client/shutdown-world", this::shutdownWorld);
 				httpServer.createContext("/client/stop", this::stopClient);
 				httpServer.createContext("/world/load", this::loadWorld);
 				httpServer.createContext("/screenshot", this::screenshot);
@@ -249,6 +252,9 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
 				httpServer.createContext("/backpack/storage-gui-regressions", this::backpackStorageGuiRegressions);
 				httpServer.createContext("/backpack/gui-regression/run", this::backpackGuiRegressionRun);
+				httpServer.createContext("/backpack/inception-magnet-persistence/setup", this::setupInceptionMagnetPersistence);
+				httpServer.createContext("/backpack/inception-magnet-persistence/pickup", this::pickupWithInceptionMagnet);
+				httpServer.createContext("/backpack/inception-magnet-persistence/status", this::inceptionMagnetPersistenceStatus);
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
 				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
@@ -332,6 +338,18 @@ public class DevClientAutomation {
 			requireMethod(exchange, "POST");
 			sendJson(exchange, "{\"ok\":true,\"stopping\":true}");
 			Minecraft.getInstance().execute(() -> Minecraft.getInstance().stop());
+		}
+
+		private void shutdownWorld(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> {
+				MinecraftServer server = runOnClient(Minecraft.getInstance()::getSingleplayerServer);
+				if (server == null) {
+					throw new IllegalStateException("Singleplayer server is not loaded");
+				}
+				server.halt(true);
+				return "{\"ok\":true,\"shutdown\":true}";
+			});
 		}
 
 		private void screenshot(HttpExchange exchange) throws IOException {
@@ -485,6 +503,21 @@ public class DevClientAutomation {
 			requireMethod(exchange, "POST");
 			String body = readBody(exchange);
 			sendJsonHandling(exchange, () -> runBackpackGuiRegression(body));
+		}
+
+		private void setupInceptionMagnetPersistence(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::setupInceptionMagnetPersistence));
+		}
+
+		private void pickupWithInceptionMagnet(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(this::pickupWithInceptionMagnet));
+		}
+
+		private void inceptionMagnetPersistenceStatus(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "GET");
+			sendJsonHandling(exchange, () -> runOnServer(this::inceptionMagnetPersistenceStatus));
 		}
 
 		private void inventoryInteractionsKeybindRegression(HttpExchange exchange) throws IOException {
@@ -1919,6 +1952,73 @@ public class DevClientAutomation {
 				}
 			}
 			return count;
+		}
+
+		private String setupInceptionMagnetPersistence(ServerPlayer player) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+
+			ItemStack mainBackpack = createBackpackStack(80);
+			mainBackpack.set(ModCoreDataComponents.STORAGE_UUID, UUID.randomUUID());
+			IBackpackWrapper mainWrapper = BackpackWrapper.fromStack(mainBackpack);
+			ItemStack inceptionUpgrade = new ItemStack(ModItems.INCEPTION_UPGRADE.get());
+			inceptionUpgrade.set(net.p3pp3rf1y.sophisticatedbackpacks.init.ModDataComponents.INVENTORY_ORDER, InventoryOrder.INCEPTED_FIRST);
+			UpgradeHandler upgrades = mainWrapper.getUpgradeHandler();
+			upgrades.setStackInSlot(0, inceptionUpgrade);
+			upgrades.setStackInSlot(1, new ItemStack(ModItems.MAGNET_UPGRADE.get()));
+			upgrades.getWrappersThatImplement(MagnetUpgradeWrapper.class).forEach(magnet -> {
+				magnet.getFilterLogic().setDepositFilterType(ContentsFilterType.BLOCK);
+				magnet.setPickupItems(true);
+			});
+			upgrades.saveInventory();
+
+			ItemStack nestedBackpack = new ItemStack(ModItems.BACKPACK.get());
+			mainWrapper.getInventoryHandler().setStackInSlot(0, nestedBackpack);
+			mainWrapper.getInventoryHandler().saveInventory();
+			player.getInventory().setItem(0, mainBackpack);
+			player.getInventory().setSelectedSlot(0);
+			player.getInventory().setChanged();
+
+			BackpackItem backpackItem = (BackpackItem) mainBackpack.getItem();
+			backpackItem.use(player.level(), player, InteractionHand.MAIN_HAND);
+			return "{\"ok\":true,\"nestedHasUuid\":" + (nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID) != null) + "}";
+		}
+
+		private String pickupWithInceptionMagnet(ServerPlayer player) {
+			ServerLevel level = (ServerLevel) player.level();
+			ItemEntity itemEntity = new ItemEntity(level, player.getX(), player.getY() + 0.5D, player.getZ(), new ItemStack(Items.DIAMOND));
+			itemEntity.setPickUpDelay(0);
+			level.addFreshEntity(itemEntity);
+			itemEntity.playerTouch(player);
+			player.closeContainer();
+
+			ItemStack nestedBackpack = BackpackWrapper.fromStack(player.getInventory().getItem(0)).getInventoryHandler().getStackInSlot(0);
+			UUID nestedUuid = nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID);
+			IBackpackWrapper nestedWrapper = nestedUuid == null ? null : BackpackWrapper.fromStack(nestedBackpack);
+			int nestedDiamonds = nestedWrapper == null ? 0 : countItems(nestedWrapper.getInventoryHandler(), Items.DIAMOND);
+			return "{\"ok\":" + (nestedUuid != null && nestedDiamonds == 1) + ",\"nestedHasUuid\":" + (nestedUuid != null) + ",\"nestedDiamonds\":"
+					+ nestedDiamonds + "," + jsonProperty("nestedUuid", nestedUuid == null ? null : nestedUuid.toString()) + "}";
+		}
+
+		private String inceptionMagnetPersistenceStatus(ServerPlayer player) {
+			ItemStack mainBackpack = player.getInventory().getItem(0);
+			if (!(mainBackpack.getItem() instanceof BackpackItem)) {
+				return "{\"ok\":false,\"error\":\"No backpack in player inventory slot 0\"}";
+			}
+
+			ItemStack nestedBackpack = BackpackWrapper.fromStack(mainBackpack).getInventoryHandler().getStackInSlot(0);
+			if (!(nestedBackpack.getItem() instanceof BackpackItem)) {
+				return "{\"ok\":false,\"error\":\"No nested backpack in slot 0\"}";
+			}
+
+			UUID nestedUuid = nestedBackpack.get(ModCoreDataComponents.STORAGE_UUID);
+			if (nestedUuid == null) {
+				return "{\"ok\":false,\"nestedHasUuid\":false,\"nestedDiamonds\":0,\"error\":\"Nested backpack UUID was not persisted\"}";
+			}
+
+			int nestedDiamonds = countItems(BackpackWrapper.fromStack(nestedBackpack).getInventoryHandler(), Items.DIAMOND);
+			return "{\"ok\":" + (nestedDiamonds == 1) + ",\"nestedHasUuid\":true,\"nestedDiamonds\":" + nestedDiamonds + ","
+					+ jsonProperty("nestedUuid", nestedUuid.toString()) + "}";
 		}
 
 		private static class CreateIssue23Automation {
@@ -3360,7 +3460,7 @@ public class DevClientAutomation {
 		private void writeDiscoveryFile(int port) {
 			Minecraft minecraft = Minecraft.getInstance();
 			Path discoveryFile = minecraft.gameDirectory.toPath().resolve("dev-client-automation.json");
-			String json = "{\"host\":\"127.0.0.1\",\"port\":" + port + "}";
+			String json = "{\"host\":\"127.0.0.1\",\"port\":" + port + ",\"processId\":" + ProcessHandle.current().pid() + "}";
 			try {
 				Files.writeString(discoveryFile, json, StandardCharsets.UTF_8);
 			} catch (IOException e) {
