@@ -63,7 +63,8 @@ Run the vanilla and Sophisticated inventory keybind regression with:
 ```
 
 The regression covers both transfer directions with and without the Shift
-override, plus sorting vanilla chests, player inventory, and backpacks.
+override, plus sorting vanilla chests, player inventory, crafting tables,
+furnaces, and backpacks.
 
 ## Storage Controller Filter Regression
 
