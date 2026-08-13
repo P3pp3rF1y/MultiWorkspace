@@ -29,7 +29,9 @@ import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -64,6 +66,8 @@ import net.minecraft.world.entity.vehicle.minecart.Minecart;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.FurnaceMenu;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.CreativeModeTab;
@@ -1089,6 +1093,10 @@ public class DevClientAutomation {
 				cases.add("vanillaSort");
 				runPlayerInventorySortKeybindRegression();
 				cases.add("playerInventorySort");
+				runCraftingPlayerInventorySortKeybindRegression();
+				cases.add("craftingPlayerInventorySort");
+				runFurnacePlayerInventorySortKeybindRegression();
+				cases.add("furnacePlayerInventorySort");
 				runBackpackSortKeybindRegression();
 				cases.add("backpackSort");
 				return "{\"ok\":true,\"cases\":[\"" + String.join("\",\"", cases) + "\"]}";
@@ -1210,11 +1218,7 @@ public class DevClientAutomation {
 
 		private void runPlayerInventorySortKeybindRegression() {
 			int containerId = runOnServer(player -> {
-				player.closeContainer();
-				player.getInventory().clearContent();
-				player.getInventory().setItem(9, new ItemStack(Items.COBBLESTONE));
-				player.getInventory().setItem(10, new ItemStack(Items.COBBLESTONE, 2));
-				player.getInventory().setChanged();
+				preparePlayerInventorySortKeybindRegression(player);
 				SimpleContainer container = new SimpleContainer(27);
 				player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> ChestMenu.threeRows(windowId, inventory, container),
 						Component.literal("Inventory interaction regression")));
@@ -1223,8 +1227,45 @@ public class DevClientAutomation {
 			waitForClientScreen("vanilla chest player inventory",
 					() -> Minecraft.getInstance().gui.screen() instanceof AbstractContainerScreen<?> screen && screen.getMenu().containerId == containerId);
 			requireHandled(pressSortKeybind(27), "Player inventory sort keybind was not handled");
-			waitForServerCondition("player inventory sort",
-					player -> countItems(player, Items.COBBLESTONE) == 3 && countStacks(player, Items.COBBLESTONE) == 1);
+			waitForPlayerInventorySort("player inventory sort");
+		}
+
+		private void runCraftingPlayerInventorySortKeybindRegression() {
+			int containerId = runOnServer(player -> {
+				preparePlayerInventorySortKeybindRegression(player);
+				player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new CraftingMenu(windowId, inventory),
+						Component.literal("Inventory interaction regression")));
+				return player.containerMenu.containerId;
+			});
+			waitForClientScreen("crafting table",
+					() -> Minecraft.getInstance().gui.screen() instanceof CraftingScreen screen && screen.getMenu().containerId == containerId);
+			requireHandled(pressSortKeybind(10), "Crafting-table player inventory sort keybind was not handled");
+			waitForPlayerInventorySort("crafting-table player inventory sort");
+		}
+
+		private void runFurnacePlayerInventorySortKeybindRegression() {
+			int containerId = runOnServer(player -> {
+				preparePlayerInventorySortKeybindRegression(player);
+				player.openMenu(new SimpleMenuProvider((windowId, inventory, menuPlayer) -> new FurnaceMenu(windowId, inventory),
+						Component.literal("Inventory interaction regression")));
+				return player.containerMenu.containerId;
+			});
+			waitForClientScreen("furnace",
+					() -> Minecraft.getInstance().gui.screen() instanceof FurnaceScreen screen && screen.getMenu().containerId == containerId);
+			requireHandled(pressSortKeybind(3), "Furnace player inventory sort keybind was not handled");
+			waitForPlayerInventorySort("furnace player inventory sort");
+		}
+
+		private void preparePlayerInventorySortKeybindRegression(ServerPlayer player) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+			player.getInventory().setItem(9, new ItemStack(Items.COBBLESTONE));
+			player.getInventory().setItem(10, new ItemStack(Items.COBBLESTONE, 2));
+			player.getInventory().setChanged();
+		}
+
+		private void waitForPlayerInventorySort(String description) {
+			waitForServerCondition(description, player -> countItems(player, Items.COBBLESTONE) == 3 && countStacks(player, Items.COBBLESTONE) == 1);
 		}
 
 		private void runBackpackSortKeybindRegression() {
