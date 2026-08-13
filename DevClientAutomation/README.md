@@ -63,8 +63,8 @@ Run the vanilla and Sophisticated inventory keybind regression with:
 ```
 
 The regression covers filtered and Shift-all transfers in both directions, plus
-sorting vanilla chests, player inventory, and backpacks through screen input
-pre-hooks.
+sorting vanilla chests, player inventory, crafting tables, furnaces, and
+backpacks through screen input pre-hooks.
 
 ## Storage Controller Filter Regression
 
