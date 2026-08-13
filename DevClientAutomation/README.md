@@ -59,6 +59,18 @@ The suite includes an Inception magnet persistence scenario. It opens a
 backpack GUI, triggers a real item-entity pickup, closes the GUI, restarts the
 client, and checks the nested backpack after world reload.
 
+## Inventory Interaction Regression
+
+Run the vanilla and Sophisticated inventory keybind regression with:
+
+```powershell
+.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
+```
+
+The regression covers both transfer directions with and without the Shift
+override, plus sorting vanilla chests, player inventory, crafting tables,
+furnaces, and backpacks.
+
 ## Storage Controller Filter Regression
 
 Run the controller filter routing regression with:

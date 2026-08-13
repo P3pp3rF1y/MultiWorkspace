@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="devclientautomation"
-version="1.0.3"
+version="1.0.4"
 displayName="Dev Client Automation"
 authors="P3pp3rF1y"
 description='''Dev-only client automation bridge for local Minecraft testing.'''
