@@ -335,7 +335,11 @@ dependencies {
     //runtimeOnly fg.deobf("curse.maven:forestry-1056828:7292943")
     runtimeOnly fg.deobf("curse.maven:productivebees-377897:5566102")
 
-    runtimeOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    // KubeJS/LootJS test runtime dependencies sourced through CurseForge.
+    runtimeOnly fg.deobf("curse.maven:kubejs-238086:5853326")
+    runtimeOnly fg.deobf("curse.maven:lootjs-570630:5404565")
+    runtimeOnly fg.deobf("curse.maven:architectury-419699:5137938")
+    runtimeOnly fg.deobf("curse.maven:rhino-416294:5655836")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-chunks-forge:${ftb_chunks_version}")
     runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:${ftb_library_version}")
