@@ -665,6 +665,36 @@
         "encoded.components.sophisticatedcore:accent_color": -5231066
       }
     },
+    "blueShulkerBox": {
+      "item": "sophisticatedstorage:shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -12827478,
+          "sophisticatedcore:accent_color": -12827478
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -12827478,
+        "encoded.components.sophisticatedcore:accent_color": -12827478
+      }
+    },
+    "limeShulkerBox": {
+      "item": "sophisticatedstorage:shulker_box",
+      "encoded": {
+        "id": "sophisticatedstorage:shulker_box",
+        "count": 1,
+        "components": {
+          "sophisticatedcore:main_color": -8337633,
+          "sophisticatedcore:accent_color": -8337633
+        }
+      },
+      "match": {
+        "encoded.components.sophisticatedcore:main_color": -8337633,
+        "encoded.components.sophisticatedcore:accent_color": -8337633
+      }
+    },
     "redCopperShulkerBox": {
       "item": "sophisticatedstorage:copper_shulker_box",
       "encoded": {
@@ -1546,6 +1576,108 @@
           { "sameAs": "blackCopperShulkerBox" },
           { "sameAs": "redCopperChest" }
         ]
+      }
+    },
+    {
+      "name": "red vanilla shulker box conversion recipe appears once in JEI",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "redShulkerBox",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:red_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "redShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "blue vanilla shulker box conversion recipe appears once in JEI",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "blueShulkerBox",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:blue_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "blueShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "lime vanilla shulker box conversion recipe appears once in JEI",
+      "type": "recipe",
+      "viewers": ["jei"],
+      "focus": "limeShulkerBox",
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:lime_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "limeShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "red vanilla shulker box conversion use appears once in JEI",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": { "item": "minecraft:red_shulker_box" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:red_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "redShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "blue vanilla shulker box conversion use appears once in JEI",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": { "item": "minecraft:blue_shulker_box" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:blue_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "blueShulkerBox" }
+        ],
+        "expectedMatches": 1
+      }
+    },
+    {
+      "name": "lime vanilla shulker box conversion use appears once in JEI",
+      "type": "use",
+      "viewers": ["jei"],
+      "focus": { "item": "minecraft:lime_shulker_box" },
+      "expect": {
+        "categoryPattern": "^minecraft:crafting$|^Crafting$",
+        "inputs": [
+          { "item": "minecraft:lime_shulker_box" },
+          { "item": "minecraft:lever" }
+        ],
+        "outputs": [
+          { "sameAs": "limeShulkerBox" }
+        ],
+        "expectedMatches": 1
       }
     },
     {
