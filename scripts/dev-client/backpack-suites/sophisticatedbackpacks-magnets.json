@@ -1,0 +1,41 @@
+{
+  "name": "sophisticatedbackpacks-magnets",
+  "tests": [
+    {
+      "name": "basic_magnet_picks_up_allowed_items_and_persists_settings",
+      "type": "magnetRegressionSuite",
+      "upgrade": "basic",
+      "mode": "allow"
+    },
+    {
+      "name": "basic_magnet_rejects_blocked_items",
+      "type": "magnetRegressionSuite",
+      "upgrade": "basic",
+      "mode": "block"
+    },
+    {
+      "name": "basic_magnet_respects_disabled_pickup",
+      "type": "magnetRegressionSuite",
+      "upgrade": "basic",
+      "mode": "disabled"
+    },
+    {
+      "name": "advanced_magnet_picks_up_allowed_items_and_persists_settings",
+      "type": "magnetRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "allow"
+    },
+    {
+      "name": "advanced_magnet_rejects_blocked_items",
+      "type": "magnetRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "block"
+    },
+    {
+      "name": "advanced_magnet_respects_disabled_pickup",
+      "type": "magnetRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "disabled"
+    }
+  ]
+}

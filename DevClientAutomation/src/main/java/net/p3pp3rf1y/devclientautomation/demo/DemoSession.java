@@ -1,7 +1,12 @@
 package net.p3pp3rf1y.devclientautomation.demo;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.Minecraft;
-import net.p3pp3rf1y.devclientautomation.JsonUtil;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +17,7 @@ import java.util.List;
 
 public class DemoSession {
 	private static final DemoSession INSTANCE = new DemoSession();
+	private static final Gson GSON = new Gson();
 
 	private String name = "";
 	private final List<String> commands = new ArrayList<>();
@@ -60,63 +66,22 @@ public class DemoSession {
 	}
 
 	private String toJson() {
-		StringBuilder json = new StringBuilder("{\n");
-		json.append("  ").append(JsonUtil.property("name", name)).append(",\n");
-		json.append("  \"commands\": [\n");
-		for (int i = 0; i < commands.size(); i++) {
-			json.append("    \"").append(JsonUtil.escape(commands.get(i))).append("\"");
-			if (i + 1 < commands.size()) {
-				json.append(',');
-			}
-			json.append('\n');
-		}
-		json.append("  ]\n");
-		json.append("}\n");
-		return json.toString();
+		JsonObject demo = new JsonObject();
+		demo.addProperty("name", name);
+		JsonArray commandArray = new JsonArray();
+		commands.forEach(commandArray::add);
+		demo.add("commands", commandArray);
+		return GSON.toJson(demo);
 	}
 
 	private static List<String> parseCommands(String json) {
-		List<String> parsedCommands = new ArrayList<>();
-		int commandsIndex = json.indexOf("\"commands\"");
-		if (commandsIndex < 0) {
-			return parsedCommands;
+		JsonObject demo = JsonParser.parseString(json).getAsJsonObject();
+		JsonElement commands = demo.get("commands");
+		if (commands == null || !commands.isJsonArray()) {
+			throw new IllegalArgumentException("Demo commands must be an array");
 		}
-		int arrayStart = json.indexOf('[', commandsIndex);
-		int arrayEnd = json.indexOf(']', arrayStart);
-		if (arrayStart < 0 || arrayEnd < 0) {
-			return parsedCommands;
-		}
-
-		String commandsJson = json.substring(arrayStart + 1, arrayEnd);
-		int index = 0;
-		while (index < commandsJson.length()) {
-			int quoteStart = commandsJson.indexOf('"', index);
-			if (quoteStart < 0) {
-				break;
-			}
-			StringBuilder command = new StringBuilder();
-			boolean escaped = false;
-			for (int i = quoteStart + 1; i < commandsJson.length(); i++) {
-				char c = commandsJson.charAt(i);
-				if (escaped) {
-					command.append(switch (c) {
-						case 'n' -> '\n';
-						case 'r' -> '\r';
-						default -> c;
-					});
-					escaped = false;
-				} else if (c == '\\') {
-					escaped = true;
-				} else if (c == '"') {
-					parsedCommands.add(command.toString());
-					index = i + 1;
-					break;
-				} else {
-					command.append(c);
-				}
-			}
-		}
-		return parsedCommands;
+		return GSON.fromJson(commands, new TypeToken<>() {
+		});
 	}
 
 	private static Path demoPath(String demoName) {

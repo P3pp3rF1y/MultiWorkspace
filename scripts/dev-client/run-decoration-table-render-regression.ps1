@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "decoration-table-render-screenshots"),
     [int]$TimeoutSeconds = 360,
@@ -37,28 +39,23 @@ function Invoke-BridgeJson {
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress) -TimeoutSec $TimeoutSeconds
 }
 
-function Stop-ProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        return
-    }
-    try {
-        & taskkill.exe /PID $ProcessId /T /F | Out-Null
-    } catch {
-        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
-    }
-}
-
 function Stop-AutomationClient {
-    param([int]$ProcessId)
-
     try {
         Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
-    Stop-ProcessTree -ProcessId $ProcessId
+}
+
+function Wait-AutomationClientStopped {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
 }
 
 function Test-VisiblePixel {
@@ -200,7 +197,7 @@ $clientProcessId = 0
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }
@@ -312,6 +309,7 @@ try {
     }
 } finally {
     if ($startedClient) {
-        Stop-AutomationClient -ProcessId $clientProcessId
+        Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }
