@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-access",
+  "tests": [
+    {
+      "name": "held_and_nested_backpacks_open_and_retain_state",
+      "type": "accessRegressionSuite"
+    }
+  ]
+}

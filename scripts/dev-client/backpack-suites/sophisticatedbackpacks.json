@@ -33,6 +33,10 @@
     {
       "name": "inception_magnet_pickup_into_new_nested_backpack_survives_client_restart",
       "type": "inceptionMagnetPersistence"
+    },
+    {
+      "name": "fresh_linked_carried_and_placed_backpacks_resolve_canonical_contents_after_client_restart",
+      "type": "linkedStorageReloadPersistence"
     }
   ]
 }

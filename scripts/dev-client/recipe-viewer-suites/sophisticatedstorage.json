@@ -1008,7 +1008,7 @@
       }
     },
     {
-      "name": "spruce barrel shows exact and vanilla conversion recipes once in EMI",
+      "name": "spruce barrel shows exact, generic, and vanilla conversion recipes once in EMI",
       "type": "recipe",
       "viewers": ["emi"],
       "focus": "spruceBarrel",
@@ -1020,7 +1020,7 @@
         "outputs": [
           { "sameAs": "spruceBarrel" }
         ],
-        "expectedMatches": 2
+        "expectedMatches": 3
       }
     },
     {
