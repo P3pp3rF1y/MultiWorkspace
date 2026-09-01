@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$Suite = "sophisticatedbackpacks",
     [int]$TimeoutSeconds = 360,
@@ -30,7 +32,7 @@ function Invoke-BridgeJson {
 
     $uri = "$BaseUrl$Path"
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec 10
+        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec $TimeoutSeconds
     }
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress -Depth 16) -TimeoutSec $TimeoutSeconds
 }
@@ -56,7 +58,7 @@ function Stop-AutomationClient {
 }
 
 function Start-AutomationClient {
-    $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+    $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
     if ($MaximizeClient) {
         $readyArgs.Maximize = $true
     }
@@ -126,12 +128,31 @@ try {
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 
+    # Menus are not ready until the receiving-level screen has closed.
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ($state.screenSimpleName -eq "ReceivingLevelScreen") {
+        Assert-True ((Get-Date) -lt $deadline) "Timed out waiting for the dev client world to finish loading."
+        Start-Sleep -Milliseconds 100
+        $state = Invoke-BridgeJson -Method Get -Path "/state"
+    }
+
     $results = @()
     foreach ($test in @($suiteData.tests)) {
-        if ($test.type -eq "inceptionMagnetPersistence") {
-            $result = Run-InceptionMagnetPersistenceRegression
-        } else {
-            $result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
+        switch ($test.type) {
+            "inceptionMagnetPersistence" { $result = Run-InceptionMagnetPersistenceRegression }
+            "columnUpgradeRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/column-upgrade-regressions" }
+            "storageGuiRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/storage-gui-regressions" }
+            "filterRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/filter-regression" -Body $test }
+            "magnetRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/magnet-regression" -Body $test }
+            "pickupRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/pickup-regression" -Body $test }
+            "restockRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/restock-regression" -Body $test }
+            "refillRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/refill-regression" -Body $test }
+            "linkedStorageRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-regression" -Body $test }
+            "linkedStorageInceptionRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-inception-regression" -Body $test }
+            "lifecycleRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/lifecycle-regression" -Body $test }
+            "accessRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/access-regression" -Body $test }
+            "curiosAccessRegressionSuite" { $result = Invoke-BridgeJson -Method Post -Path "/backpack/curios-access-regression" -Body $test }
+            default { $result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test }
         }
         Assert-True $result.ok "Backpack regression failed for '$($test.name)': $($result.error). Result=$($result | ConvertTo-Json -Compress -Depth 16)"
         $results += [pscustomobject]@{ name = $test.name; type = $test.type; context = $test.context; passed = $true; result = $result }

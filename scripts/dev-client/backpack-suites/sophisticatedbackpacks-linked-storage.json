@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-linked-storage",
+  "tests": [
+    {
+      "name": "linked_storage_backpacks_relocate_carriers_and_project_nested_children",
+      "type": "linkedStorageRegressionSuite"
+    }
+  ]
+}

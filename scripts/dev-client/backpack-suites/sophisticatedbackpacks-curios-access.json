@@ -1,0 +1,6 @@
+{
+  "name": "sophisticatedbackpacks-curios-access",
+  "tests": [
+    {"name": "curios_backpack_opens_and_retains_state", "type": "curiosAccessRegressionSuite"}
+  ]
+}

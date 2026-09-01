@@ -1,0 +1,8 @@
+{
+  "name": "sophisticatedbackpacks-pickup-upgrades",
+  "tests": [
+    {"name": "basic_pickup_allow", "type": "pickupRegressionSuite", "upgrade": "basic", "mode": "allow"},
+    {"name": "advanced_pickup_block", "type": "pickupRegressionSuite", "upgrade": "advanced", "mode": "block"},
+    {"name": "advanced_pickup_full", "type": "pickupRegressionSuite", "upgrade": "advanced", "mode": "full"}
+  ]
+}

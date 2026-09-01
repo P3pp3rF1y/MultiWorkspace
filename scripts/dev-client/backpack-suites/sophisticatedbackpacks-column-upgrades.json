@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-column-upgrades",
+  "tests": [
+    {
+      "name": "backpack_column_upgrade_capacity_and_layout_matrix",
+      "type": "columnUpgradeRegressionSuite"
+    }
+  ]
+}

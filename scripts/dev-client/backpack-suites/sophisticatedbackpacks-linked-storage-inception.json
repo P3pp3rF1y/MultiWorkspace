@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-linked-storage-inception",
+  "tests": [
+    {
+      "name": "inception_linked_child_endpoint_persists_and_stale_nested_callback_does_not_reinsert",
+      "type": "linkedStorageInceptionRegressionSuite"
+    }
+  ]
+}
