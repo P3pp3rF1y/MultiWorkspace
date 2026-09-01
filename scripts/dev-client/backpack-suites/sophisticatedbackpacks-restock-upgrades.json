@@ -1,0 +1,41 @@
+{
+  "name": "sophisticatedbackpacks-restock-upgrades",
+  "tests": [
+    {
+      "name": "basic_restock_allow_list_transfers_matching_items_from_interacted_inventory",
+      "type": "restockRegressionSuite",
+      "upgrade": "basic",
+      "mode": "allow"
+    },
+    {
+      "name": "basic_restock_block_list_keeps_blocked_items_in_interacted_inventory",
+      "type": "restockRegressionSuite",
+      "upgrade": "basic",
+      "mode": "block"
+    },
+    {
+      "name": "basic_restock_empty_interacted_inventory_keeps_backpack_empty",
+      "type": "restockRegressionSuite",
+      "upgrade": "basic",
+      "mode": "empty"
+    },
+    {
+      "name": "advanced_restock_allow_list_transfers_matching_items_from_interacted_inventory",
+      "type": "restockRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "allow"
+    },
+    {
+      "name": "advanced_restock_block_list_keeps_blocked_items_in_interacted_inventory",
+      "type": "restockRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "block"
+    },
+    {
+      "name": "advanced_restock_empty_interacted_inventory_keeps_backpack_empty",
+      "type": "restockRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "empty"
+    }
+  ]
+}

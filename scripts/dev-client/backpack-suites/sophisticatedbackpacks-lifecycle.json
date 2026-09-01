@@ -1,0 +1,17 @@
+{
+  "name": "Sophisticated Backpacks placed lifecycle regression",
+  "tests": [
+    {
+      "name": "all_tier_placed_lifecycle_preserves_data",
+      "type": "lifecycleRegressionSuite",
+      "tiers": [
+        {"name": "leather", "item": "sophisticatedbackpacks:backpack", "mainColor": 1122867, "accentColor": 4478310},
+        {"name": "copper", "item": "sophisticatedbackpacks:copper_backpack", "mainColor": 2241348, "accentColor": 5592405},
+        {"name": "iron", "item": "sophisticatedbackpacks:iron_backpack", "mainColor": 3359829, "accentColor": 6710886},
+        {"name": "gold", "item": "sophisticatedbackpacks:gold_backpack", "mainColor": 4478310, "accentColor": 7829367},
+        {"name": "diamond", "item": "sophisticatedbackpacks:diamond_backpack", "mainColor": 5592405, "accentColor": 8947848},
+        {"name": "netherite", "item": "sophisticatedbackpacks:netherite_backpack", "mainColor": 6710886, "accentColor": 10066329}
+      ]
+    }
+  ]
+}

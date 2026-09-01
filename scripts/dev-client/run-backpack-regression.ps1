@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$Suite = "sophisticatedbackpacks",
     [int]$TimeoutSeconds = 360,
@@ -30,7 +32,7 @@ function Invoke-BridgeJson {
 
     $uri = "$BaseUrl$Path"
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec 10
+        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec $TimeoutSeconds
     }
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress -Depth 16) -TimeoutSec $TimeoutSeconds
 }
@@ -44,38 +46,8 @@ function Get-SuitePath {
     return Join-Path $PSScriptRoot "backpack-suites\$SuiteName.json"
 }
 
-function Stop-ProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        return
-    }
-    try {
-        & taskkill.exe /PID $ProcessId /T /F | Out-Null
-    } catch {
-        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
-    }
-}
-
-function Wait-ThenStopProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0) {
-        return
-    }
-
-    $deadline = (Get-Date).AddSeconds(10)
-    while ((Get-Date) -lt $deadline -and $null -ne (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        Start-Sleep -Milliseconds 250
-    }
-    Stop-ProcessTree -ProcessId $ProcessId
-}
-
 function Stop-AutomationClient {
-    param([int]$ProcessId = 0)
-
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
-        Wait-ThenStopProcessTree -ProcessId $ProcessId
         return
     }
     try {
@@ -83,11 +55,10 @@ function Stop-AutomationClient {
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
-    Wait-ThenStopProcessTree -ProcessId $ProcessId
 }
 
 function Start-AutomationClient {
-    $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+    $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
     if ($MaximizeClient) {
         $readyArgs.Maximize = $true
     }
@@ -142,8 +113,32 @@ function Run-InceptionMagnetPersistenceRegression {
     return $status
 }
 
+function Run-LinkedStorageReloadPersistenceRegression {
+    Assert-True $startedClient "The linked storage reload persistence regression must start and own the dev client."
+
+    $setup = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-reload/setup"
+    Assert-True $setup.ok "Failed to set up linked storage reload persistence regression: $($setup | ConvertTo-Json -Compress)"
+    Assert-True $setup.carriedEndpoint "Carried Backpack endpoint was not created."
+    Assert-True $setup.placedEndpoint "Placed BackpackBlockEntity endpoint was not created."
+    Assert-True $setup.sharedGroup "New Backpack endpoints did not share a linked storage group."
+    Assert-True ($setup.carriedNetherStars -eq 7 -and $setup.placedNetherStars -eq 7) "New endpoints did not resolve the canonical Nether Star contents."
+
+    $shutdown = Invoke-BridgeJson -Method Post -Path "/client/shutdown-world" -Body @{}
+    Assert-True $shutdown.ok "Integrated server did not shut down cleanly."
+    Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    Wait-AutomationClientStopped
+    Start-AutomationClient
+
+    $status = Invoke-BridgeJson -Method Get -Path "/backpack/linked-storage-reload/status"
+    Assert-True $status.ok "Linked Backpack endpoints did not retain canonical contents after restart: $($status | ConvertTo-Json -Compress)"
+    Assert-True ($status.groupId -eq $setup.groupId) "Linked storage group changed after restart. Expected=$($setup.groupId), actual=$($status.groupId)"
+    Assert-True ($status.carriedEndpointId -eq $setup.carriedEndpointId) "Carried endpoint identity changed after restart."
+    Assert-True ($status.placedEndpointId -eq $setup.placedEndpointId) "Placed endpoint identity changed after restart."
+    Assert-True ($status.carriedNetherStars -eq 7 -and $status.placedNetherStars -eq 7) "Endpoints did not resolve the canonical Nether Star contents after restart."
+    return $status
+}
+
 $startedClient = $false
-$clientProcessId = 0
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
@@ -160,10 +155,55 @@ try {
 
     $results = @()
     foreach ($test in @($suiteData.tests)) {
-        if ($test.type -eq "inceptionMagnetPersistence") {
-            $result = Run-InceptionMagnetPersistenceRegression
-        } else {
-            $result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
+        switch ($test.type) {
+            "inceptionMagnetPersistence" {
+                $result = Run-InceptionMagnetPersistenceRegression
+            }
+            "linkedStorageReloadPersistence" {
+                $result = Run-LinkedStorageReloadPersistenceRegression
+            }
+            "storageGuiRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/storage-gui-regressions"
+            }
+            "columnUpgradeRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/column-upgrade-regressions"
+            }
+            "lifecycleRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/lifecycle-regression" -Body $test
+            }
+            "linkedStorageRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-regression"
+            }
+            "accessRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/access-regression"
+            }
+            "curiosAccessRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/curios-access-regression"
+            }
+            "magnetRegressionSuite" {
+                $setup = Invoke-BridgeJson -Method Post -Path "/backpack/magnet-regression/setup" -Body $test
+                Assert-True $setup.ok "Magnet regression setup failed for '$($test.name)': $($setup | ConvertTo-Json -Compress)"
+                Start-Sleep -Seconds 1
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/magnet-regression/status" -Body $test
+            }
+            "pickupRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/pickup-regression" -Body $test
+            }
+            "filterRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/filter-regression" -Body $test
+            }
+            "restockRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/restock-regression" -Body $test
+            }
+            "refillRegressionSuite" {
+                $setup = Invoke-BridgeJson -Method Post -Path "/backpack/refill-regression/setup" -Body $test
+                Assert-True $setup.ok "Refill regression setup failed for '$($test.name)': $($setup | ConvertTo-Json -Compress)"
+                Start-Sleep -Seconds 1
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/refill-regression/status" -Body $test
+            }
+            default {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
+            }
         }
         Assert-True $result.ok "Backpack regression failed for '$($test.name)': $($result.error). Result=$($result | ConvertTo-Json -Compress -Depth 16)"
         $results += [pscustomobject]@{ name = $test.name; type = $test.type; context = $test.context; passed = $true; result = $result }
@@ -179,6 +219,7 @@ try {
     }
 } finally {
     if ($startedClient) {
-        Stop-AutomationClient -ProcessId $clientProcessId
+        Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

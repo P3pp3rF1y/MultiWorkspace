@@ -178,7 +178,7 @@ function Close-OpenScreen {
             return
         }
 
-        Invoke-BridgeJson -Method Post -Path "/key" -Body @{ key = "ESCAPE" } | Out-Null
+        Invoke-BridgeJson -Method Post -Path "/game/unpause" | Out-Null
         Start-Sleep -Milliseconds 150
         $closeWait = Invoke-BridgeJson -Method Post -Path "/wait" -Body @{ condition = "noScreen"; timeoutMs = 250 }
         if ($closeWait.ok -and -not $closeWait.timedOut) {

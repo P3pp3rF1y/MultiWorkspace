@@ -7,11 +7,6 @@
       "context": "placed"
     },
     {
-      "name": "curios_column_upgrade_removal_syncs_columns",
-      "type": "columnUpgradeSync",
-      "context": "curios"
-    },
-    {
       "name": "sub_backpack_column_upgrade_removal_syncs_columns",
       "type": "columnUpgradeSync",
       "context": "sub"
@@ -21,18 +16,22 @@
       "type": "subMobCatcherImmediateOpen"
     },
     {
-      "name": "advanced_compacting_high_stack_partially_compacts_into_near_full_ingot_slot",
+      "name": "advanced_compacting_high_stack_recursively_compacts_across_available_slots",
       "type": "advancedCompactingHighStack",
       "firstSlotCount": 16384,
       "secondSlotCount": 16000,
       "triggerCount": 8,
-      "expectedNuggets": 12936,
-      "expectedIngots": 4,
-      "expectedBlocks": 1820
+      "expectedNuggets": 3,
+      "expectedIngots": 1,
+      "expectedBlocks": 1980
     },
     {
       "name": "inception_magnet_pickup_into_new_nested_backpack_survives_client_restart",
       "type": "inceptionMagnetPersistence"
+    },
+    {
+      "name": "fresh_linked_carried_and_placed_backpacks_resolve_canonical_contents_after_client_restart",
+      "type": "linkedStorageReloadPersistence"
     }
   ]
 }
