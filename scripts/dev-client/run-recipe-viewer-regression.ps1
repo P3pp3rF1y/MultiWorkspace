@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [ValidateSet("", "emi", "jei", "rei")]
     [string]$Viewer = "",
@@ -285,6 +287,14 @@ function Test-RecipeMatch {
         [object]$Expectation
     )
 
+    $recipeId = Get-ObjectProperty -Object $Expectation -Name "recipeId"
+    if ($null -ne $recipeId -and $Recipe.id -ne $recipeId) {
+        return $false
+    }
+    $recipeIdPattern = Get-ObjectProperty -Object $Expectation -Name "recipeIdPattern"
+    if (-not [string]::IsNullOrWhiteSpace($recipeIdPattern) -and $Recipe.id -notmatch $recipeIdPattern) {
+        return $false
+    }
     if (-not [string]::IsNullOrWhiteSpace($Expectation.categoryPattern) -and $Recipe.category -notmatch $Expectation.categoryPattern -and $Recipe.categoryName -notmatch $Expectation.categoryPattern) {
         return $false
     }
@@ -462,7 +472,7 @@ $startedClient = $false
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }

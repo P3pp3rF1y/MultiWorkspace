@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$WorldName = "Inventory Interactions Regression",
     [int]$TimeoutSeconds = 360,
@@ -45,7 +47,7 @@ $startedClient = $false
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; WorldName = $WorldName; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; WorldName = $WorldName; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MinimalRuntime) {
             $readyArgs.MinimalRuntime = $true
         }
