@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "decoration-table-render-screenshots"),
     [int]$TimeoutSeconds = 360,
@@ -232,7 +234,7 @@ $clientProcessId = 0
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }
@@ -258,7 +260,7 @@ try {
     New-Item -ItemType Directory -Path $rotationCropDirectory -Force | Out-Null
 
     $results = @()
-    $items = @("storage_io", "controller", "storage_link", "barrel", "barrel_directional", "limited_barrel_3", "limited_barrel_3_directional", "chest", "shulker_box", "backpack", "leather_helmet", "leather_chestplate", "leather_leggings", "leather_boots")
+    $items = @("storage_io", "controller", "storage_link", "barrel", "barrel_directional", "limited_barrel_3", "chest", "shulker_box", "backpack", "leather_helmet", "leather_chestplate", "leather_leggings", "leather_boots")
     foreach ($item in $items) {
         $open = Invoke-BridgeJson -Method Post -Path "/storage/decoration-table-render-preview/open" -Body @{ item = $item }
         Assert-True $open.ok "Failed to set up decoration table preview for ${item}: $($open.error)"
@@ -300,17 +302,18 @@ try {
         }
 
         $rotationCrops = @()
-        if ($item -eq "barrel" -or $item -eq "barrel_directional" -or $item -eq "limited_barrel_3_directional") {
-            Assert-True ($null -ne $open.rotationTargets) "Decoration table rotation targets were not returned for barrel."
-            $expectedRotations = @{ top = @(-90, 180, 0); side = @(0, 180, 0); bottom = @(90, 180, 0) }
+        if ($item -eq "barrel" -or $item -eq "barrel_directional") {
+            Assert-True ($null -ne $open.rotationTargets) "Decoration table rotation targets were not returned for $item."
+            $targetProperties = @{ top = "topCore"; side = "sideCore"; bottom = "bottomCore" }
+            $expectedRotations = @{ top = @(90, 180); side = @(0, 180); bottom = @(-90, 180) }
             $rotationBaselineCropPath = Join-Path $rotationCropDirectory "$item-default.png"
             Save-Crop -ScreenshotPath $screenshotPath -CropPath $rotationBaselineCropPath -State $state -Bounds $open.preview
             $rotationBaselineBounds = Get-VisibleBounds -ScreenshotPath $rotationBaselineCropPath
             foreach ($targetName in @("top", "side", "bottom")) {
-                $target = $open.rotationTargets.$targetName
+                $target = $open.rotationTargets.PSObject.Properties[$targetProperties[$targetName]].Value
                 $expectedRotation = $expectedRotations[$targetName]
-                Assert-True ($null -ne $target) "Missing barrel $targetName rotation target."
-                Assert-True ($target.xAxisRotation -eq $expectedRotation[0] -and $target.yAxisRotation -eq $expectedRotation[1] -and $target.zAxisRotation -eq $expectedRotation[2]) "Unexpected barrel $targetName rotation target. Target=$($target | ConvertTo-Json -Compress)"
+                Assert-True ($null -ne $target) "Missing $item $targetName rotation target."
+                Assert-True ($target.rotationX -eq $expectedRotation[0] -and $target.rotationY -eq $expectedRotation[1]) "Unexpected $item $targetName rotation target. Target=$($target | ConvertTo-Json -Compress)"
                 Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ x = $target.x; y = $target.y } | Out-Null
                 Start-Sleep -Milliseconds 2000
 

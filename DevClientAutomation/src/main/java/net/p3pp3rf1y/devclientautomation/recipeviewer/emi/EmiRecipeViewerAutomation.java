@@ -1,10 +1,11 @@
 package net.p3pp3rf1y.devclientautomation.recipeviewer.emi;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import dev.emi.emi.api.EmiApi;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
-import dev.emi.emi.api.recipe.EmiRecipeManager;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.GeneratedSlotWidget;
@@ -16,11 +17,22 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.devclientautomation.JsonUtil;
-import net.p3pp3rf1y.devclientautomation.recipeviewer.*;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeJsonUtil;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomation;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerFocus;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerRequest;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerStackMatcher;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,16 +45,28 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 	@Override
 	public String stateJson() {
 		Screen screen = Minecraft.getInstance().screen;
-		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("searchText", EmiApi.getSearchText()) + ","
-				+ "\"indexStackCount\":" + EmiApi.getIndexStacks().size() + "," + "\"recipeCount\":" + EmiApi.getRecipeManager().getRecipes().size() + ","
-				+ "\"recipeScreenOpen\":" + (screen instanceof RecipeScreen) + ","
-				+ JsonUtil.property("screenClass", screen == null ? null : screen.getClass().getName()) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", screen instanceof RecipeScreen);
+		response.addProperty("viewer", id());
+		response.addProperty("searchText", EmiApi.getSearchText());
+		response.addProperty("indexStackCount", EmiApi.getIndexStacks().size());
+		response.addProperty("recipeCount", EmiApi.getRecipeManager().getRecipes().size());
+		response.addProperty("recipeScreenOpen", screen instanceof RecipeScreen);
+		response.addProperty("screenClass", screen == null ? null : screen.getClass().getName());
+		if (!(screen instanceof RecipeScreen)) {
+			response.addProperty("error", "EMI recipe screen did not open");
+		}
+		return response.toString();
 	}
 
 	@Override
 	public String searchJson(String query) {
 		EmiApi.setSearchText(query);
-		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("searchText", EmiApi.getSearchText()) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", true);
+		response.addProperty("viewer", id());
+		response.addProperty("searchText", EmiApi.getSearchText());
+		return response.toString();
 	}
 
 	@Override
@@ -60,12 +84,23 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 		} else if (normalizedMode.equals("uses") || normalizedMode.equals("usage") || normalizedMode.equals("crafts_into")) {
 			EmiApi.displayUses(stack.get());
 		} else {
-			return "{\"ok\":false," + JsonUtil.property("error", "Unknown mode: " + mode) + "}";
+			JsonObject response = new JsonObject();
+			response.addProperty("ok", false);
+			response.addProperty("error", "Unknown mode: " + mode);
+			return response.toString();
 		}
 		Screen screen = Minecraft.getInstance().screen;
-		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("item", stack.get().getId().toString()) + ","
-				+ JsonUtil.property("mode", normalizedMode) + "," + "\"recipeScreenOpen\":" + (screen instanceof RecipeScreen) + ","
-				+ JsonUtil.property("screenClass", screen == null ? null : screen.getClass().getName()) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", screen instanceof RecipeScreen);
+		response.addProperty("viewer", id());
+		response.addProperty("item", stack.get().getId().toString());
+		response.addProperty("mode", normalizedMode);
+		response.addProperty("recipeScreenOpen", screen instanceof RecipeScreen);
+		response.addProperty("screenClass", screen == null ? null : screen.getClass().getName());
+		if (!(screen instanceof RecipeScreen)) {
+			response.addProperty("error", "EMI recipe screen did not open");
+		}
+		return response.toString();
 	}
 
 	@Override
@@ -77,9 +112,8 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 			return itemNotFoundJson(itemId);
 		}
 		int limit = RecipeViewerRequest.limit(request, 20);
-		EmiRecipeManager manager = EmiApi.getRecipeManager();
-		List<EmiRecipe> recipes = openedRecipes(manager, stack.get(), false);
-		List<EmiRecipe> uses = openedRecipes(manager, stack.get(), true);
+		List<EmiRecipe> recipes = openedRecipes(stack.get(), false);
+		List<EmiRecipe> uses = openedRecipes(stack.get(), true);
 		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("item", stack.get().getId().toString()) + ","
 				+ JsonUtil.property("name", stack.get().getName().getString()) + "," + "\"uiBacked\":true,"
 				+ JsonUtil.rawProperty("focusStack", stack.get().getItemStack().isEmpty() ? "null" : RecipeJsonUtil.itemStackJson(stack.get().getItemStack()))
@@ -109,20 +143,20 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 	}
 
 	private static String itemNotFoundJson(String itemId) {
-		return "{\"ok\":false," + JsonUtil.property("error", "Item not found in EMI index: " + itemId) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", false);
+		response.addProperty("error", "Item not found in EMI index: " + itemId);
+		return response.toString();
 	}
 
-	private static String recipesJson(List<EmiRecipe> recipes, int limit, ItemStack focusedStack) {
+	private static JsonArray recipesJson(List<EmiRecipe> recipes, int limit, ItemStack focusedStack) {
 		int safeLimit = Math.max(0, limit);
-		String entries = recipes.stream().limit(safeLimit).map(recipe -> recipeJson(recipe, focusedStack)).collect(Collectors.joining(","));
-		return "[" + entries + "]";
+		JsonArray result = new JsonArray();
+		recipes.stream().limit(safeLimit).map(recipe -> recipeJson(recipe, focusedStack)).forEach(result::add);
+		return result;
 	}
 
-	private static List<EmiRecipe> matchingRecipes(EmiRecipeManager manager, EmiStack stack, boolean usages) {
-		return usages ? manager.getRecipesByInput(stack) : manager.getRecipesByOutput(stack);
-	}
-
-	private static List<EmiRecipe> openedRecipes(EmiRecipeManager manager, EmiStack stack, boolean usages) {
+	private static List<EmiRecipe> openedRecipes(EmiStack stack, boolean usages) {
 		if (usages) {
 			EmiApi.displayUses(stack);
 		} else {
@@ -130,50 +164,32 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 		}
 		Screen screen = Minecraft.getInstance().screen;
 		if (!(screen instanceof RecipeScreen)) {
-			return matchingRecipes(manager, stack, usages);
+			throw new IllegalStateException("EMI did not open a recipe screen");
 		}
 		try {
 			List<EmiRecipe> recipes = recipesFromScreen(screen);
-			if (!recipes.isEmpty()) {
-				ItemStack itemStack = stack.getItemStack();
-				List<EmiRecipe> filteredScreenRecipes = recipes.stream().filter(recipe -> itemStack.isEmpty() || containsRecipeStack(recipe, itemStack, usages))
-						.collect(Collectors.toList());
-				return mergeRecipes(filteredScreenRecipes, matchingRecipes(manager, stack, usages));
-			}
-		} catch (ReflectiveOperationException | RuntimeException ignored) {
-			// Fall back to recipe manager query below.
+			ItemStack itemStack = stack.getItemStack();
+			return recipes.stream().filter(recipe -> itemStack.isEmpty() || containsRecipeStack(recipe, itemStack, usages)).collect(Collectors.toList());
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			throw new IllegalStateException("Failed to read opened EMI recipes", e);
 		}
-		return matchingRecipes(manager, stack, usages);
-	}
-
-	private static List<EmiRecipe> mergeRecipes(List<EmiRecipe> first, List<EmiRecipe> second) {
-		Map<String, EmiRecipe> recipes = new LinkedHashMap<>();
-		for (EmiRecipe recipe : first) {
-			recipes.put(recipeKey(recipe), recipe);
-		}
-		for (EmiRecipe recipe : second) {
-			recipes.putIfAbsent(recipeKey(recipe), recipe);
-		}
-		return List.copyOf(recipes.values());
-	}
-
-	private static String recipeKey(EmiRecipe recipe) {
-		return recipe.getCategory().getId() + "|" + (recipe.getId() == null ? System.identityHashCode(recipe) : recipe.getId().toString());
 	}
 
 	private static List<EmiRecipe> recipesFromScreen(Screen screen) throws ReflectiveOperationException {
 		Object recipesObject = getField(screen, "recipes");
 		if (!(recipesObject instanceof Map<?, ?> recipesByCategory)) {
-			return List.of();
+			throw new IllegalStateException("Unexpected EMI recipe screen recipes field");
 		}
 		List<EmiRecipe> recipes = new ArrayList<>();
 		for (Object categoryRecipes : recipesByCategory.values()) {
-			if (categoryRecipes instanceof Collection<?> collection) {
-				for (Object recipe : collection) {
-					if (recipe instanceof EmiRecipe emiRecipe) {
-						recipes.add(emiRecipe);
-					}
+			if (!(categoryRecipes instanceof Collection<?> collection)) {
+				throw new IllegalStateException("Unexpected EMI recipe category value");
+			}
+			for (Object recipe : collection) {
+				if (!(recipe instanceof EmiRecipe emiRecipe)) {
+					throw new IllegalStateException("Unexpected EMI recipe entry");
 				}
+				recipes.add(emiRecipe);
 			}
 		}
 		return recipes;
@@ -219,23 +235,24 @@ public class EmiRecipeViewerAutomation implements RecipeViewerAutomation {
 		return stack.has(ModCoreDataComponents.MAIN_COLOR.get()) || stack.has(ModCoreDataComponents.ACCENT_COLOR.get());
 	}
 
-	private static String recipeJson(EmiRecipe recipe, ItemStack focusedStack) {
+	private static JsonObject recipeJson(EmiRecipe recipe, ItemStack focusedStack) {
 		EmiDisplaySlots displaySlots = displaySlots(recipe);
 		List<? extends EmiIngredient> inputs = displaySlots.inputs().isEmpty() ? recipe.getInputs() : displaySlots.inputs();
 		List<? extends EmiIngredient> outputs = displaySlots.outputs().isEmpty() ? recipe.getOutputs() : displaySlots.outputs();
-		return "{" + JsonUtil.property("id", recipe.getId() == null ? null : recipe.getId().toString()) + ","
-				+ JsonUtil.property("category", recipe.getCategory().getId().toString()) + ","
-				+ JsonUtil.property("categoryName", recipe.getCategory().getName().getString()) + "," + "\"inputCount\":" + inputs.size() + ","
-				+ "\"outputCount\":" + outputs.size() + "," + "\"inputs\":" + ingredientsJson(inputs) + "," + "\"outputs\":" + ingredientsJson(outputs) + "}";
+		JsonObject result = new JsonObject();
+		result.addProperty("id", recipe.getId() == null ? null : recipe.getId().toString());
+		result.addProperty("category", recipe.getCategory().getId().toString());
+		result.addProperty("categoryName", recipe.getCategory().getName().getString());
+		result.addProperty("inputCount", inputs.size());
+		result.addProperty("outputCount", outputs.size());
+		result.add("inputs", JsonParser.parseString(ingredientsJson(inputs)));
+		result.add("outputs", JsonParser.parseString(ingredientsJson(outputs)));
+		return result;
 	}
 
 	private static EmiDisplaySlots displaySlots(EmiRecipe recipe) {
 		CapturingWidgetHolder holder = new CapturingWidgetHolder(recipe);
-		try {
-			recipe.addWidgets(holder);
-		} catch (Throwable e) {
-			return new EmiDisplaySlots(List.of(), List.of());
-		}
+		recipe.addWidgets(holder);
 		return new EmiDisplaySlots(List.copyOf(holder.inputs), List.copyOf(holder.outputs));
 	}
 

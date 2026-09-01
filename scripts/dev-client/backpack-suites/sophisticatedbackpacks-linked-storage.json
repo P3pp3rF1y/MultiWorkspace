@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-linked-storage",
+  "tests": [
+    {
+      "name": "linked_storage_endpoints_retain_canonical_contents_and_inception_linked_children_survive_client_relocation",
+      "type": "linkedStorageRegressionSuite"
+    }
+  ]
+}

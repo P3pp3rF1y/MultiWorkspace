@@ -1,11 +1,12 @@
 package net.p3pp3rf1y.devclientautomation.recipeviewer.rei;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import me.shedaniel.rei.api.client.REIRuntime;
 import me.shedaniel.rei.api.client.gui.widgets.TextField;
 import me.shedaniel.rei.api.client.registry.category.CategoryRegistry;
 import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
-import me.shedaniel.rei.api.client.registry.display.DynamicDisplayGenerator;
 import me.shedaniel.rei.api.client.registry.entry.EntryRegistry;
 import me.shedaniel.rei.api.client.view.ViewSearchBuilder;
 import me.shedaniel.rei.api.common.display.Display;
@@ -18,12 +19,23 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.devclientautomation.JsonUtil;
-import net.p3pp3rf1y.devclientautomation.recipeviewer.*;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeJsonUtil;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomation;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerFocus;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerRequest;
+import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerStackMatcher;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.ConcurrentModificationException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
@@ -68,13 +80,25 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 		} else if (normalizedMode.equals("uses") || normalizedMode.equals("usage") || normalizedMode.equals("crafts_into")) {
 			builder.addUsagesFor(stack.get());
 		} else {
-			return "{\"ok\":false," + JsonUtil.property("error", "Unknown mode: " + mode) + "}";
+			JsonObject response = new JsonObject();
+			response.addProperty("ok", false);
+			response.addProperty("error", "Unknown mode: " + mode);
+			return response.toString();
 		}
 		boolean opened = builder.open();
 		Screen screen = Minecraft.getInstance().screen;
-		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("item", stackItemId(stack.get())) + ","
-				+ JsonUtil.property("mode", normalizedMode) + "," + "\"opened\":" + opened + "," + "\"recipeScreenOpen\":" + isRecipeScreenOpen(screen) + ","
-				+ JsonUtil.property("screenClass", screen == null ? null : screen.getClass().getName()) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", opened && isRecipeScreenOpen(screen));
+		response.addProperty("viewer", id());
+		response.addProperty("item", stackItemId(stack.get()));
+		response.addProperty("mode", normalizedMode);
+		response.addProperty("opened", opened);
+		response.addProperty("recipeScreenOpen", isRecipeScreenOpen(screen));
+		response.addProperty("screenClass", screen == null ? null : screen.getClass().getName());
+		if (!opened || !isRecipeScreenOpen(screen)) {
+			response.addProperty("error", "REI recipe screen did not open");
+		}
+		return response.toString();
 	}
 
 	@Override
@@ -93,13 +117,20 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 			recipes = openedDisplays(stack.get(), false, allowItemFallback);
 			uses = openedDisplays(stack.get(), true, allowItemFallback);
 		} catch (ConcurrentModificationException e) {
-			recipes = List.of();
-			uses = List.of();
+			throw new IllegalStateException("REI recipe query changed while its displays were being read", e);
 		}
-		return "{\"ok\":true," + JsonUtil.property("viewer", id()) + "," + JsonUtil.property("item", stackItemId(stack.get())) + ","
-				+ JsonUtil.property("name", stackName(stack.get())) + "," + "\"uiBacked\":true,"
-				+ JsonUtil.rawProperty("focusStack", RecipeJsonUtil.itemStackJson(stack.get().castValue())) + "," + "\"recipeCount\":" + recipes.size() + ","
-				+ "\"useCount\":" + uses.size() + "," + "\"recipes\":" + recipesJson(recipes, limit) + "," + "\"uses\":" + recipesJson(uses, limit) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", true);
+		response.addProperty("viewer", id());
+		response.addProperty("item", stackItemId(stack.get()));
+		response.addProperty("name", stackName(stack.get()));
+		response.addProperty("uiBacked", true);
+		response.add("focusStack", JsonParser.parseString(RecipeJsonUtil.itemStackJson(stack.get().castValue())));
+		response.addProperty("recipeCount", recipes.size());
+		response.addProperty("useCount", uses.size());
+		response.add("recipes", recipesJson(recipes, limit));
+		response.add("uses", recipesJson(uses, limit));
+		return response.toString();
 	}
 
 	private static List<Display> openedDisplays(EntryStack<?> stack, boolean usages, boolean allowItemFallback) {
@@ -110,47 +141,39 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 			builder.addRecipesFor(stack);
 		}
 		if (!builder.open()) {
-			return matchingDisplays(stack, usages, allowItemFallback);
+			throw new IllegalStateException("REI did not open a recipe screen");
 		}
 		Screen screen = Minecraft.getInstance().screen;
 		if (!isRecipeScreenOpen(screen)) {
-			return matchingDisplays(stack, usages, allowItemFallback);
+			throw new IllegalStateException("REI did not open a recipe screen");
 		}
 		try {
 			List<Display> displays = displaysFromScreen(screen);
-			if (!displays.isEmpty()) {
-				List<Display> screenDisplays = displays.stream()
-						.filter(display -> containsStack(usages ? display.getInputEntries() : display.getOutputEntries(), stack, allowItemFallback))
-						.collect(Collectors.collectingAndThen(
-								Collectors.toMap(ReiRecipeViewerAutomation::displayIdKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
-								map -> List.copyOf(map.values())));
-				List<Display> matchingDisplays = matchingDisplays(stack, usages, allowItemFallback);
-				return java.util.stream.Stream.concat(screenDisplays.stream(), matchingDisplays.stream())
-						.collect(Collectors.collectingAndThen(
-								Collectors.toMap(ReiRecipeViewerAutomation::displayIdKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
-								map -> List.copyOf(map.values())));
-			}
-		} catch (ReflectiveOperationException | RuntimeException ignored) {
-			// Fall back to registry query below.
+			return displays.stream().filter(display -> containsStack(usages ? display.getInputEntries() : display.getOutputEntries(), stack, allowItemFallback))
+					.collect(Collectors.collectingAndThen(
+							Collectors.toMap(ReiRecipeViewerAutomation::displayIdKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
+							map -> List.copyOf(map.values())));
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			throw new IllegalStateException("Failed to read opened REI recipes", e);
 		}
-		return matchingDisplays(stack, usages, allowItemFallback);
 	}
 
 	private static List<Display> displaysFromScreen(Screen screen) throws ReflectiveOperationException {
 		Object categoryMapObject = getField(screen, "categoryMap");
 		if (!(categoryMapObject instanceof Map<?, ?> categoryMap)) {
-			return List.of();
+			throw new IllegalStateException("Unexpected REI recipe screen category map");
 		}
 		List<Display> displays = new ArrayList<>();
 		for (Object specsObject : categoryMap.values()) {
 			if (!(specsObject instanceof Collection<?> specs)) {
-				continue;
+				throw new IllegalStateException("Unexpected REI recipe category value");
 			}
 			for (Object spec : specs) {
 				Object display = invoke(spec, "provideInternalDisplay");
-				if (display instanceof Display reiDisplay) {
-					displays.add(reiDisplay);
+				if (!(display instanceof Display reiDisplay)) {
+					throw new IllegalStateException("Unexpected REI recipe display");
 				}
+				displays.add(reiDisplay);
 			}
 		}
 		return displays;
@@ -225,52 +248,8 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 		return itemStack.getHoverName().getString();
 	}
 
-	private static List<Display> matchingDisplays(EntryStack<?> stack, boolean usages, boolean allowItemFallback) {
-		DisplayRegistry registry = DisplayRegistry.getInstance();
-		return java.util.stream.Stream
-				.concat(registry.getAll().values().stream().flatMap(Collection::stream).filter(display -> display.getDisplayLocation().isPresent())
-						.filter(registry::isDisplayVisible)
-						.filter(display -> containsStack(usages ? display.getInputEntries() : display.getOutputEntries(), stack, allowItemFallback)),
-						java.util.stream.Stream
-								.concat(registry.getGlobalDisplayGenerators().stream(),
-										registry.getCategoryDisplayGenerators().values().stream().flatMap(Collection::stream))
-								.flatMap(generator -> generatedDisplays(generator, stack, usages, allowItemFallback).stream()))
-				.collect(Collectors.collectingAndThen(
-						Collectors.toMap(ReiRecipeViewerAutomation::displayKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
-						map -> List.copyOf(map.values())));
-	}
-
-	private static String displayKey(Display display) {
-		return display.getCategoryIdentifier().getIdentifier() + "|" + display.getDisplayLocation().map(ResourceLocation::toString).orElse("") + "|"
-				+ ingredientsJson(display.getInputEntries()) + "|" + ingredientsJson(display.getOutputEntries());
-	}
-
-	private static List<? extends Display> generatedDisplays(DynamicDisplayGenerator<?> generator, EntryStack<?> stack, boolean usages) {
-		return usages ? generator.getUsageFor(stack).orElse(List.of()) : generator.getRecipeFor(stack).orElse(List.of());
-	}
-
-	private static List<? extends Display> generatedDisplays(DynamicDisplayGenerator<?> generator, EntryStack<?> stack, boolean usages,
-			boolean allowItemFallback) {
-		List<? extends Display> focusedDisplays = generatedDisplays(generator, stack, usages);
-		if (!usages && !focusedDisplays.isEmpty()) {
-			return focusedDisplays;
-		}
-		List<? extends Display> globalDisplays = generatedDisplays(generator).stream()
-				.filter(display -> containsStack(usages ? display.getInputEntries() : display.getOutputEntries(), stack, allowItemFallback)).toList();
-		if (focusedDisplays.isEmpty()) {
-			return globalDisplays;
-		}
-		Set<String> focusedIds = focusedDisplays.stream().map(ReiRecipeViewerAutomation::displayIdKey).collect(Collectors.toCollection(HashSet::new));
-		return java.util.stream.Stream.concat(focusedDisplays.stream(), globalDisplays.stream().filter(display -> !focusedIds.contains(displayIdKey(display))))
-				.toList();
-	}
-
 	private static String displayIdKey(Display display) {
 		return display.getCategoryIdentifier().getIdentifier() + "|" + display.getDisplayLocation().map(ResourceLocation::toString).orElse("");
-	}
-
-	private static List<? extends Display> generatedDisplays(DynamicDisplayGenerator<?> generator) {
-		return generator.generate(ViewSearchBuilder.builder()).orElse(List.of());
 	}
 
 	private static boolean containsStack(List<EntryIngredient> ingredients, EntryStack<?> stack, boolean allowItemFallback) {
@@ -294,21 +273,29 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 	}
 
 	private static String itemNotFoundJson(String itemId) {
-		return "{\"ok\":false," + JsonUtil.property("error", "Item not found in REI index: " + itemId) + "}";
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", false);
+		response.addProperty("error", "Item not found in REI index: " + itemId);
+		return response.toString();
 	}
 
-	private static String recipesJson(List<Display> displays, int limit) {
+	private static JsonArray recipesJson(List<Display> displays, int limit) {
 		int safeLimit = Math.max(0, limit);
-		String entries = displays.stream().limit(safeLimit).map(ReiRecipeViewerAutomation::recipeJson).collect(Collectors.joining(","));
-		return "[" + entries + "]";
+		JsonArray result = new JsonArray();
+		displays.stream().limit(safeLimit).map(ReiRecipeViewerAutomation::recipeJson).forEach(result::add);
+		return result;
 	}
 
-	private static String recipeJson(Display display) {
-		return "{" + JsonUtil.property("id", display.getDisplayLocation().map(ResourceLocation::toString).orElse(null)) + ","
-				+ JsonUtil.property("category", display.getCategoryIdentifier().getIdentifier().toString()) + ","
-				+ JsonUtil.property("categoryName", categoryName(display)) + "," + "\"inputCount\":" + display.getInputEntries().size() + ","
-				+ "\"outputCount\":" + display.getOutputEntries().size() + "," + "\"inputs\":" + ingredientsJson(display.getInputEntries()) + ","
-				+ "\"outputs\":" + ingredientsJson(display.getOutputEntries()) + "}";
+	private static JsonObject recipeJson(Display display) {
+		JsonObject result = new JsonObject();
+		result.addProperty("id", display.getDisplayLocation().map(ResourceLocation::toString).orElse(null));
+		result.addProperty("category", display.getCategoryIdentifier().getIdentifier().toString());
+		result.addProperty("categoryName", categoryName(display));
+		result.addProperty("inputCount", display.getInputEntries().size());
+		result.addProperty("outputCount", display.getOutputEntries().size());
+		result.add("inputs", JsonParser.parseString(ingredientsJson(display.getInputEntries())));
+		result.add("outputs", JsonParser.parseString(ingredientsJson(display.getOutputEntries())));
+		return result;
 	}
 
 	private static String ingredientsJson(List<EntryIngredient> ingredients) {

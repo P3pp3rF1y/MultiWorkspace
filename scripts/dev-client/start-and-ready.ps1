@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$WorldName = "Dev Client Automation Void Platform",
     [int]$TimeoutSeconds = 300,
     [switch]$Maximize,
@@ -21,7 +23,10 @@ if (Test-Path $discoveryPath) {
     Remove-Item -LiteralPath $discoveryPath -Force
 }
 
-$gradleCommand = "gradlew.bat :workspace:runClient"
+$gradleCommand = switch ($Loader) {
+    "neoforge" { "gradlew.bat :workspace:runClient" }
+    "fabric" { throw "Fabric dev-client launching is not configured in this workspace yet." }
+}
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
 } elseif ($MinimalRuntime) {
@@ -75,6 +80,14 @@ if ($null -eq $state) {
     throw "Timed out waiting for dev-client automation bridge."
 }
 
+$capabilities = Invoke-BridgeJson -Method Get -Path "/capabilities"
+if (-not $capabilities.ok -or $capabilities.protocolVersion -ne 1) {
+    throw "Dev-client automation bridge does not support protocol version 1."
+}
+if ($capabilities.loader -ne $Loader) {
+    throw "Expected loader '$Loader' but automation bridge reports '$($capabilities.loader)'."
+}
+
 if ($Maximize) {
     Invoke-BridgeJson -Method Post -Path "/window/maximize" | Out-Null
 }
@@ -116,6 +129,7 @@ $discovery = Get-BridgeDiscovery
     port = $discovery.port
     processId = $discovery.processId
     baseUrl = "http://$($discovery.host):$($discovery.port)"
+    capabilities = $capabilities
     state = Invoke-BridgeJson -Method Get -Path "/state"
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
 }
