@@ -261,9 +261,9 @@ dependencies {
         implementation project(':DevClientAutomation')
     }
 
-    // if (curiosDevClientRuntime) {
-    //     runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
-    // }
+    if (curiosDevClientRuntime) {
+        runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    }
 
     // Drop extra test mods into workspace/local-mods to load them in dev runs.
     if (!minimalDevClientRuntime) {

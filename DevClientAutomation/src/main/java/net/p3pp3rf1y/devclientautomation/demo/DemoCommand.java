@@ -11,6 +11,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.commands.CommandSourceStack;
@@ -44,6 +45,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -62,6 +64,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorag
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
+import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -1235,7 +1238,7 @@ public class DemoCommand {
 
 	private static List<LivingEntity> findMatchingMobs(ServerPlayer player, String selector, double range) {
 		AABB searchBox = player.getBoundingBox().inflate(range);
-		List<LivingEntity> targets = ((ServerLevel) player.level()).getEntitiesOfClass(LivingEntity.class, searchBox,
+		List<LivingEntity> targets = player.level().getEntitiesOfClass(LivingEntity.class, searchBox,
 				entity -> entity != player && entity.isAlive() && matchesMobSelector(entity, selector));
 		targets.sort(Comparator.comparingDouble(entity -> entity.distanceToSqr(player)));
 		return targets;
@@ -1377,7 +1380,7 @@ public class DemoCommand {
 				ItemResource resource = itemHandler.getResource(slot);
 				int amount = itemHandler.getAmountAsInt(slot);
 				if (!resource.isEmpty() && amount > 0) {
-					cleared += itemHandler.extract(slot, resource, amount, tx);
+					cleared += itemHandler.extract(resource, amount, tx);
 				}
 			}
 			tx.commit();
@@ -1390,9 +1393,9 @@ public class DemoCommand {
 			ItemResource currentResource = itemHandler.getResource(slot);
 			int currentAmount = itemHandler.getAmountAsInt(slot);
 			if (!currentResource.isEmpty() && currentAmount > 0) {
-				itemHandler.extract(slot, currentResource, currentAmount, tx);
+				itemHandler.extract(currentResource, currentAmount, tx);
 			}
-			int inserted = (int) itemHandler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
+			int inserted = itemHandler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
 			tx.commit();
 			return inserted >= stack.getCount() ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - inserted);
 		}
@@ -1861,6 +1864,8 @@ public class DemoCommand {
 			}
 			KeyMapping.set(key, true);
 			KeyMapping.click(key);
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, GLFW.GLFW_PRESS), GLFW.GLFW_MOD_ALT));
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, GLFW.GLFW_RELEASE), GLFW.GLFW_MOD_ALT));
 			KeyMapping.set(key, false);
 		});
 		if (record) {
@@ -1882,7 +1887,9 @@ public class DemoCommand {
 	}
 
 	private static void clearPlayerInventory(ServerPlayer player) {
-		player.getInventory().clearContent();
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			player.getInventory().setItem(slot, ItemStack.EMPTY);
+		}
 		player.getInventory().setChanged();
 		player.containerMenu.broadcastChanges();
 	}

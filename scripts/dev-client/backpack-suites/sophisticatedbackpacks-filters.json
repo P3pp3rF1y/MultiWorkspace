@@ -1,0 +1,29 @@
+{
+  "name": "sophisticatedbackpacks-filters",
+  "tests": [
+    {
+      "name": "basic_filter_allows_configured_final_slot_input_and_blocks_other_items",
+      "type": "filterRegressionSuite",
+      "upgrade": "basic",
+      "operation": "input"
+    },
+    {
+      "name": "basic_filter_blocks_configured_final_slot_output_and_allows_other_items",
+      "type": "filterRegressionSuite",
+      "upgrade": "basic",
+      "operation": "output"
+    },
+    {
+      "name": "advanced_filter_allows_configured_final_slot_input_and_blocks_other_items",
+      "type": "filterRegressionSuite",
+      "upgrade": "advanced",
+      "operation": "input"
+    },
+    {
+      "name": "advanced_filter_blocks_configured_final_slot_output_and_allows_other_items",
+      "type": "filterRegressionSuite",
+      "upgrade": "advanced",
+      "operation": "output"
+    }
+  ]
+}

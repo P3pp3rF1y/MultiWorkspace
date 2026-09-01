@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [string]$WorldName = "Inventory Interactions Regression",
     [int]$TimeoutSeconds = 360,
@@ -10,32 +12,75 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Assert-True {
-    param([bool]$Condition, [string]$Message)
-    if (-not $Condition) { throw $Message }
+    param(
+        [bool]$Condition,
+        [string]$Message
+    )
+
+    if (-not $Condition) {
+        throw $Message
+    }
 }
 
 function Invoke-BridgeJson {
-    param([Parameter(Mandatory = $true)] [string]$Method, [Parameter(Mandatory = $true)] [string]$Path)
-    Invoke-RestMethod -Method $Method -Uri "$BaseUrl$Path" -TimeoutSec $TimeoutSeconds
+    param(
+        [Parameter(Mandatory = $true)] [string]$Method,
+        [Parameter(Mandatory = $true)] [string]$Path
+    )
+
+    return Invoke-RestMethod -Method $Method -Uri "$BaseUrl$Path" -TimeoutSec $TimeoutSeconds
+}
+
+function Stop-AutomationClient {
+    if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+        return
+    }
+    try {
+        Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    } catch {
+        Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
+    }
+}
+
+function Wait-AutomationClientStopped {
+    if ($clientProcessId -le 0) {
+        return
+    }
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
 }
 
 $startedClient = $false
+$clientProcessId = 0
+
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; WorldName = $WorldName; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MinimalRuntime) { $readyArgs.MinimalRuntime = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; WorldName = $WorldName; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        if ($MinimalRuntime) {
+            $readyArgs.MinimalRuntime = $true
+        }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
+        $clientProcessId = $ready.processId
         $startedClient = $true
     }
+
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
+
     $result = Invoke-BridgeJson -Method Post -Path "/inventory-interactions/keybind-regression"
     Assert-True $result.ok "Inventory-interactions regression failed: $($result.error). Result=$($result | ConvertTo-Json -Compress -Depth 16)"
     $result
 } finally {
     if ($startedClient) {
-        try { Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null } catch { Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)" }
+        Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

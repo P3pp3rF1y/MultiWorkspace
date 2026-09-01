@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
@@ -36,38 +38,8 @@ function Invoke-BridgeJson {
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress -Depth 16) -TimeoutSec $TimeoutSeconds
 }
 
-function Stop-ProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        return
-    }
-    try {
-        & taskkill.exe /PID $ProcessId /T /F | Out-Null
-    } catch {
-        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
-    }
-}
-
-function Wait-ThenStopProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0) {
-        return
-    }
-
-    $deadline = (Get-Date).AddSeconds(10)
-    while ((Get-Date) -lt $deadline -and $null -ne (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        Start-Sleep -Milliseconds 250
-    }
-    Stop-ProcessTree -ProcessId $ProcessId
-}
-
 function Stop-AutomationClient {
-    param([int]$ProcessId = 0)
-
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
-        Wait-ThenStopProcessTree -ProcessId $ProcessId
         return
     }
     try {
@@ -75,12 +47,25 @@ function Stop-AutomationClient {
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
-    Wait-ThenStopProcessTree -ProcessId $ProcessId
+}
+
+function Wait-AutomationClientStopped {
+    if ($clientProcessId -le 0) {
+        return
+    }
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
 }
 
 $startedClient = $false
-$jfrStarted = $false
 $clientProcessId = 0
+$jfrStarted = $false
 
 if ($Runs -le 0) {
     $Runs = if ($Jfr) { 1000 } else { 1 }
@@ -89,7 +74,7 @@ if ($Runs -le 0) {
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }
@@ -159,6 +144,7 @@ try {
         }
     }
     if ($startedClient) {
-        Stop-AutomationClient -ProcessId $clientProcessId
+        Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

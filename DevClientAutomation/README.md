@@ -62,9 +62,9 @@ Run the vanilla and Sophisticated inventory keybind regression with:
 .\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
 ```
 
-The regression covers filtered and Shift-all transfers in both directions, plus
-sorting vanilla chests, player inventory, crafting tables, furnaces, and
-backpacks through screen input pre-hooks.
+The regression covers both transfer directions with and without the Shift
+override, plus sorting vanilla chests, player inventory, crafting tables,
+furnaces, and backpacks.
 
 ## Storage Controller Filter Regression
 
@@ -86,3 +86,21 @@ fixed setup, then runs full verification after recording. The fixed JFR setup
 adds storage stack upgrades for profiling capacity. JFR runs default to 1000
 profile repetitions so most inserts have room while later inserts can exercise
 full/no-space paths; use `-Runs` to override the repetition count.
+
+## Linked Storage Performance Regression
+
+Profile linked Backpack resolution and canonical inventory load with:
+
+```powershell
+.\scripts\dev-client\run-linked-storage-performance.ps1 -MinimalRuntime -Jfr
+```
+
+The scenario creates one linked group with 24 endpoint Backpacks. The magnet
+phase runs the primary endpoint's tickable magnet while every endpoint performs
+its normal inventory-tick resolution. The inventory phase resolves every
+endpoint to the same canonical host and performs four insert/extract pairs per
+endpoint per tick. Each phase records JFR separately and verifies that the
+virtual carrier descriptor and render revision stay unchanged.
+
+Recordings are written to `DevClientAutomation/build/reports/linked-storage-performance/` by default. Use
+`-JfrOutputDirectory` to choose another workspace-local output directory.

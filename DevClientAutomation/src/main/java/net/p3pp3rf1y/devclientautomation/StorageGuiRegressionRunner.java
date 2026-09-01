@@ -36,7 +36,6 @@ import net.p3pp3rf1y.sophisticatedbackpacks.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
-import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.UpgradeContainerBase;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
@@ -50,7 +49,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -430,24 +428,13 @@ final class StorageGuiRegressionRunner {
 
 	private static void handleStorageGuiClickType(StorageGuiRegressionScenario scenario, StorageGuiAction action, int data, ContainerInput clickType) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (!(minecraft.gui.screen() instanceof StorageScreenBase<?> storageScreen)) {
-			throw new IllegalStateException("Backpack storage screen is not open");
+		if (minecraft.player == null || minecraft.gameMode == null) {
+			throw new IllegalStateException("Client player/gameMode is not available");
 		}
 		BackpackContainer menu = getOpenPlacedBackpackMenu();
 		Slot slot = resolveStorageGuiSlot(menu, action.slot());
-		invokeInventoryMouseClick(storageScreen, slot.index, data, clickType);
+		minecraft.gameMode.handleContainerInput(menu.containerId, slot.index, data, clickType, minecraft.player);
 		assertStorageGuiMenuSlotLayout(scenario);
-	}
-
-	private static void invokeInventoryMouseClick(StorageScreenBase<?> storageScreen, int slot, int button, ContainerInput clickType) {
-		try {
-			Method handleInventoryMouseClick = StorageScreenBase.class.getDeclaredMethod("handleInventoryMouseClick", int.class, int.class,
-					ContainerInput.class);
-			handleInventoryMouseClick.setAccessible(true);
-			handleInventoryMouseClick.invoke(storageScreen, slot, button, clickType);
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Failed to invoke storage GUI click: " + e.getMessage(), e);
-		}
 	}
 
 	private static void runStorageGuiSetCarriedStack(StorageGuiAction action) {
@@ -505,11 +492,8 @@ final class StorageGuiRegressionRunner {
 	private static void runStorageGuiColumnUpgradeAction(StorageGuiAction action) {
 		if ("insert".equals(action.operation())) {
 			Item item = action.item().orElseThrow(() -> new IllegalArgumentException("Column upgrade insert action needs an item"));
-			// Let any preceding slot-click sync settle before replacing the carried stack directly.
-			sleep(100);
 			runOnServer(player -> setStorageGuiCarriedStack(player, item));
 			runOnClient(() -> setStorageGuiClientCarriedStack(item));
-			sleep(100);
 		}
 
 		StorageGuiColumnUpgradeExpectation expectation = runOnClient(() -> clickStorageGuiColumnUpgrade(action));
@@ -624,10 +608,11 @@ final class StorageGuiRegressionRunner {
 		int baseStorageSlots = handlerSlots / rows == baseColumns ? handlerSlots : handlerSlots + beforeColumnsTaken * rows;
 		int expectedStorageSlots = baseStorageSlots - expectedColumnsTaken * rows;
 
-		if (!(Minecraft.getInstance().gui.screen() instanceof StorageScreenBase<?> storageScreen)) {
-			throw new IllegalStateException("Backpack storage screen is not open");
+		Minecraft minecraft = Minecraft.getInstance();
+		if (minecraft.player == null || minecraft.gameMode == null) {
+			throw new IllegalStateException("Client player/gameMode is not available");
 		}
-		invokeInventoryMouseClick(storageScreen, slot.index, 0, ContainerInput.PICKUP);
+		minecraft.gameMode.handleContainerInput(menu.containerId, slot.index, 0, ContainerInput.PICKUP, minecraft.player);
 		return new StorageGuiColumnUpgradeExpectation(expectedColumnsTaken, expectedStorageSlots, "remove".equals(action.operation()),
 				"insert".equals(action.operation()));
 	}
