@@ -1,58 +1,80 @@
 package net.p3pp3rf1y.devclientautomation.recipeviewer;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
-import net.p3pp3rf1y.devclientautomation.JsonUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public final class RecipeJsonUtil {
+	private static final Gson GSON = new Gson();
+
 	private RecipeJsonUtil() {
 	}
 
 	public static String itemStackJson(ItemStack stack) {
-		return "{" + JsonUtil.property("type", "item") + "," + JsonUtil.property("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString()) + ","
-				+ JsonUtil.property("name", stack.getHoverName().getString()) + "," + "\"count\":" + stack.getCount() + ","
-				+ JsonUtil.property("components", stack.getComponents().toString()) + ","
-				+ JsonUtil.rawProperty("componentKeys", componentKeysJson(stack.getComponents())) + ","
-				+ JsonUtil.rawProperty("encoded", encodedStackJson(stack)) + "}";
+		JsonObject result = new JsonObject();
+		result.addProperty("type", "item");
+		result.addProperty("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+		result.addProperty("name", stack.getHoverName().getString());
+		result.addProperty("count", stack.getCount());
+		result.addProperty("components", stack.getComponents().toString());
+		result.add("componentKeys", componentKeysJson(stack.getComponents()));
+		result.add("encoded", encodedStackJson(stack));
+		return GSON.toJson(result);
 	}
 
 	public static String itemId(ItemStack stack) {
 		return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 	}
 
-	private static String componentKeysJson(DataComponentMap components) {
-		return components.keySet().stream()
-				.map(component -> JsonUtil.property("", BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(component).toString()).substring(3))
-				.collect(Collectors.joining(",", "[", "]"));
+	private static JsonArray componentKeysJson(DataComponentMap components) {
+		JsonArray componentKeys = new JsonArray();
+		components.keySet().forEach(component -> componentKeys.add(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(component).toString()));
+		return componentKeys;
 	}
 
-	private static String encodedStackJson(ItemStack stack) {
+	private static JsonElement encodedStackJson(ItemStack stack) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.level == null) {
-			return "null";
+			return JsonNull.INSTANCE;
 		}
 		return ItemStack.CODEC.encodeStart(minecraft.level.registryAccess().createSerializationContext(JsonOps.INSTANCE), stack).map(JsonElement::toString)
-				.result().orElse("null");
+				.result().map(JsonParser::parseString).orElse(JsonNull.INSTANCE);
 	}
 
 	public static String stackJson(String type, String id, String name, long amount, float chance) {
-		return "{" + JsonUtil.property("type", type) + "," + JsonUtil.property("id", id) + "," + JsonUtil.property("name", name) + "," + "\"amount\":" + amount
-				+ "," + "\"chance\":" + chance + "}";
+		JsonObject result = new JsonObject();
+		result.addProperty("type", type);
+		result.addProperty("id", id);
+		result.addProperty("name", name);
+		result.addProperty("amount", amount);
+		result.addProperty("chance", chance);
+		return GSON.toJson(result);
 	}
 
 	public static String ingredientJson(List<String> alternatives) {
-		return "{\"alternativeCount\":" + alternatives.size() + ",\"alternatives\":[" + String.join(",", alternatives) + "]}";
+		JsonObject result = new JsonObject();
+		result.addProperty("alternativeCount", alternatives.size());
+		JsonArray alternativeArray = new JsonArray();
+		alternatives.forEach(alternative -> alternativeArray.add(JsonParser.parseString(alternative)));
+		result.add("alternatives", alternativeArray);
+		return GSON.toJson(result);
 	}
 
 	public static String ingredientsJson(List<String> ingredients) {
-		return "[" + String.join(",", ingredients) + "]";
+		JsonArray result = new JsonArray();
+		ingredients.forEach(ingredient -> result.add(JsonParser.parseString(ingredient)));
+		return GSON.toJson(result);
 	}
 
 	public static String itemStackIngredientsJson(List<ItemStack> stacks) {

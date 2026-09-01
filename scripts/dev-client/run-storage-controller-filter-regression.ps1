@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
@@ -57,7 +59,7 @@ if ($Runs -le 0) {
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }
