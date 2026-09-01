@@ -1,0 +1,8 @@
+{
+  "name": "sophisticatedbackpacks-magnets",
+  "tests": [
+    {"name": "basic_magnet_allow", "type": "magnetRegressionSuite", "upgrade": "basic", "mode": "allow"},
+    {"name": "advanced_magnet_block", "type": "magnetRegressionSuite", "upgrade": "advanced", "mode": "block"},
+    {"name": "advanced_magnet_disabled", "type": "magnetRegressionSuite", "upgrade": "advanced", "mode": "disabled"}
+  ]
+}

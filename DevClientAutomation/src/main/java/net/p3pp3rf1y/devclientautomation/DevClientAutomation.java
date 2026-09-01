@@ -104,6 +104,7 @@ import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackRegressionEndpoints;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -200,6 +201,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static net.p3pp3rf1y.sophisticatedcore.init.ModItems.ENDER_LINKER;
+
 @Mod(value = DevClientAutomation.MOD_ID, dist = Dist.CLIENT)
 public class DevClientAutomation {
 	public static final String MOD_ID = "devclientautomation";
@@ -225,6 +228,7 @@ public class DevClientAutomation {
 	private static class AutomationServer {
 		private static final UUID SUB_MOB_CATCHER_PARENT_MOB_ID = new UUID(0L, 101L);
 		private static final UUID SUB_MOB_CATCHER_SUB_MOB_ID = new UUID(0L, 102L);
+		private static final UUID CRAFTING_TRANSFER_BACKPACK_UUID = new UUID(0L, 103L);
 
 		private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2, runnable -> {
 			Thread thread = new Thread(runnable, "Dev Client Automation");
@@ -237,6 +241,7 @@ public class DevClientAutomation {
 		void start() {
 			try {
 				httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0), 0);
+				httpServer.createContext("/capabilities", this::capabilities);
 				httpServer.createContext("/state", this::state);
 				httpServer.createContext("/screen", this::screen);
 				httpServer.createContext("/click-widget", this::clickWidget);
@@ -260,6 +265,17 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/inception-magnet-persistence/pickup", this::pickupWithInceptionMagnet);
 				httpServer.createContext("/backpack/inception-magnet-persistence/status", this::inceptionMagnetPersistenceStatus);
 				httpServer.createContext("/backpack/remote-upgrade-slot-regression", this::backpackRemoteUpgradeSlotRegression);
+				httpServer.createContext("/backpack/filter-regression", BackpackRegressionEndpoints::runFilter);
+				httpServer.createContext("/backpack/magnet-regression", BackpackRegressionEndpoints::runMagnet);
+				httpServer.createContext("/backpack/pickup-regression", BackpackRegressionEndpoints::runPickup);
+				httpServer.createContext("/backpack/restock-regression", BackpackRegressionEndpoints::runRestock);
+				httpServer.createContext("/backpack/refill-regression", BackpackRegressionEndpoints::runRefill);
+				httpServer.createContext("/backpack/linked-storage-regression", BackpackRegressionEndpoints::runLinkedStorage);
+				httpServer.createContext("/backpack/linked-storage-inception-regression", BackpackRegressionEndpoints::runLinkedStorageInception);
+				httpServer.createContext("/backpack/linked-storage-starter-kit", this::giveLinkedStorageStarterKit);
+				httpServer.createContext("/backpack/lifecycle-regression", BackpackRegressionEndpoints::runLifecycle);
+				httpServer.createContext("/backpack/access-regression", BackpackRegressionEndpoints::runAccess);
+				httpServer.createContext("/backpack/curios-access-regression", BackpackRegressionEndpoints::runCuriosAccess);
 				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
@@ -277,6 +293,12 @@ public class DevClientAutomation {
 			} catch (IOException e) {
 				LOGGER.error("Failed to start dev client automation bridge", e);
 			}
+		}
+
+		private void capabilities(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "GET");
+			sendJson(exchange,
+					"{\"ok\":true,\"protocolVersion\":1,\"loader\":\"neoforge\",\"minecraftVersion\":\"1.21.10\",\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"storage\",\"inventory-interactions\"]}");
 		}
 
 		private void state(HttpExchange exchange) throws IOException {
@@ -410,7 +432,7 @@ public class DevClientAutomation {
 			while (System.nanoTime() < deadline) {
 				boolean loaded = runOnClient(() -> Minecraft.getInstance().level != null && Minecraft.getInstance().player != null);
 				if (loaded) {
-					sendJson(exchange, "{\"ok\":true,\"worldLoaded\":true,\"timedOut\":false}");
+					sendJson(exchange, "{\"ok\":true,\"worldLoaded\":true,\"created\":" + loadResult.contains("\"created\":true") + ",\"timedOut\":false}");
 					return;
 				}
 				if (autoConfirmExperimental) {
@@ -419,6 +441,33 @@ public class DevClientAutomation {
 				sleep(100);
 			}
 			sendJson(exchange, "{\"ok\":false,\"worldLoaded\":false,\"timedOut\":true}");
+		}
+
+		private void giveLinkedStorageStarterKit(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJsonHandling(exchange, () -> runOnServer(player -> {
+				List<ItemStack> stacks = new ArrayList<>();
+				stacks.add(new ItemStack(ModItems.GOLD_BACKPACK.get()));
+				stacks.add(new ItemStack(ModItems.DIAMOND_BACKPACK.get()));
+				stacks.add(new ItemStack(ModItems.NETHERITE_BACKPACK.get()));
+				stacks.add(createTintedBackpack(0xFF_D32F2F, 0xFF_7F0000));
+				stacks.add(createTintedBackpack(0xFF_388E3C, 0xFF_1B5E20));
+				stacks.add(createTintedBackpack(0xFF_1976D2, 0xFF_0D47A1));
+				for (int i = 0; i < 3; i++) {
+					stacks.add(new ItemStack(ENDER_LINKER.get()));
+				}
+				stacks.add(new ItemStack(Items.CRAFTING_TABLE));
+				stacks.forEach(stack -> player.getInventory().add(stack));
+				player.getInventory().setChanged();
+				player.inventoryMenu.broadcastChanges();
+				return "{\"ok\":true,\"items\":" + stacks.size() + "}";
+			}));
+		}
+
+		private static ItemStack createTintedBackpack(int mainColor, int accentColor) {
+			ItemStack backpack = new ItemStack(ModItems.BACKPACK.get());
+			BackpackItem.setColors(backpack, mainColor, accentColor);
+			return backpack;
 		}
 
 		private String loadOrCreateAutomationWorld(String worldName) {
@@ -856,8 +905,7 @@ public class DevClientAutomation {
 
 				runRegressionStep("insert mob-catcher sub backpack on server", () -> runOnServer(this::insertMobCatcherSubBackpackIntoOpenParent));
 				runOnClient(this::insertClientMobCatcherSubBackpackIntoOpenParent);
-
-				SubMobCatcherRegressionState parentState = runOnClient(this::getParentMobCatcherRegressionState);
+				SubMobCatcherRegressionState parentState = waitForParentMobCatcherRegressionState();
 				if (!parentState.parentMatches()) {
 					return subMobCatcherRegressionJson(name, false, parentState, parentState,
 							"Parent backpack mob catcher data did not stay separate after inserting sub backpack");
@@ -1129,7 +1177,8 @@ public class DevClientAutomation {
 
 		private ItemStack createCraftingTransferRegressionBackpack() {
 			ItemStack backpack = createBackpackStack(80);
-			IBackpackWrapper backpackWrapper = BackpackWrapper.fromStackNoCache(backpack);
+			backpack.set(ModCoreDataComponents.STORAGE_UUID, CRAFTING_TRANSFER_BACKPACK_UUID);
+			IBackpackWrapper backpackWrapper = BackpackWrapper.fromStack(backpack);
 			backpackWrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.CRAFTING_UPGRADE.get()));
 			backpackWrapper.getUpgradeHandler().saveInventory();
 			backpackWrapper.onContentsUpdated();
@@ -1155,6 +1204,9 @@ public class DevClientAutomation {
 			BackpackContext.Item backpackContext = new BackpackContext.Item(PlayerInventoryProvider.MAIN_INVENTORY, "", 0);
 			player.openMenu(new SimpleMenuProvider((windowId, inventory, openPlayer) -> new BackpackContainer(windowId, openPlayer, backpackContext),
 					Component.literal("Mob Catcher Parent Regression")), backpackContext::toBuffer);
+			if (player.containerMenu instanceof BackpackContainer menu) {
+				menu.syncClientStorageContentsToClient();
+			}
 			return true;
 		}
 
@@ -1189,6 +1241,8 @@ public class DevClientAutomation {
 			inventoryHandler.setStackInSlot(0, createMobCatcherRegressionBackpack(144, 7, SUB_MOB_CATCHER_SUB_MOB_ID, 10, "Sub Cow"));
 			inventoryHandler.saveInventory();
 			menu.getStorageWrapper().onContentsUpdated();
+			menu.syncClientStorageContentsToClient();
+			menu.broadcastChanges();
 		}
 
 		private ItemStack createParentBackpackWithColumnUpgradeSubBackpack() {
@@ -1327,6 +1381,19 @@ public class DevClientAutomation {
 				sleep(50);
 			} while (System.nanoTime() < deadline);
 			throw new IllegalStateException("Timed out waiting for sub backpack screen to open");
+		}
+
+		private SubMobCatcherRegressionState waitForParentMobCatcherRegressionState() {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			SubMobCatcherRegressionState state;
+			do {
+				state = runOnClient(this::getCurrentMobCatcherRegressionStateSafely);
+				if (state.parentMatches()) {
+					return state;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
+			return state;
 		}
 
 		private PlacedColumnUpgradeClickExpectation clickPlacedBackpackColumnUpgrade() {
@@ -1704,6 +1771,7 @@ public class DevClientAutomation {
 				ColumnUpgradeStackGenerator stackGenerator) {
 			ItemStack backpack = createBackpackStack(scenario.inventorySlots());
 			IBackpackWrapper wrapper = BackpackWrapper.fromStackNoCache(backpack);
+			wrapper.setSlotNumbers(scenario.inventorySlots(), 5);
 			if (scenario.operation().equals("remove")) {
 				wrapper.setColumnsTaken(getUpgradeColumnsTaken(scenario.upgradeItem()), false);
 			}
@@ -1721,6 +1789,7 @@ public class DevClientAutomation {
 			Map<String, String> beforeProtectedSettings = snapshotProtectedSettings(wrapper, scenario);
 			ColumnUpgradeSimulationResult simulationResult = simulateColumnUpgradeOperation(backpack, wrapper, scenario.upgradeItem(), scenario.operation());
 			wrapper = BackpackWrapper.fromStackNoCache(backpack);
+			wrapper.setSlotNumbers(scenario.inventorySlots(), 5);
 			if (simulationResult.fits() != scenario.expectedFits()) {
 				return new ColumnUpgradeRegressionResult(scenario.name(), false, scenario.expectedFits(), simulationResult.fits(), beforeStacks.size(),
 						snapshotStacks(wrapper.getInventoryHandler()).size(), "fit result mismatch");
@@ -2354,10 +2423,15 @@ public class DevClientAutomation {
 						Component.literal("Inventory interaction regression")));
 				return player.containerMenu.containerId;
 			});
-			waitForClientScreen("crafting table",
-					() -> Minecraft.getInstance().screen instanceof CraftingScreen screen && screen.getMenu().containerId == containerId);
+			waitForClientScreen("prepared crafting table", () -> Minecraft.getInstance().screen instanceof CraftingScreen screen
+					&& screen.getMenu().containerId == containerId && screen.getMenu().slots.get(10).getItem().is(Items.COBBLESTONE));
 			requireHandled(pressSortKeybind(10), "Crafting-table player inventory sort keybind was not handled");
-			waitForPlayerInventorySort("crafting-table player inventory sort");
+			try {
+				waitForPlayerInventorySort("crafting-table player inventory sort");
+			} catch (IllegalStateException e) {
+				throw new IllegalStateException(e.getMessage() + ": " + runOnServer(player -> "cobblestone=" + countItems(player, Items.COBBLESTONE)
+						+ ", stacks=" + countStacks(player, Items.COBBLESTONE) + ", menu=" + player.containerMenu.getClass().getSimpleName()), e);
+			}
 		}
 
 		private void runFurnacePlayerInventorySortKeybindRegression() {

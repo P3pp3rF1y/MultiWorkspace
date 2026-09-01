@@ -1,0 +1,8 @@
+{
+  "name": "sophisticatedbackpacks-refill-upgrades",
+  "tests": [
+    {"name": "basic_refill_allow", "type": "refillRegressionSuite", "upgrade": "basic", "mode": "allow"},
+    {"name": "basic_refill_empty", "type": "refillRegressionSuite", "upgrade": "basic", "mode": "empty"},
+    {"name": "basic_refill_mismatch", "type": "refillRegressionSuite", "upgrade": "basic", "mode": "mismatch"}
+  ]
+}

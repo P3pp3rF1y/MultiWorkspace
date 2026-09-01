@@ -896,6 +896,7 @@
       "type": "recipe",
       "focus": "slotOnlyGoldBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?gold_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "item": "sophisticatedbackpacks:iron_backpack" }
@@ -1219,6 +1220,7 @@
       "viewers": ["jei"],
       "focus": "runtimeGoldBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?gold_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           {
@@ -1259,6 +1261,7 @@
       "viewers": ["jei"],
       "focus": "runtimeRenderedGoldBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?gold_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "sameAs": "runtimeRenderedIronBackpack" }
@@ -1281,6 +1284,7 @@
       "viewers": ["jei"],
       "focus": "runtimeIronBackpack",
       "expect": {
+        "recipeId": "sophisticatedbackpacks:gold_backpack",
         "categoryPattern": "crafting|craft",
         "inputs": [
           {
@@ -1321,6 +1325,7 @@
       "viewers": ["jei"],
       "focus": "runtimeRenderedGoldBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?diamond_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "sameAs": "runtimeRenderedGoldBackpack" }
@@ -1343,6 +1348,7 @@
       "viewers": ["jei"],
       "focus": "runtimeRenderInfoBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?copper_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "sameAs": "runtimeRenderInfoBackpack" }
@@ -1389,6 +1395,7 @@
       "viewers": ["jei"],
       "focus": "runtimeRenderInfoBackpack",
       "expect": {
+        "recipeIdPattern": "^sophisticatedbackpacks:(backpack_tier_upgrade_grouped/)?iron_backpack$",
         "categoryPattern": "crafting|craft",
         "inputs": [
           { "sameAs": "runtimeRenderInfoBackpack" }

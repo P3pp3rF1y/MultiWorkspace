@@ -1,0 +1,7 @@
+{
+  "name": "sophisticatedbackpacks-filters",
+  "tests": [
+    {"name": "basic_filter_input", "type": "filterRegressionSuite", "upgrade": "basic", "operation": "input"},
+    {"name": "advanced_filter_output", "type": "filterRegressionSuite", "upgrade": "advanced", "operation": "output"}
+  ]
+}

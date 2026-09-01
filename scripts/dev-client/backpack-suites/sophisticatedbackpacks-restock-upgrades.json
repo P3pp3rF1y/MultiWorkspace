@@ -1,0 +1,8 @@
+{
+  "name": "sophisticatedbackpacks-restock-upgrades",
+  "tests": [
+    {"name": "basic_restock_allow", "type": "restockRegressionSuite", "upgrade": "basic", "mode": "allow"},
+    {"name": "advanced_restock_block", "type": "restockRegressionSuite", "upgrade": "advanced", "mode": "block"},
+    {"name": "advanced_restock_empty", "type": "restockRegressionSuite", "upgrade": "advanced", "mode": "empty"}
+  ]
+}
