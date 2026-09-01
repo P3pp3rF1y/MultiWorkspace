@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-linked-storage",
+  "tests": [
+    {
+      "name": "placed_linked_storage_backpacks_migrate_share_render_break_pickup_retain_canonical_contents_and_sync_tank_columns",
+      "type": "linkedStorageRegressionSuite"
+    }
+  ]
+}
