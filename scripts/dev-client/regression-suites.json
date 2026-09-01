@@ -1,0 +1,284 @@
+{
+  "protocolVersion": 1,
+  "suites": [
+    {
+      "id": "inventory-interactions-keybind",
+      "groups": ["inventory-interactions", "smoke"],
+      "tier": "fast",
+      "loaders": ["neoforge"],
+      "script": "run-inventory-interactions-regression.ps1",
+      "arguments": {
+        "MinimalRuntime": true
+      }
+    },
+    {
+      "id": "storage-controller-filter-routing",
+      "groups": ["storage", "controller"],
+      "tier": "fast",
+      "loaders": ["neoforge"],
+      "script": "run-storage-controller-filter-regression.ps1",
+      "arguments": {
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-runtime",
+      "groups": ["backpacks"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-storage-gui",
+      "groups": ["backpacks", "client-gui"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-storage-gui"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-column-upgrades",
+      "groups": ["backpacks", "upgrades"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-column-upgrades"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-lifecycle",
+      "groups": ["backpacks", "block-lifecycle"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-lifecycle"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-linked-storage",
+      "groups": ["backpacks", "linked-storage"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-linked-storage"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-access",
+      "groups": ["backpacks", "access-paths"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-access",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-curios-access",
+      "groups": ["backpacks", "access-paths", "curios"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-curios-access",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-magnets",
+      "groups": ["backpacks", "upgrades", "magnets"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-magnets",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-pickup-upgrades",
+      "groups": ["backpacks", "upgrades", "pickup"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-pickup-upgrades",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-filters",
+      "groups": ["backpacks", "upgrades", "filters"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-filters",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-restock-upgrades",
+      "groups": ["backpacks", "upgrades", "restock"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-restock-upgrades",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "backpack-refill-upgrades",
+      "groups": ["backpacks", "upgrades", "refill"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-refill-upgrades",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-backpacks-emi",
+      "groups": ["recipe-viewers", "backpacks"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks",
+        "Viewer": "emi"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-backpacks-jei",
+      "groups": ["recipe-viewers", "backpacks"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks",
+        "Viewer": "jei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-backpacks-rei",
+      "groups": ["recipe-viewers", "backpacks"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks",
+        "Viewer": "rei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-emi",
+      "groups": ["recipe-viewers", "storage"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorage",
+        "Viewer": "emi"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-jei",
+      "groups": ["recipe-viewers", "storage"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorage",
+        "Viewer": "jei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-rei",
+      "groups": ["recipe-viewers", "storage"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorage",
+        "Viewer": "rei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-in-motion-emi",
+      "groups": ["recipe-viewers", "storage-in-motion"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorageinmotion",
+        "Viewer": "emi"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-in-motion-jei",
+      "groups": ["recipe-viewers", "storage-in-motion"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorageinmotion",
+        "Viewer": "jei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "recipe-viewer-storage-in-motion-rei",
+      "groups": ["recipe-viewers", "storage-in-motion"],
+      "tier": "full",
+      "loaders": [],
+      "script": "run-recipe-viewer-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorageinmotion",
+        "Viewer": "rei"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
+      "id": "decoration-table-rendering",
+      "groups": ["client-rendering", "storage"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-decoration-table-render-regression.ps1",
+      "arguments": {
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    }
+  ]
+}
