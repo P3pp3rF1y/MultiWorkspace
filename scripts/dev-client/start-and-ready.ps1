@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet("neoforge", "fabric")]
+    [string]$Loader = "neoforge",
     [string]$WorldName = "Dev Client Automation Void Platform",
     [int]$TimeoutSeconds = 300,
     [switch]$Maximize,
@@ -8,6 +10,7 @@ param(
     [switch]$CloseOnExit,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
+    [switch]$LinkedStorageStarterKit,
     [ValidateSet("", "emi", "jei", "rei", "none")]
     [string]$RecipeViewer = ""
 )
@@ -17,11 +20,45 @@ $ErrorActionPreference = "Stop"
 $discoveryPath = Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
+function Test-DiscoveryProcessRunning {
+    param([object]$Discovery)
+
+    if ($null -eq $Discovery -or $null -eq $Discovery.processId) {
+        return $false
+    }
+
+    return $null -ne (Get-Process -Id $Discovery.processId -ErrorAction SilentlyContinue)
+}
+
 if (Test-Path $discoveryPath) {
+    try {
+        $existingDiscovery = Get-Content $discoveryPath -Raw | ConvertFrom-Json
+        if (Test-DiscoveryProcessRunning $existingDiscovery) {
+            try {
+                Invoke-RestMethod -Method Post -Uri "http://$($existingDiscovery.host):$($existingDiscovery.port)/client/stop" -TimeoutSec 10 | Out-Null
+            } catch {
+                Write-Warning "Failed to stop existing dev client through automation bridge: $($_.Exception.Message)"
+            }
+
+            while ((Test-DiscoveryProcessRunning $existingDiscovery) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 500
+            }
+            if (Test-DiscoveryProcessRunning $existingDiscovery) {
+                throw "Existing dev-client automation process $($existingDiscovery.processId) did not stop before launch."
+            }
+        }
+    } catch {
+        if ($_.Exception.Message -like "Existing dev-client automation process*") {
+            throw
+        }
+    }
     Remove-Item -LiteralPath $discoveryPath -Force
 }
 
-$gradleCommand = "gradlew.bat :workspace:runClient"
+$gradleCommand = switch ($Loader) {
+    "neoforge" { "gradlew.bat :workspace:runClient" }
+    "fabric" { throw "Fabric dev-client launching is not configured in this workspace yet." }
+}
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
 } elseif ($MinimalRuntime) {
@@ -64,6 +101,9 @@ function Invoke-BridgeJson {
 do {
     Start-Sleep -Seconds 2
     try {
+        if (-not (Test-DiscoveryProcessRunning (Get-BridgeDiscovery))) {
+            throw "Bridge discovery does not reference a running dev-client process."
+        }
         $state = Invoke-BridgeJson -Method Get -Path "/state"
         break
     } catch {
@@ -73,6 +113,14 @@ do {
 
 if ($null -eq $state) {
     throw "Timed out waiting for dev-client automation bridge."
+}
+
+$capabilities = Invoke-BridgeJson -Method Get -Path "/capabilities"
+if (-not $capabilities.ok -or $capabilities.protocolVersion -ne 1) {
+    throw "Dev-client automation bridge does not support protocol version 1."
+}
+if ($capabilities.loader -ne $Loader) {
+    throw "Expected loader '$Loader' but automation bridge reports '$($capabilities.loader)'."
 }
 
 if ($Maximize) {
@@ -92,7 +140,10 @@ if ($LoadWorld -and -not $state.playerLoaded) {
         throw "Timed out waiting for title screen before loading world."
     }
 
-    Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 } | Out-Null
+    $worldLoad = Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 }
+    if ($LinkedStorageStarterKit -and $worldLoad.created) {
+        Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-starter-kit" | Out-Null
+    }
 }
 
 do {
@@ -116,6 +167,7 @@ $discovery = Get-BridgeDiscovery
     port = $discovery.port
     processId = $discovery.processId
     baseUrl = "http://$($discovery.host):$($discovery.port)"
+    capabilities = $capabilities
     state = Invoke-BridgeJson -Method Get -Path "/state"
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
 }

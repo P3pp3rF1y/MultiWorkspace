@@ -1,0 +1,35 @@
+{
+  "name": "sophisticatedbackpacks-refill-upgrades",
+  "tests": [
+    {
+      "name": "basic_refill_replenishes_matching_player_stack",
+      "type": "refillRegressionSuite",
+      "upgrade": "basic",
+      "mode": "allow"
+    },
+    {
+      "name": "basic_refill_leaves_depleted_stack_when_backpack_is_empty",
+      "type": "refillRegressionSuite",
+      "upgrade": "basic",
+      "mode": "empty"
+    },
+    {
+      "name": "basic_refill_preserves_nonmatching_stack_and_fills_empty_slot",
+      "type": "refillRegressionSuite",
+      "upgrade": "basic",
+      "mode": "mismatch"
+    },
+    {
+      "name": "advanced_refill_main_hand_target_replenishes_matching_stack",
+      "type": "refillRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "main_hand"
+    },
+    {
+      "name": "advanced_refill_main_hand_target_does_not_replace_nonmatching_stack",
+      "type": "refillRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "main_hand_mismatch"
+    }
+  ]
+}

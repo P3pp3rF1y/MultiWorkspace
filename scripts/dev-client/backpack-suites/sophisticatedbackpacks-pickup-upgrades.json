@@ -1,0 +1,41 @@
+{
+  "name": "sophisticatedbackpacks-pickup-upgrades",
+  "tests": [
+    {
+      "name": "basic_pickup_upgrade_accepts_allowed_item_entity",
+      "type": "pickupRegressionSuite",
+      "upgrade": "basic",
+      "mode": "allow"
+    },
+    {
+      "name": "basic_pickup_upgrade_rejects_blocked_item_entity",
+      "type": "pickupRegressionSuite",
+      "upgrade": "basic",
+      "mode": "block"
+    },
+    {
+      "name": "basic_pickup_upgrade_falls_back_to_player_when_backpack_is_full",
+      "type": "pickupRegressionSuite",
+      "upgrade": "basic",
+      "mode": "full"
+    },
+    {
+      "name": "advanced_pickup_upgrade_accepts_allowed_item_entity",
+      "type": "pickupRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "allow"
+    },
+    {
+      "name": "advanced_pickup_upgrade_rejects_blocked_item_entity",
+      "type": "pickupRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "block"
+    },
+    {
+      "name": "advanced_pickup_upgrade_falls_back_to_player_when_backpack_is_full",
+      "type": "pickupRegressionSuite",
+      "upgrade": "advanced",
+      "mode": "full"
+    }
+  ]
+}
