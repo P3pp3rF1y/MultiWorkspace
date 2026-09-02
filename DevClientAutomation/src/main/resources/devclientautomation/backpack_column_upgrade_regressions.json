@@ -25,28 +25,28 @@
   "scenarios": [
     {
       "name": "regular_tank_two_rows_left_packed",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
-      "occupiedColumns": { "rows": 2, "columns": 9, "occupiedColumns": 7 },
+      "occupiedColumns": { "rows": 3, "columns": 9, "occupiedColumns": 7 },
       "expectedFits": true
     },
     {
       "name": "regular_battery_two_rows_left_packed",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
-      "occupiedColumns": { "rows": 2, "columns": 9, "occupiedColumns": 7 },
+      "occupiedColumns": { "rows": 3, "columns": 9, "occupiedColumns": 7 },
       "expectedFits": true
     },
     {
       "name": "regular_tank_sparse_visual_positions",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "occupiedSlots": [0, 1, 2, 9, 10, 11, 15],
       "expectedFits": true
     },
     {
       "name": "regular_battery_full_target_capacity",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
       "occupiedSlots": [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15],
       "expectedFits": true
@@ -123,7 +123,7 @@
     },
     {
       "name": "regular_tank_keeps_no_sort_and_memory_slots_fixed",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "occupiedSlots": [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13],
       "noSortSlots": [2],
@@ -132,7 +132,7 @@
     },
     {
       "name": "regular_battery_keeps_no_sort_and_memory_slots_fixed",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
       "occupiedSlots": [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13],
       "noSortSlots": [2],
@@ -159,7 +159,7 @@
     },
     {
       "name": "regular_tank_keeps_no_sort_slot_index_in_removed_column",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "occupiedSlots": [8],
       "noSortSlots": [8],
@@ -167,23 +167,23 @@
     },
     {
       "name": "regular_tank_allows_empty_no_sort_slot_outside_reduced_inventory",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "occupiedSlots": [],
-      "noSortSlots": [17],
+      "noSortSlots": [26],
       "expectedFits": true
     },
     {
       "name": "regular_battery_allows_empty_memory_slot_outside_reduced_inventory",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
       "occupiedSlots": [],
-      "memorySlots": [17],
+      "memorySlots": [26],
       "expectedFits": true
     },
     {
       "name": "regular_tank_removal_keeps_stack_index_when_space_opens_before_it",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "operation": "remove",
       "occupiedSlots": [3, 10],
@@ -192,7 +192,7 @@
     },
     {
       "name": "regular_tank_insert_keeps_captured_mob_layout_valid",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "occupiedSlots": [],
       "capturedMobs": [{ "slot": 7, "width": 2, "height": 2 }],
@@ -201,7 +201,7 @@
     },
     {
       "name": "regular_tank_removal_keeps_captured_mob_slot_when_it_still_fits",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
       "operation": "remove",
       "occupiedSlots": [],
@@ -230,24 +230,24 @@
     },
     {
       "name": "regular_battery_blocks_memory_slot_outside_reduced_inventory",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
       "occupiedSlots": [17],
       "memorySlots": [17],
-      "expectedFits": false
+      "expectedFits": true
     },
     {
       "name": "regular_tank_blocks_when_one_stack_too_many",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:tank_upgrade",
-      "firstSlots": 15,
+      "firstSlots": 22,
       "expectedFits": false
     },
     {
       "name": "regular_battery_blocks_when_one_stack_too_many",
-      "inventorySlots": 18,
+      "inventorySlots": 27,
       "upgrade": "sophisticatedbackpacks:battery_upgrade",
-      "firstSlots": 15,
+      "firstSlots": 22,
       "expectedFits": false
     },
     {

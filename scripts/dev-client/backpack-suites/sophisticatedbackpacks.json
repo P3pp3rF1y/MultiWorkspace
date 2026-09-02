@@ -1,6 +1,25 @@
 {
   "name": "sophisticatedbackpacks",
   "tests": [
+	{
+	  "name": "placed_column_upgrade_removal_syncs_columns",
+	  "type": "columnUpgradeSync",
+	  "context": "placed"
+	},
+	{
+	  "name": "curios_column_upgrade_removal_syncs_columns",
+	  "type": "columnUpgradeSync",
+	  "context": "curios"
+	},
+	{
+	  "name": "sub_backpack_column_upgrade_removal_syncs_columns",
+	  "type": "columnUpgradeSync",
+	  "context": "sub"
+	},
+	{
+	  "name": "sub_backpack_immediate_open_keeps_mob_catcher_data_separate",
+	  "type": "subMobCatcherImmediateOpen"
+	},
     {
       "name": "advanced_compacting_high_stack_partially_compacts_into_near_full_ingot_slot",
       "type": "advancedCompactingHighStack",
@@ -14,6 +33,10 @@
     {
       "name": "inception_magnet_pickup_into_new_nested_backpack_survives_client_restart",
       "type": "inceptionMagnetPersistence"
+	},
+	{
+	  "name": "fresh_linked_carried_and_placed_backpacks_resolve_canonical_contents_after_client_restart",
+	  "type": "linkedStorageReloadPersistence"
     }
   ]
 }

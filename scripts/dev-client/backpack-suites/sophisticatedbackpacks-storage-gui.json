@@ -1,0 +1,6 @@
+{
+  "name": "sophisticatedbackpacks-storage-gui",
+  "tests": [
+    {"name": "backpack_storage_gui_interaction_matrix", "type": "storageGuiRegressionSuite"}
+  ]
+}
