@@ -120,8 +120,12 @@ public class ReiRecipeViewerAutomation implements RecipeViewerAutomation {
 		try {
 			List<Display> displays = displaysFromScreen(screen);
 			if (!displays.isEmpty()) {
-				return displays.stream()
+				List<Display> screenDisplays = displays.stream()
 						.filter(display -> containsStack(usages ? display.getInputEntries() : display.getOutputEntries(), stack, allowItemFallback))
+						.collect(Collectors.collectingAndThen(
+								Collectors.toMap(ReiRecipeViewerAutomation::displayKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
+								map -> List.copyOf(map.values())));
+				return java.util.stream.Stream.concat(screenDisplays.stream(), matchingDisplays(stack, usages, allowItemFallback).stream())
 						.collect(Collectors.collectingAndThen(
 								Collectors.toMap(ReiRecipeViewerAutomation::displayKey, display -> display, (first, ignored) -> first, LinkedHashMap::new),
 								map -> List.copyOf(map.values())));

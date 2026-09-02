@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+	[ValidateSet("forge")]
+	[string]$Loader = "forge",
     [string]$BaseUrl = "",
     [string]$Suite = "sophisticatedbackpacks",
     [int]$TimeoutSeconds = 360,
@@ -56,7 +58,7 @@ function Stop-AutomationClient {
 }
 
 function Start-AutomationClient {
-    $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+	$readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
     if ($MaximizeClient) {
         $readyArgs.Maximize = $true
     }
@@ -115,6 +117,31 @@ function Run-InceptionMagnetPersistenceRegression {
     return $status
 }
 
+function Run-LinkedStorageReloadPersistenceRegression {
+    Assert-True $startedClient "The linked storage reload persistence regression must start and own the dev client."
+
+    $setup = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-reload/setup"
+    Assert-True $setup.ok "Failed to set up linked storage reload persistence regression: $($setup | ConvertTo-Json -Compress)"
+    Assert-True $setup.carriedEndpoint "Carried Backpack endpoint was not created."
+    Assert-True $setup.placedEndpoint "Placed BackpackBlockEntity endpoint was not created."
+    Assert-True $setup.sharedGroup "New Backpack endpoints did not share a linked storage group."
+    Assert-True ($setup.carriedNetherStars -eq 7 -and $setup.placedNetherStars -eq 7) "New endpoints did not resolve the canonical Nether Star contents."
+
+    $shutdown = Invoke-BridgeJson -Method Post -Path "/client/shutdown-world" -Body @{}
+    Assert-True $shutdown.ok "Integrated server did not shut down cleanly."
+    Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    Wait-AutomationClientStopped
+    Start-AutomationClient
+
+    $status = Invoke-BridgeJson -Method Get -Path "/backpack/linked-storage-reload/status"
+    Assert-True $status.ok "Linked Backpack endpoints did not retain canonical contents after restart: $($status | ConvertTo-Json -Compress)"
+    Assert-True ($status.groupId -eq $setup.groupId) "Linked storage group changed after restart. Expected=$($setup.groupId), actual=$($status.groupId)"
+    Assert-True ($status.carriedEndpointId -eq $setup.carriedEndpointId) "Carried endpoint identity changed after restart."
+    Assert-True ($status.placedEndpointId -eq $setup.placedEndpointId) "Placed endpoint identity changed after restart."
+    Assert-True ($status.carriedNetherStars -eq 7 -and $status.placedNetherStars -eq 7) "Endpoints did not resolve the canonical Nether Star contents after restart."
+    return $status
+}
+
 $startedClient = $false
 
 try {
@@ -134,9 +161,13 @@ try {
     foreach ($test in @($suiteData.tests)) {
         if ($test.type -eq "inceptionMagnetPersistence") {
             $result = Run-InceptionMagnetPersistenceRegression
-        } else {
-            $result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
-        }
+		} elseif ($test.type -eq "linkedStorageReloadPersistence") {
+			$result = Run-LinkedStorageReloadPersistenceRegression
+		} elseif ($test.type -eq "linkedStorageRegressionSuite") {
+			$result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-regression"
+		} else {
+			$result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
+		}
         Assert-True $result.ok "Backpack regression failed for '$($test.name)': $($result.error). Result=$($result | ConvertTo-Json -Compress -Depth 16)"
         $results += [pscustomobject]@{ name = $test.name; type = $test.type; context = $test.context; passed = $true; result = $result }
         Write-Host "PASS $($test.name)"
@@ -152,5 +183,6 @@ try {
 } finally {
     if ($startedClient) {
         Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

@@ -121,6 +121,7 @@ archivesBaseName = 'modid'
 
 def recipeViewer = (findProperty("recipe_viewer") ?: "rei").toString()
 def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
+def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "false").toString().toBoolean()
 def generatingIdeRuns = gradle.startParameter.taskNames.any { it.toLowerCase().contains("genintellijruns") }
 
 configurations.configureEach {
@@ -347,6 +348,8 @@ dependencies {
 //        runtimeOnly fg.deobf("maven.modrinth:ae2:${ae2_version}")
         //runtimeOnly fg.deobf("curse.maven:refinedstorage-243076:${rs_cf_file_id}")
 
+    }
+    if (!minimalDevClientRuntime || curiosDevClientRuntime) {
         runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
     }
 

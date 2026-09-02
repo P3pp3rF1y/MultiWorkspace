@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+	[ValidateSet("forge")]
+	[string]$Loader = "forge",
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
@@ -47,7 +49,18 @@ function Stop-AutomationClient {
     }
 }
 
+function Wait-AutomationClientStopped {
+    if (-not $clientProcessId) {
+        throw "Dev client process ID was not returned."
+    }
+    Wait-Process -Id $clientProcessId -Timeout $TimeoutSeconds -ErrorAction SilentlyContinue
+    if (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue) {
+        throw "Timed out waiting for dev client to stop."
+    }
+}
+
 $startedClient = $false
+$clientProcessId = $null
 $jfrStarted = $false
 
 if ($Runs -le 0) {
@@ -57,7 +70,7 @@ if ($Runs -le 0) {
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
-        $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
+		$readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
         if ($MaximizeClient) {
             $readyArgs.Maximize = $true
         }
@@ -66,6 +79,7 @@ try {
         }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
+        $clientProcessId = $ready.processId
         $startedClient = $true
     }
 
@@ -127,5 +141,6 @@ try {
     }
     if ($startedClient) {
         Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

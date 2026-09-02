@@ -1,5 +1,7 @@
 param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
+	[ValidateSet("forge")]
+	[string]$Loader = "forge",
     [string]$WorldName = "Dev Client Automation Void Platform",
     [int]$TimeoutSeconds = 300,
     [switch]$Maximize,
@@ -84,6 +86,11 @@ if ($null -eq $state) {
     throw "Timed out waiting for dev-client automation bridge."
 }
 
+$capabilities = Invoke-BridgeJson -Method Get -Path "/capabilities"
+if (-not $capabilities.ok -or $capabilities.protocolVersion -ne 1 -or $capabilities.loader -ne $Loader -or $capabilities.minecraftVersion -ne "1.20.1") {
+	throw "Automation bridge capability mismatch: $($capabilities | ConvertTo-Json -Compress)"
+}
+
 if ($Maximize) {
     Invoke-BridgeJson -Method Post -Path "/window/maximize" | Out-Null
 }
@@ -126,5 +133,6 @@ $discovery = Get-BridgeDiscovery
     processId = $discovery.processId
     baseUrl = "http://$($discovery.host):$($discovery.port)"
     state = Invoke-BridgeJson -Method Get -Path "/state"
+	capabilities = $capabilities
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
 }

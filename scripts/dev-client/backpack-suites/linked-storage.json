@@ -1,0 +1,9 @@
+{
+  "name": "linked-storage",
+  "tests": [
+    {
+      "name": "linked_carrier_relocation_and_nested_placed_child_projection",
+      "type": "linkedStorageRegressionSuite"
+    }
+  ]
+}
