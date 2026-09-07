@@ -53,6 +53,10 @@ public final class BackpackEndpoints {
 		endpoints.register("/backpack/storage-gui-regressions", BackpackStorageGuiRegressions::handle);
 		endpoints.register("/backpack/lifecycle-regression", BackpackLifecycleRegression::handle);
 		endpoints.register("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
+		endpoints.register("/backpack/mounted-storage-regression", MountedLinkedBackpackRegression::handleOrdinary);
+		endpoints.register("/backpack/mounted-linked-storage-regression", MountedLinkedBackpackRegression::handle);
+		endpoints.register("/backpack/mounted-linked-storage-reload/setup", MountedLinkedBackpackRegression::setupReload);
+		endpoints.register("/backpack/mounted-linked-storage-reload/status", MountedLinkedBackpackRegression::reloadStatus);
 		endpoints.register("/backpack/linked-storage-performance", BackpackLinkedStoragePerformanceRegression::handle);
 		endpoints.register("/backpack/access-regression", BackpackAccessRegression::handle);
 		endpoints.register("/backpack/curios-access-regression", BackpackAccessRegression::handleCurios);
