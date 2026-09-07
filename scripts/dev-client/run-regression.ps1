@@ -34,6 +34,24 @@ function Test-SuiteMatches {
     return @($Candidate.groups | Where-Object { $Group -contains $_ }).Count -gt 0
 }
 
+function Wait-PreviousAutomationClientStopped {
+    $discoveryPath = Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"
+    if (-not (Test-Path -LiteralPath $discoveryPath -PathType Leaf)) {
+        return
+    }
+
+    $discovery = Get-Content -LiteralPath $discoveryPath -Raw | ConvertFrom-Json
+    $processId = [int]$discovery.processId
+    if ($processId -le 0) {
+        return
+    }
+
+    $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+    if ($null -ne $process -and -not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        throw "Timed out waiting for prior dev client process $processId to stop."
+    }
+}
+
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Regression suite manifest not found: $manifestPath"
 }
@@ -54,7 +72,12 @@ if ($matchingSuites.Count -eq 0) {
 }
 
 $results = @()
-foreach ($selectedSuite in $matchingSuites) {
+for ($suiteIndex = 0; $suiteIndex -lt $matchingSuites.Count; $suiteIndex++) {
+    if ($suiteIndex -gt 0) {
+        Wait-PreviousAutomationClientStopped
+    }
+
+    $selectedSuite = $matchingSuites[$suiteIndex]
     $scriptPath = Join-Path $PSScriptRoot $selectedSuite.script
     if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
         throw "Regression script for '$($selectedSuite.id)' was not found: $scriptPath"

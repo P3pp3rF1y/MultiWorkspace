@@ -142,6 +142,26 @@ function Run-LinkedStorageReloadPersistenceRegression {
     return $status
 }
 
+function Run-MountedLinkedStorageReloadRegression {
+    Assert-True $startedClient "The mounted linked storage reload regression must start and own the dev client."
+
+    $setup = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/setup"
+    Assert-True $setup.ok "Failed to set up mounted linked storage reload regression: $($setup | ConvertTo-Json -Compress)"
+
+    $shutdown = Invoke-BridgeJson -Method Post -Path "/client/shutdown-world" -Body @{}
+    Assert-True $shutdown.ok "Integrated server did not shut down cleanly."
+    Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    Wait-AutomationClientStopped
+    Start-AutomationClient
+
+    $status = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/status" -Body @{ groupId = $setup.groupId }
+    Assert-True $status.ok "Mounted linked Backpack did not synchronize after restart: $($status | ConvertTo-Json -Compress)"
+    Assert-True ($status.groupId -eq $setup.groupId) "Mounted linked Backpack group changed after restart."
+    Assert-True ($status.mainColor -eq $setup.mainColor -and $status.accentColor -eq $setup.accentColor) "Mounted linked Backpack colors did not survive restart."
+    Assert-True $status.hasDisplayItem "Mounted linked Backpack display item was missing after restart."
+    return $status
+}
+
 $startedClient = $false
 
 try {
@@ -165,6 +185,15 @@ try {
             }
             "linkedStorageReloadPersistence" {
                 $result = Run-LinkedStorageReloadPersistenceRegression
+            }
+            "mountedLinkedStorageReload" {
+                $result = Run-MountedLinkedStorageReloadRegression
+            }
+            "mountedLinkedStorageRegression" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-regression"
+            }
+            "mountedStorageRegression" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-storage-regression"
             }
             "storageGuiRegressionSuite" {
                 $result = Invoke-BridgeJson -Method Post -Path "/backpack/storage-gui-regressions"
