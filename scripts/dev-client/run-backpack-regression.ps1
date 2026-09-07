@@ -165,6 +165,8 @@ try {
 			$result = Run-LinkedStorageReloadPersistenceRegression
 		} elseif ($test.type -eq "linkedStorageRegressionSuite") {
 			$result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-regression"
+		} elseif ($test.type -eq "mountedLinkedStorageRegression") {
+			$result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-regression"
 		} else {
 			$result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
 		}

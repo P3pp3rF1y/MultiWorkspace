@@ -1,0 +1,9 @@
+{
+  "name": "sophisticatedbackpacks-mounted-linked-storage",
+  "tests": [
+    {
+      "name": "mounted_linked_backpack_links_in_place_opens_its_menu_and_projects_remote_contents",
+      "type": "mountedLinkedStorageRegression"
+    }
+  ]
+}
