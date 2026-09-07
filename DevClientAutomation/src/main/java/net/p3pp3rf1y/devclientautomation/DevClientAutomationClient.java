@@ -97,6 +97,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStorageRegression;
+import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.MountedLinkedBackpackRegression;
 import net.p3pp3rf1y.sophisticatedbackpacks.api.CapabilityBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -269,6 +270,7 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/backpack/gui-regression/run", this::runBackpackGuiRegression);
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
 				httpServer.createContext("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
+				httpServer.createContext("/backpack/mounted-linked-storage-regression", MountedLinkedBackpackRegression::handle);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
