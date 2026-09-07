@@ -53,6 +53,10 @@ public final class BackpackEndpoints {
 		endpoints.register("/backpack/storage-gui-regressions", BackpackStorageGuiRegressions::handle);
 		endpoints.register("/backpack/lifecycle-regression", BackpackLifecycleRegression::handle);
 		endpoints.register("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
+		endpoints.register("/backpack/mounted-storage-regression", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-regression", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-reload/setup", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-reload/status", BackpackEndpoints::mountedLinkedStorageUnavailable);
 		endpoints.register("/backpack/linked-storage-starter-kit", BackpackEndpoints::giveLinkedStorageStarterKit);
 		endpoints.register("/backpack/linked-storage-performance", BackpackLinkedStoragePerformanceRegression::handle);
 		endpoints.register("/backpack/access-regression", BackpackAccessRegression::handle);
@@ -174,6 +178,12 @@ public final class BackpackEndpoints {
 	private static void linkedStorageReloadStatus(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "GET");
 		sendJsonHandling(exchange, LOGGER, BackpackOperations::linkedStorageReloadStatus);
+	}
+
+	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER,
+				() -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create does not have a compatible 26.1 runtime artifact in the configured Maven repository.\"}");
 	}
 
 	private static void changeMagnetSettings(HttpExchange exchange) throws IOException {

@@ -78,6 +78,19 @@
       "acceptsMaximizeClient": true
     },
     {
+      "id": "backpack-mounted-linked-storage",
+      "groups": ["backpacks", "linked-storage", "create", "contraptions"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-backpack-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedbackpacks-mounted-linked-storage"
+      },
+      "acceptsMaximizeClient": true,
+      "disabled": true,
+      "disabledReason": "Create does not have a compatible 26.1 runtime artifact in the configured Maven repository."
+    },
+    {
       "id": "backpack-access",
       "groups": ["backpacks", "access-paths"],
       "tier": "full",
