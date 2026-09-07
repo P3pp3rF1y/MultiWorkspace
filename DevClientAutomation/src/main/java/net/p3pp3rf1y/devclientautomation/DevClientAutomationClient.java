@@ -97,6 +97,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStorageRegression;
+import net.p3pp3rf1y.sophisticatedbackpacks.api.CapabilityBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -2479,6 +2480,7 @@ public class DevClientAutomationClient {
 				case "columnUpgradeSync" -> sendJsonHandling(exchange, () -> runColumnUpgradeSyncRegression(name, body));
 				case "subMobCatcherImmediateOpen" -> sendJsonHandling(exchange, () -> runSubMobCatcherImmediateOpenRegression(name));
 				case "storageGuiRegressionSuite" -> sendJsonHandling(exchange, () -> runStorageGuiRegressionSuite(name));
+				case "pickupPersistence" -> sendJsonHandling(exchange, () -> runPickupPersistenceRegression(name));
 				case "columnUpgradeRegressionSuite" -> sendJsonHandling(exchange, () -> runOnServer(this::runBackpackColumnUpgradeRegressions));
 				case "lifecycleRegressionSuite" -> sendJsonHandling(exchange, () -> runBackpackLifecycleRegressionSuite(name, body));
 				case "accessRegressionSuite" -> sendJsonHandling(exchange, () -> runAccessRegressionSuite(name));
@@ -2548,6 +2550,25 @@ public class DevClientAutomationClient {
 						+ runOnServer(player -> player.getInventory().getItem(9).getCount()) + ",\"storageIron\":"
 						+ runOnServer(player -> countItems(getMainBackpackWrapper(player).getInventoryHandler(), Items.IRON_INGOT)) + ","
 						+ jsonProperty("error", passed ? null : "Storage GUI clicks did not move the expected stacks") + "}";
+			} catch (RuntimeException e) {
+				return "{\"ok\":false," + jsonProperty("name", name) + "," + jsonProperty("error", e.getMessage()) + "}";
+			}
+		}
+
+		private String runPickupPersistenceRegression(String name) {
+			try {
+				resetBackpackGuiState();
+				BackpackFixture fixture = runOnServer(this::setupPickupPersistenceRegression);
+				waitForBackpackGuiInventory(0, fixture, "pickup persistence regression backpack");
+				runOnServer(player -> openParentBackpack(player, "Pickup Persistence Regression"));
+				waitForParentBackpackScreen();
+				runOnServer(this::dropPickupPersistenceItem);
+				waitForPickupPersistenceItem();
+				runOnClient(this::movePickupPersistenceMarker);
+				boolean passed = waitForPickupPersistenceResult();
+				return "{\"ok\":" + passed + "," + jsonProperty("name", name) + ",\"pickedDiamonds\":"
+						+ runOnServer(player -> countItems(getMainBackpackWrapper(player).getInventoryHandler(), Items.DIAMOND)) + ","
+						+ jsonProperty("error", passed ? null : "GUI inventory mutation overwrote the item picked up by the backpack") + "}";
 			} catch (RuntimeException e) {
 				return "{\"ok\":false," + jsonProperty("name", name) + "," + jsonProperty("error", e.getMessage()) + "}";
 			}
@@ -2848,6 +2869,75 @@ public class DevClientAutomationClient {
 			player.inventoryMenu.broadcastChanges();
 			return new BackpackFixture(backpack.getItem(),
 					wrapper.getContentsUuid().orElseThrow(() -> new IllegalStateException("Backpack has no contents UUID")));
+		}
+
+		private BackpackFixture setupPickupPersistenceRegression(ServerPlayer player) {
+			player.closeContainer();
+			player.getInventory().clearContent();
+			ItemStack backpack = createBackpackStack();
+			IBackpackWrapper wrapper = new BackpackWrapper(backpack);
+			wrapper.getInventoryHandler().setStackInSlot(0, new ItemStack(Items.EMERALD));
+			wrapper.getInventoryHandler().saveInventory();
+			wrapper.getUpgradeHandler().setStackInSlot(0, new ItemStack(ModItems.PICKUP_UPGRADE.get()));
+			wrapper.getUpgradeHandler().saveInventory();
+			backpack.getCapability(CapabilityBackpackWrapper.getCapabilityInstance())
+					.orElseThrow(() -> new IllegalStateException("Could not initialize the pickup persistence Backpack capability"));
+			player.getInventory().setItem(0, backpack);
+			player.getInventory().selected = 0;
+			player.getInventory().setChanged();
+			player.inventoryMenu.broadcastChanges();
+			return new BackpackFixture(backpack.getItem(),
+					wrapper.getContentsUuid().orElseThrow(() -> new IllegalStateException("Pickup persistence Backpack has no contents UUID")));
+		}
+
+		private Boolean dropPickupPersistenceItem(ServerPlayer player) {
+			ItemEntity itemEntity = new ItemEntity(player.serverLevel(), player.getX(), player.getY() + 0.5D, player.getZ(), new ItemStack(Items.DIAMOND));
+			itemEntity.setPickUpDelay(0);
+			player.serverLevel().addFreshEntity(itemEntity);
+			return true;
+		}
+
+		private void waitForPickupPersistenceItem() {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			do {
+				if (runOnServer(player -> countItems(getMainBackpackWrapper(player).getInventoryHandler(), Items.DIAMOND) == 1
+						&& countPlayerInventoryItems(player, Items.DIAMOND) == 0)) {
+					return;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
+			throw new IllegalStateException("Dropped item was not picked up by the open Backpack");
+		}
+
+		private Boolean movePickupPersistenceMarker() {
+			if (!(Minecraft.getInstance().screen instanceof BackpackScreen) || Minecraft.getInstance().player == null
+					|| !(Minecraft.getInstance().player.containerMenu instanceof BackpackContainer menu)
+					|| menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
+				throw new IllegalStateException("Pickup persistence Backpack screen is not open");
+			}
+			Slot markerSlot = menu.getSlot(0);
+			Slot targetSlot = menu.getSlot(2);
+			if (!markerSlot.getItem().is(Items.EMERALD) || !targetSlot.getItem().isEmpty()) {
+				throw new IllegalStateException("Pickup persistence Backpack slots were not ready for the GUI mutation");
+			}
+			BackpackScreen screen = (BackpackScreen) Minecraft.getInstance().screen;
+			clickBackpackScreenSlot(screen, markerSlot);
+			clickBackpackScreenSlot(screen, targetSlot);
+			return true;
+		}
+
+		private boolean waitForPickupPersistenceResult() {
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			do {
+				if (runOnServer(player -> {
+					InventoryHandler inventory = getMainBackpackWrapper(player).getInventoryHandler();
+					return countItems(inventory, Items.DIAMOND) == 1 && inventory.getStackInSlot(0).isEmpty() && inventory.getStackInSlot(2).is(Items.EMERALD);
+				})) {
+					return true;
+				}
+				sleep(50);
+			} while (System.nanoTime() < deadline);
+			return false;
 		}
 
 		private Boolean moveStorageGuiRegressionItems() {
