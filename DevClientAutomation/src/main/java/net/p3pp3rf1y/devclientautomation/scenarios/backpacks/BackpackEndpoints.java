@@ -15,6 +15,7 @@ import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.integer;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.longValue;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.readObject;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.requireMethod;
+import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.sendJson;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.sendJsonHandling;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.string;
 
@@ -53,6 +54,10 @@ public final class BackpackEndpoints {
 		endpoints.register("/backpack/storage-gui-regressions", BackpackStorageGuiRegressions::handle);
 		endpoints.register("/backpack/lifecycle-regression", BackpackLifecycleRegression::handle);
 		endpoints.register("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
+		endpoints.register("/backpack/mounted-storage-regression", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-regression", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-reload/setup", BackpackEndpoints::mountedLinkedStorageUnavailable);
+		endpoints.register("/backpack/mounted-linked-storage-reload/status", BackpackEndpoints::mountedLinkedStorageUnavailable);
 		endpoints.register("/backpack/linked-storage-inception-regression", BackpackLinkedStorageRegression::handleInceptionLinkedChild);
 		endpoints.register("/backpack/linked-storage-carrier-projection-regression",
 				BackpackLinkedStorageRegression::handleCarrierRelocationAndNestedProjection);
@@ -78,6 +83,15 @@ public final class BackpackEndpoints {
 		boolean mainMagnet = bool(request, "mainMagnet", false);
 		int redstoneCount = integer(request, "redstoneCount", 0);
 		sendJsonHandling(exchange, LOGGER, () -> BackpackOperations.setupBackpacks(mainMagnet, redstoneCount));
+	}
+
+	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", true);
+		response.addProperty("skipped", true);
+		response.addProperty("reason", "Create does not have a compatible 1.21.5 runtime artifact in the configured Maven repository.");
+		sendJson(exchange, response);
 	}
 
 	private static void runIssue1528Test(HttpExchange exchange) throws IOException {
