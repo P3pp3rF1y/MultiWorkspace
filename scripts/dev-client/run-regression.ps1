@@ -45,7 +45,7 @@ if ($manifest.protocolVersion -ne 1) {
 
 $matchingSuites = @($manifest.suites | Where-Object { Test-SuiteMatches $_ })
 if ($List) {
-    $matchingSuites | Select-Object id, groups, tier, loaders, script, arguments
+    $matchingSuites | Select-Object id, groups, tier, loaders, script, arguments, disabled, disabledReason
     return
 }
 if ($matchingSuites.Count -eq 0) {
@@ -54,7 +54,14 @@ if ($matchingSuites.Count -eq 0) {
 }
 
 $results = @()
-foreach ($selectedSuite in $matchingSuites) {
+$skippedSuites = @($matchingSuites | Where-Object { $_.disabled })
+foreach ($skippedSuite in $skippedSuites) {
+    $results += [pscustomobject]@{ id = $skippedSuite.id; passed = $true; skipped = $true; result = $null; error = $skippedSuite.disabledReason }
+    Write-Host "SKIP $($skippedSuite.id): $($skippedSuite.disabledReason)"
+}
+
+$runnableSuites = @($matchingSuites | Where-Object { -not $_.disabled })
+foreach ($selectedSuite in $runnableSuites) {
     $scriptPath = Join-Path $PSScriptRoot $selectedSuite.script
     if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
         throw "Regression script for '$($selectedSuite.id)' was not found: $scriptPath"
@@ -72,10 +79,10 @@ foreach ($selectedSuite in $matchingSuites) {
 
     try {
         $result = & $scriptPath @scriptArguments
-        $results += [pscustomobject]@{ id = $selectedSuite.id; passed = $true; result = $result; error = $null }
+        $results += [pscustomobject]@{ id = $selectedSuite.id; passed = $true; skipped = $false; result = $result; error = $null }
         Write-Host "PASS $($selectedSuite.id)"
     } catch {
-        $results += [pscustomobject]@{ id = $selectedSuite.id; passed = $false; result = $null; error = $_.Exception.Message }
+        $results += [pscustomobject]@{ id = $selectedSuite.id; passed = $false; skipped = $false; result = $null; error = $_.Exception.Message }
         Write-Warning "FAIL $($selectedSuite.id): $($_.Exception.Message)"
         if (-not $ContinueOnFailure) {
             break
@@ -90,7 +97,8 @@ $summary = [pscustomobject]@{
     tier = $Tier
     groups = $Group
     requestedSuites = $Suite
-    passed = @($results | Where-Object passed).Count
+    passed = @($results | Where-Object { $_.passed -and -not $_.skipped }).Count
+    skipped = @($results | Where-Object skipped).Count
     failed = @($results | Where-Object { -not $_.passed }).Count
     results = $results
 }
