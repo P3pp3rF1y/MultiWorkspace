@@ -76,6 +76,11 @@ public final class BackpackRegressionEndpoints {
 		BackpackLinkedStorageRegression.handleInceptionLinkedChild(exchange);
 	}
 
+	public static void runMountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
+		run(exchange, "POST",
+				request -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create does not have a compatible 1.21.10 runtime artifact in the configured Maven repository.\"}");
+	}
+
 	public static void runLifecycle(HttpExchange exchange) throws IOException {
 		BackpackLifecycleRegression.handle(exchange);
 	}

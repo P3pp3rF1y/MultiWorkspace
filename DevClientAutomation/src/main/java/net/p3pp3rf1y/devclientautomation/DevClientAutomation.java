@@ -272,6 +272,10 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/refill-regression", BackpackRegressionEndpoints::runRefill);
 				httpServer.createContext("/backpack/linked-storage-regression", BackpackRegressionEndpoints::runLinkedStorage);
 				httpServer.createContext("/backpack/linked-storage-inception-regression", BackpackRegressionEndpoints::runLinkedStorageInception);
+				httpServer.createContext("/backpack/mounted-storage-regression", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
+				httpServer.createContext("/backpack/mounted-linked-storage-regression", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
+				httpServer.createContext("/backpack/mounted-linked-storage-reload/setup", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
+				httpServer.createContext("/backpack/mounted-linked-storage-reload/status", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
 				httpServer.createContext("/backpack/linked-storage-starter-kit", this::giveLinkedStorageStarterKit);
 				httpServer.createContext("/backpack/lifecycle-regression", BackpackRegressionEndpoints::runLifecycle);
 				httpServer.createContext("/backpack/access-regression", BackpackRegressionEndpoints::runAccess);
