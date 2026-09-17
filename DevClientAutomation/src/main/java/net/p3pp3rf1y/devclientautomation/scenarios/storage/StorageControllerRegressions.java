@@ -545,6 +545,8 @@ public final class StorageControllerRegressions {
 		ServerLevel level = player.level();
 		BlockPos leftChestPos = controllerPos.east();
 		BlockPos rightChestPos = leftChestPos.east();
+		BlockPos ordinaryStoragePos = controllerPos.west();
+		boolean verifyLocking = !inspectOnly && name.equals("controller_then_left_chest_then_right_chest");
 		if (!inspectOnly) {
 			clearControllerDoubleChestRegressionArea(level, controllerPos);
 
@@ -561,6 +563,9 @@ public final class StorageControllerRegressions {
 			if (!controllerFirst) {
 				placeController(level, player, controllerPos);
 			}
+			if (verifyLocking) {
+				placeBarrel(level, player, ordinaryStoragePos, ModBlocks.BARREL_ITEM.get());
+			}
 		}
 
 		return level.getBlockEntity(controllerPos, ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get()).map(controller -> {
@@ -568,12 +573,27 @@ public final class StorageControllerRegressions {
 			int registeredStorages = storagePositions.size();
 			String positions = storagePositions.toString();
 			String chestState = getChestState(level, leftChestPos) + "; " + getChestState(level, rightChestPos);
-			int slots = registeredStorages == 1 ? controller.getSlots(0) : 0;
-			boolean mainStorageRegistered = registeredStorages == 1 && storagePositions.contains(rightChestPos);
-			boolean passed = mainStorageRegistered && slots == 54 && isDoubleChest(level, leftChestPos, rightChestPos);
+			int mainStorageIndex = storagePositions.indexOf(rightChestPos);
+			int slots = mainStorageIndex >= 0 ? controller.getSlots(mainStorageIndex) : 0;
+			boolean mainStorageRegistered = mainStorageIndex >= 0
+					&& (!verifyLocking ? registeredStorages == 1 : registeredStorages == 2 && storagePositions.contains(ordinaryStoragePos));
+			ChestBlockEntity leftChest = level.getBlockEntity(leftChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			ChestBlockEntity rightChest = level.getBlockEntity(rightChestPos, ModBlocks.CHEST_BLOCK_ENTITY_TYPE.get()).orElse(null);
+			StorageBlockEntity ordinaryStorage = verifyLocking ? getBarrelStorage(level, ordinaryStoragePos) : null;
+			boolean lockStatesPassed = true;
+			if (verifyLocking) {
+				controller.toggleLock();
+				boolean locked = leftChest != null && rightChest != null && leftChest.isLocked() && rightChest.isLocked() && ordinaryStorage.isLocked();
+				controller.toggleLock();
+				boolean unlocked = leftChest != null && rightChest != null && !leftChest.isLocked() && !rightChest.isLocked() && !ordinaryStorage.isLocked();
+				lockStatesPassed = locked && unlocked;
+			}
+			boolean passed = mainStorageRegistered && slots == 54 && isDoubleChest(level, leftChestPos, rightChestPos) && lockStatesPassed;
 			String error = null;
 			if (!passed) {
-				error = "expected one connected double chest registered at " + rightChestPos + " with 54 slots; slots=" + slots + "; chestState=" + chestState;
+				error = "expected connected double chest registered at " + rightChestPos + " with 54 slots"
+						+ (verifyLocking ? " and ordinary storage at " + ordinaryStoragePos + " locked then unlocked with both chest halves" : "") + "; slots="
+						+ slots + "; chestState=" + chestState;
 			}
 			return new ControllerDoubleChestRegressionResult(name, passed, registeredStorages, slots, positions, chestState, error);
 		}).orElseGet(() -> new ControllerDoubleChestRegressionResult(name, false, 0, 0, "[]",

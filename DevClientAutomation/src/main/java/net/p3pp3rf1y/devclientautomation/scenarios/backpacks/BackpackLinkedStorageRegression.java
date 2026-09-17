@@ -61,7 +61,6 @@ import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackStorage;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackLinkedStorageResolver;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackRenderInfo;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
-import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.ClientLinkedStorageBackpackContents;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.IBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.LinkedStorageBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackItemDisplaySettingsPreviewProvider;
@@ -83,6 +82,8 @@ import net.p3pp3rf1y.sophisticatedcore.client.EnderLinkerBound;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageSettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.crafting.EnderLinkerEndpointRecipe;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
+import net.p3pp3rf1y.sophisticatedcore.inventory.ItemStackKey;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.ClientLinkedStorageContents;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.EnderLinkPendingCraftData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.EnderLinkerItem;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.EnderLinkerTargetData;
@@ -549,8 +550,7 @@ public final class BackpackLinkedStorageRegression {
 						Slot item = targetHasItem ? slots.target() : slots.source();
 						Slot empty = targetHasItem ? slots.source() : slots.target();
 						return item.getItem().is(Items.NETHER_STAR) && empty.getItem().isEmpty() && menu.getCarried().isEmpty()
-								&& ClientLinkedStorageBackpackContents.getColumnsTaken(fixture.groupId()).orElse(-1) == fixture.canonicalProfile()
-										.tankColumns();
+								&& ClientLinkedStorageContents.getColumnsTaken(fixture.groupId()).orElse(-1) == fixture.canonicalProfile().tankColumns();
 					}).orElse(false);
 				}, "carrier relocation two-tick convergence");
 			}
@@ -622,6 +622,23 @@ public final class BackpackLinkedStorageRegression {
 				return true;
 			});
 			waitForNestedLinkedChildTankProjection(fixture);
+			AutomationRuntime.runOnServer(player -> {
+				ItemStack physicalChild = requirePlacedBackpack(player.level(), fixture.parentPos(), "nested parent").getBackpackWrapper().getInventoryHandler()
+						.getStackInSlot(0);
+				IBackpackWrapper canonical = BackpackLinkedStorageResolver.resolveCanonicalHost(player.level(), physicalChild).orElseThrow();
+				try {
+					ItemDisplaySettingsCategory itemDisplay = canonical.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class);
+					if (!itemDisplay.getSlots().contains(0)) {
+						itemDisplay.selectSlot(0);
+					}
+					itemDisplay.setDisplaySide(DisplaySide.FRONT);
+					itemDisplay.itemsChanged();
+				} finally {
+					close(canonical);
+				}
+				return true;
+			});
+			waitForNestedLinkedChildItemDisplayProjection(fixture);
 		} finally {
 			AutomationRuntime.runOnClient(() -> {
 				if (Minecraft.getInstance().player != null) {
@@ -693,6 +710,36 @@ public final class BackpackLinkedStorageRegression {
 			sleep(50);
 		} while (System.nanoTime() < deadline);
 		throw new IllegalStateException("Timed out waiting for nested linked child Tank projection");
+	}
+
+	private static void waitForNestedLinkedChildItemDisplayProjection(NestedLinkedChildFixture fixture) {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		do {
+			boolean serverProjected = AutomationRuntime.runOnServer(player -> {
+				ItemStack physicalChild = requirePlacedBackpack(player.level(), fixture.parentPos(), "nested parent").getBackpackWrapper().getInventoryHandler()
+						.getStackInSlot(0);
+				IBackpackWrapper canonical = BackpackLinkedStorageResolver.resolveCanonicalHost(player.level(), physicalChild).orElseThrow();
+				try {
+					ItemDisplaySettingsCategory itemDisplay = canonical.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class);
+					return itemDisplay.getSlots().contains(0) && itemDisplay.getDisplaySide() == DisplaySide.FRONT
+							&& canonical.getRenderInfo().getItemDisplayRenderInfo().getDisplayItems().stream()
+									.anyMatch(displayItem -> displayItem.getItem().is(Items.DIAMOND))
+							&& BackpackRenderInfo.fromPhysicalStack(physicalChild).getItemDisplayRenderInfo().getDisplayItems().stream()
+									.anyMatch(displayItem -> displayItem.getItem().is(Items.DIAMOND));
+				} finally {
+					close(canonical);
+				}
+			});
+			boolean clientProjected = AutomationRuntime.runOnClient(() -> Minecraft.getInstance().level != null
+					&& Minecraft.getInstance().level.getBlockEntity(fixture.parentPos()) instanceof BackpackBlockEntity parent
+					&& BackpackRenderInfo.fromPhysicalStack(parent.getBackpackWrapper().getInventoryHandler().getStackInSlot(0)).getItemDisplayRenderInfo()
+							.getDisplayItems().stream().anyMatch(displayItem -> displayItem.getItem().is(Items.DIAMOND)));
+			if (serverProjected && clientProjected) {
+				return;
+			}
+			sleep(50);
+		} while (System.nanoTime() < deadline);
+		throw new IllegalStateException("Timed out waiting for nested linked child Item Display canonical/physical/client projection");
 	}
 
 	private static void runClientEndpointCraftFinalizationRegression(boolean quickMove) {
@@ -1766,6 +1813,7 @@ public final class BackpackLinkedStorageRegression {
 		boolean jukeboxPlaybackAnchorsToPrimary = false;
 		boolean creativePlacementCopiesSecondaryEndpoint = false;
 		boolean failedCreativePlacementDoesNotRegisterEndpoint = false;
+		boolean linkedControllerEndpointJoinKeepsOneCanonicalContentIndex = false;
 		@Nullable
 		String error = null;
 		try {
@@ -1778,6 +1826,8 @@ public final class BackpackLinkedStorageRegression {
 			clearArea(level, worldLinkPrimaryPos);
 			clearArea(level, worldLinkSecondaryPos);
 			player.setGameMode(GameType.SURVIVAL);
+			runLinkedControllerEndpointJoinDoesNotDuplicateCanonicalContentsRegression(player);
+			linkedControllerEndpointJoinKeepsOneCanonicalContentIndex = true;
 
 			BackpackItem backpackItem = ModItems.GOLD_BACKPACK.get();
 			BackpackRegressionFixture.Fixture primaryFixture = BackpackRegressionFixture.create(backpackItem, PRIMARY_MAIN_COLOR, PRIMARY_ACCENT_COLOR);
@@ -2081,6 +2131,9 @@ public final class BackpackLinkedStorageRegression {
 			BackpackBlockEntity worldLinkSecondaryPlaced = requirePlacedBackpack(level, worldLinkSecondaryPos, "world-linked secondary");
 			LinkedStorageEndpointData worldLinkSecondaryEndpoint = requireEndpoint(worldLinkSecondaryPlaced.getBackpackWrapper().getBackpack(),
 					"world-linked secondary");
+			synchronizeLinkedBackpackProjection(level, worldLinkSecondaryPlaced);
+			worldLinkPrimaryPlaced.refreshRenderState();
+			worldLinkSecondaryPlaced.refreshRenderState();
 			placedSecondaryLinked = worldBoundLinker.isEmpty() && worldLinkPrimaryEndpoint.groupId().equals(worldLinkSecondaryEndpoint.groupId())
 					&& !worldLinkPrimaryEndpoint.endpointId().equals(worldLinkSecondaryEndpoint.endpointId())
 					&& hasStack(worldLinkSecondaryPlaced.getBackpackWrapper(), 0, Items.REDSTONE, 7) && hasRenderedItem(worldLinkPrimaryPlaced, Items.REDSTONE)
@@ -2150,7 +2203,8 @@ public final class BackpackLinkedStorageRegression {
 				&& placedMenuMutationSynced && externalItemAutomationSynced && externalFluidAutomationSynced && externalEnergyAutomationSynced
 				&& placedToCarriedSharing && carriedToPlacedSharing && replacementRetainedEndpointAndContents && normalBreakPickupRetainedEndpointAndContents
 				&& placedPrimaryLinked && placedSecondaryLinked && existingBlockBindsBlankLinker && boundLinkerLeavesExistingBlockUnchanged
-				&& jukeboxPlaybackAnchorsToPrimary && creativePlacementCopiesSecondaryEndpoint && failedCreativePlacementDoesNotRegisterEndpoint;
+				&& jukeboxPlaybackAnchorsToPrimary && creativePlacementCopiesSecondaryEndpoint && failedCreativePlacementDoesNotRegisterEndpoint
+				&& linkedControllerEndpointJoinKeepsOneCanonicalContentIndex;
 		return "{\"ok\":" + passed + ",\"primaryMigrated\":" + primaryMigrated + ",\"groupOwnerRecorded\":" + groupOwnerRecorded
 				+ ",\"endpointAccessRecorded\":" + endpointAccessRecorded + ",\"boundLinkerVisual\":" + boundLinkerVisual + ",\"existingEndpointBindsLinker\":"
 				+ existingEndpointBindsLinker + ",\"invalidCraftRejected\":" + invalidCraftRejected + ",\"primaryTierUpgradePropagated\":"
@@ -2166,8 +2220,76 @@ public final class BackpackLinkedStorageRegression {
 				+ ",\"existingBlockBindsBlankLinker\":" + existingBlockBindsBlankLinker + ",\"boundLinkerLeavesExistingBlockUnchanged\":"
 				+ boundLinkerLeavesExistingBlockUnchanged + ",\"jukeboxPlaybackAnchorsToPrimary\":" + jukeboxPlaybackAnchorsToPrimary
 				+ ",\"creativePlacementCopiesSecondaryEndpoint\":" + creativePlacementCopiesSecondaryEndpoint
-				+ ",\"failedCreativePlacementDoesNotRegisterEndpoint\":" + failedCreativePlacementDoesNotRegisterEndpoint + "," + jsonProperty("error", error)
-				+ "}";
+				+ ",\"failedCreativePlacementDoesNotRegisterEndpoint\":" + failedCreativePlacementDoesNotRegisterEndpoint
+				+ ",\"linkedControllerEndpointJoinKeepsOneCanonicalContentIndex\":" + linkedControllerEndpointJoinKeepsOneCanonicalContentIndex + ","
+				+ jsonProperty("error", error) + "}";
+	}
+
+	private static void runLinkedControllerEndpointJoinDoesNotDuplicateCanonicalContentsRegression(ServerPlayer player) {
+		ServerLevel level = player.level();
+		BlockPos controllerPos = player.blockPosition().offset(0, 0, -24);
+		BlockPos storagePos = controllerPos.east();
+		BlockPos existingEndpointPos = controllerPos.above();
+		BlockPos joiningEndpointPos = storagePos.above();
+		clearArea(level, controllerPos);
+		clearArea(level, storagePos);
+		clearArea(level, storagePos.east());
+		clearArea(level, existingEndpointPos);
+		clearArea(level, joiningEndpointPos);
+		try {
+			var storageBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get();
+			level.setBlockAndUpdate(storagePos, storageBlock.defaultBlockState());
+			storageBlock.setPlacedBy(level, storagePos, level.getBlockState(storagePos), player,
+					new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get()));
+			placeFixtureBackpack(level, existingEndpointPos, new ItemStack(ModItems.GOLD_BACKPACK.get()), "controller existing endpoint");
+			placeFixtureBackpack(level, joiningEndpointPos, new ItemStack(ModItems.GOLD_BACKPACK.get()), "controller joining endpoint");
+			var controllerBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER.get();
+			level.setBlockAndUpdate(controllerPos, controllerBlock.defaultBlockState());
+			controllerBlock.setPlacedBy(level, controllerPos, level.getBlockState(controllerPos), player,
+					new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_ITEM.get()));
+			net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity controller = level
+					.getBlockEntity(controllerPos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_BLOCK_ENTITY_TYPE.get())
+					.orElseThrow(() -> new IllegalStateException("Missing controller for linked Backpack endpoint join regression"));
+			BackpackBlockEntity existingEndpoint = requirePlacedBackpack(level, existingEndpointPos, "controller existing endpoint");
+			BackpackBlockEntity joiningEndpoint = requirePlacedBackpack(level, joiningEndpointPos, "controller joining endpoint");
+			int canonicalSlots = existingEndpoint.getStorageWrapper().getInventoryHandler().getSlots();
+			int bridgeStorageSlots = level.getBlockEntity(storagePos, net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_BLOCK_ENTITY_TYPE.get())
+					.map(storage -> storage.getStorageWrapper().getInventoryHandler().getSlots())
+					.orElseThrow(() -> new IllegalStateException("Missing bridge barrel for linked Backpack endpoint join regression"));
+			assertTrue(
+					controller.getStoragePositions().size() == 3
+							&& controller.getStoragePositions().containsAll(List.of(existingEndpointPos, joiningEndpointPos))
+							&& controller.getSlots() == canonicalSlots * 2 + bridgeStorageSlots,
+					"Controller did not register both unlinked Backpacks through the bridge barrel before linking: slots=" + controller.getSlots()
+							+ ", positions=" + controller.getStoragePositions());
+			existingEndpoint.getBackpackWrapper().getInventoryHandler().setStackInSlot(0, new ItemStack(Items.DIAMOND, 7));
+			existingEndpoint.getBackpackWrapper().getInventoryHandler().saveInventory();
+			ItemStackKey diamondKey = ItemStackKey.of(new ItemStack(Items.DIAMOND));
+			assertTrue(controller.extractItem(new ItemStack(Items.DIAMOND, 64), true).getCount() == 7 && controller.getStackStorages(diamondKey).size() == 1,
+					"Controller did not track the unlinked Backpack contents before linking");
+
+			ItemStack linker = new ItemStack(ENDER_LINKER.get(), 2);
+			assertTrue(LinkedStorageService.linkWithResult(level, player.getUUID(), linker, existingEndpoint) == LinkedStorageService.LinkResult.SUCCESS,
+					"Could not create controller-connected linked Backpack group");
+			assertTrue(LinkedStorageService.linkWithResult(level, player.getUUID(), linker, joiningEndpoint) == LinkedStorageService.LinkResult.SUCCESS,
+					"Could not add a controller-connected Backpack to its existing linked-storage group");
+			LinkedStorageEndpointData existingData = requireEndpoint(existingEndpoint.getBackpackWrapper().getBackpack(), "controller existing endpoint");
+			assertTrue(
+					existingData.groupId().equals(requireEndpoint(joiningEndpoint.getBackpackWrapper().getBackpack(), "controller joining endpoint").groupId()),
+					"Controller-connected Backpacks did not join the same linked-storage group");
+			assertTrue(controller.getStoragePositions().size() == 2 && controller.getSlots() == canonicalSlots + bridgeStorageSlots
+					&& controller.extractItem(new ItemStack(Items.DIAMOND, 64), true).getCount() == 7 && controller.getStackStorages(diamondKey).size() == 1,
+					"Adding a controller-connected Backpack endpoint to an existing linked group duplicated canonical contents: positions="
+							+ controller.getStoragePositions() + ", slots=" + controller.getSlots() + ", diamonds="
+							+ controller.extractItem(new ItemStack(Items.DIAMOND, 64), true).getCount() + ", indexed="
+							+ controller.getStackStorages(diamondKey));
+		} finally {
+			clearArea(level, controllerPos);
+			clearArea(level, storagePos);
+			clearArea(level, storagePos.east());
+			clearArea(level, existingEndpointPos);
+			clearArea(level, joiningEndpointPos);
+		}
 	}
 
 	private static void runClientCanonicalStorageSizeRegression() {
@@ -2719,12 +2841,10 @@ public final class BackpackLinkedStorageRegression {
 		return Optional.of(new FeedbackClientSnapshot(snapshot(menu.get().getStorageWrapper(), menu.get().getNumberOfStorageInventorySlots()),
 				snapshot(new BackpackWrapper(minecraft.player.getInventory().getItem(CLIENT_FEEDBACK_PRIMARY_SLOT))),
 				snapshot(new BackpackWrapper(endpoint.getBackpackWrapper().getBackpack())),
-				ClientLinkedStorageBackpackContents.getRevision(fixture.groupId()).orElse(-1L),
-				ClientLinkedStorageBackpackContents.getStorageSize(fixture.groupId()).map(ClientLinkedStorageBackpackContents.StorageSize::inventorySlots)
-						.orElse(-1),
-				ClientLinkedStorageBackpackContents.getStorageSize(fixture.groupId()).map(ClientLinkedStorageBackpackContents.StorageSize::upgradeSlots)
-						.orElse(-1),
-				ClientLinkedStorageBackpackContents.getColumnsTaken(fixture.groupId()).orElse(-1), menu.get().getCarried().is(ModItems.TANK_UPGRADE.get())));
+				ClientLinkedStorageContents.getRevision(fixture.groupId()).orElse(-1L),
+				ClientLinkedStorageContents.getInventorySlots(fixture.groupId()).orElse(-1),
+				ClientLinkedStorageContents.getUpgradeSlots(fixture.groupId()).orElse(-1),
+				ClientLinkedStorageContents.getColumnsTaken(fixture.groupId()).orElse(-1), menu.get().getCarried().is(ModItems.TANK_UPGRADE.get())));
 	}
 
 	private static boolean matchesFeedbackServer(FeedbackServerSnapshot snapshot, ClientFeedbackLinkedStorageFixture fixture, boolean placed,
@@ -3167,7 +3287,7 @@ public final class BackpackLinkedStorageRegression {
 		if (Minecraft.getInstance().level == null) {
 			throw new IllegalStateException("Client level is not available for the linked storage size fixture");
 		}
-		ClientLinkedStorageBackpackContents.clear();
+		ClientLinkedStorageContents.clear();
 		setClientBackpack(Minecraft.getInstance().level, fixture.diamondPrimaryPos(), fixture.diamondPrimary());
 		setClientBackpack(Minecraft.getInstance().level, fixture.diamondSecondaryPos(), fixture.diamondSecondary());
 		setClientBackpack(Minecraft.getInstance().level, fixture.ironPrimaryPos(), fixture.ironPrimary());
@@ -3182,7 +3302,7 @@ public final class BackpackLinkedStorageRegression {
 			Minecraft.getInstance().level.setBlock(fixture.ironPrimaryPos(), Blocks.AIR.defaultBlockState(), 3);
 			Minecraft.getInstance().level.setBlock(fixture.goldSecondaryPos(), Blocks.AIR.defaultBlockState(), 3);
 		}
-		ClientLinkedStorageBackpackContents.clear();
+		ClientLinkedStorageContents.clear();
 		return true;
 	}
 
@@ -3190,7 +3310,7 @@ public final class BackpackLinkedStorageRegression {
 		if (Minecraft.getInstance().level == null) {
 			throw new IllegalStateException("Client level is not available for the pre-linked Tank fixture");
 		}
-		ClientLinkedStorageBackpackContents.clear();
+		ClientLinkedStorageContents.clear();
 		setClientBackpack(Minecraft.getInstance().level, fixture.position(), fixture.backpack());
 		return true;
 	}
@@ -3199,7 +3319,7 @@ public final class BackpackLinkedStorageRegression {
 		if (Minecraft.getInstance().level != null) {
 			Minecraft.getInstance().level.setBlock(fixture.position(), Blocks.AIR.defaultBlockState(), 3);
 		}
-		ClientLinkedStorageBackpackContents.clear();
+		ClientLinkedStorageContents.clear();
 		return true;
 	}
 
@@ -3257,6 +3377,12 @@ public final class BackpackLinkedStorageRegression {
 		blockEntity.setBackpack(backpack);
 		blockEntity.refreshRenderState();
 		blockEntity.tryToAddToController();
+	}
+
+	private static void synchronizeLinkedBackpackProjection(ServerLevel level, BackpackBlockEntity backpack) {
+		if (backpack.getBackpackWrapper() instanceof LinkedStorageBackpackWrapper linkedBackpack) {
+			linkedBackpack.synchronizePhysicalProjection(level);
+		}
 	}
 
 	private static CompoundTag getSavedGroup(ServerLevel level, UUID groupId) {
