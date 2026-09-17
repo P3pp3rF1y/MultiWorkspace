@@ -1,0 +1,13 @@
+{
+  "name": "sophisticatedstorage-linked-storage",
+  "tests": [
+    {
+      "name": "linked_storage_controller_canonical_contents_and_placed_double_chest_regression",
+      "type": "storageLinkedStorageRegressionSuite"
+    },
+    {
+      "name": "linked_limited_barrel_render_projection_survives_world_reload",
+      "type": "linkedLimitedReloadProjection"
+    }
+  ]
+}
