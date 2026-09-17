@@ -41,15 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.bool;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.integer;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.jsonProperty;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.longValue;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.readObject;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.requireMethod;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.sendJson;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.sendJsonHandling;
-import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.string;
+import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.*;
 
 public final class WorldAutomationEndpoints {
 	private static final Logger LOGGER = LoggerFactory.getLogger("devclientautomation");

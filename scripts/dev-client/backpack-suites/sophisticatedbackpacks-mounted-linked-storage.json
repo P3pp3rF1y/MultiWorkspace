@@ -1,0 +1,17 @@
+{
+  "name": "sophisticatedbackpacks-mounted-linked-storage",
+  "tests": [
+    {
+      "name": "mounted_regular_backpack_syncs_menu_columns_after_tank_changes",
+      "type": "mountedStorageRegression"
+    },
+    {
+      "name": "mounted_linked_backpack_links_in_place_and_syncs_menu_columns_and_remote_render_data",
+      "type": "mountedLinkedStorageRegression"
+    },
+    {
+      "name": "mounted_linked_backpack_restores_colors_and_display_after_world_reload",
+      "type": "mountedLinkedStorageReload"
+    }
+  ]
+}
