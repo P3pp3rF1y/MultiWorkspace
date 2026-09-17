@@ -77,21 +77,21 @@ public final class BackpackEndpoints {
 		endpoints.register("/backpack/clear-dropped-items", BackpackEndpoints::clearDroppedItems);
 	}
 
+	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		JsonObject response = new JsonObject();
+		response.addProperty("ok", true);
+		response.addProperty("skipped", true);
+		response.addProperty("reason", "Create is a compile-time-only dependency for post-1.21.1 DevClient targets.");
+		sendJson(exchange, response);
+	}
+
 	private static void setupBackpacks(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "POST");
 		JsonObject request = readObject(exchange);
 		boolean mainMagnet = bool(request, "mainMagnet", false);
 		int redstoneCount = integer(request, "redstoneCount", 0);
 		sendJsonHandling(exchange, LOGGER, () -> BackpackOperations.setupBackpacks(mainMagnet, redstoneCount));
-	}
-
-	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
-		requireMethod(exchange, "POST");
-		JsonObject response = new JsonObject();
-		response.addProperty("ok", true);
-		response.addProperty("skipped", true);
-		response.addProperty("reason", "Create does not have a compatible 1.21.4 runtime artifact in the configured Maven repository.");
-		sendJson(exchange, response);
 	}
 
 	private static void runIssue1528Test(HttpExchange exchange) throws IOException {

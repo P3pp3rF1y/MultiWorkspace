@@ -2,6 +2,10 @@
   "name": "sophisticatedbackpacks-linked-storage",
   "tests": [
     {
+      "name": "linked_storage_backpacks_share_canonical_contents_and_controller_index",
+      "type": "linkedStorageRegressionSuite"
+    },
+    {
       "name": "placed_linked_storage_backpacks_migrate_share_render_break_pickup_retain_canonical_contents_and_sync_tank_columns",
       "type": "linkedStorageCarrierProjectionRegressionSuite"
     }
