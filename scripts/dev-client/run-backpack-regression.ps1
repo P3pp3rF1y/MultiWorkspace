@@ -189,6 +189,9 @@ try {
             "linkedStorageCarrierProjectionRegressionSuite" {
                 $result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-carrier-projection-regression"
             }
+            "linkedStorageInceptionRegressionSuite" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-inception-regression"
+            }
             "accessRegressionSuite" {
                 $result = Invoke-BridgeJson -Method Post -Path "/backpack/access-regression"
             }

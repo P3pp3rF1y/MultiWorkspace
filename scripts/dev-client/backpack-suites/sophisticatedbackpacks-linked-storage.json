@@ -2,8 +2,16 @@
   "name": "sophisticatedbackpacks-linked-storage",
   "tests": [
     {
+      "name": "placed_linked_storage_backpacks_migrate_share_render_break_pickup_retain_canonical_contents",
+      "type": "linkedStorageRegressionSuite"
+    },
+    {
       "name": "placed_linked_storage_backpacks_migrate_share_render_break_pickup_retain_canonical_contents_and_sync_tank_columns",
       "type": "linkedStorageCarrierProjectionRegressionSuite"
+    },
+    {
+      "name": "linked_storage_inception_child_persists_when_opened_moved_and_configured",
+      "type": "linkedStorageInceptionRegressionSuite"
     }
   ]
 }
