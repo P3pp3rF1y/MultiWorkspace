@@ -96,8 +96,10 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStoragePerformanceRegression;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStorageRegression;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.MountedLinkedBackpackRegression;
+import net.p3pp3rf1y.devclientautomation.scenarios.storage.StorageLinkedStorageRegression;
 import net.p3pp3rf1y.sophisticatedbackpacks.api.CapabilityBackpackWrapper;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
@@ -205,6 +207,7 @@ public class DevClientAutomationClient {
 
 	public static void init() {
 		DemoCommand.init();
+		BackpackLinkedStoragePerformanceRegression.init();
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(DevClientAutomationClient::clientSetup);
 	}
 
@@ -271,7 +274,11 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
 				httpServer.createContext("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
 				httpServer.createContext("/backpack/mounted-linked-storage-regression", MountedLinkedBackpackRegression::handle);
+				httpServer.createContext("/backpack/linked-storage-performance", BackpackLinkedStoragePerformanceRegression::handle);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
+				httpServer.createContext("/storage/linked-storage-regression", StorageLinkedStorageRegression::handle);
+				httpServer.createContext("/storage/linked-limited-reload/setup", StorageLinkedStorageRegression::handleLinkedLimitedReloadSetup);
+				httpServer.createContext("/storage/linked-limited-reload/status", StorageLinkedStorageRegression::handleLinkedLimitedReloadStatus);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/drag", this::dragDecorationTableRenderPreview);

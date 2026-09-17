@@ -3,6 +3,7 @@
   "suites": [
     {"id":"inventory-interactions-keybind","groups":["inventory-interactions","smoke"],"tier":"fast","loaders":["forge"],"script":"run-inventory-interactions-regression.ps1","arguments":{"MinimalRuntime":true}},
     {"id":"storage-controller-filter-routing","groups":["storage","controller"],"tier":"fast","loaders":["forge"],"script":"run-storage-controller-filter-regression.ps1","arguments":{"MinimalRuntime":true},"acceptsMaximizeClient":true},
+    {"id":"storage-linked-storage","groups":["storage","linked-storage","controller"],"tier":"full","loaders":["forge"],"script":"run-storage-regression.ps1","arguments":{"Suite":"sophisticatedstorage-linked-storage","MinimalRuntime":true},"acceptsMaximizeClient":true},
     {"id":"backpack-runtime","groups":["backpacks"],"tier":"full","loaders":["forge"],"script":"run-backpack-regression.ps1","arguments":{"Suite":"sophisticatedbackpacks"},"acceptsMaximizeClient":true},
     {"id":"backpack-storage-gui","groups":["backpacks","client-gui"],"tier":"full","loaders":["forge"],"script":"run-backpack-regression.ps1","arguments":{"Suite":"sophisticatedbackpacks-storage-gui"},"acceptsMaximizeClient":true},
     {"id":"backpack-column-upgrades","groups":["backpacks","upgrades"],"tier":"full","loaders":["forge"],"script":"run-backpack-regression.ps1","arguments":{"Suite":"sophisticatedbackpacks-column-upgrades"},"acceptsMaximizeClient":true},

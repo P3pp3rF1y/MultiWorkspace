@@ -92,7 +92,8 @@ public final class MountedLinkedBackpackRegression {
 
 	private static Fixture setup(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
-		BlockPos origin = player.blockPosition().relative(player.getDirection(), 6);
+		BlockPos playerPosition = player.blockPosition();
+		BlockPos origin = new BlockPos(playerPosition.getX(), Math.max(80, playerPosition.getY()), playerPosition.getZ()).relative(player.getDirection(), 6);
 		BlockPos peerPos = origin.east(4);
 		clear(level, origin);
 		player.closeContainer();
@@ -105,19 +106,20 @@ public final class MountedLinkedBackpackRegression {
 		peerWrapper.getInventoryHandler().saveInventory();
 		assertTrue(LinkedStorageService.link(level, player.getUUID(), linker, peer), "Could not create mounted linked Backpack group");
 		LinkedStorageEndpointData endpoint = requireEndpoint(peer, "linked peer");
+		level.setBlockAndUpdate(peerPos.below(), Blocks.DIRT.defaultBlockState());
 		level.setBlockAndUpdate(peerPos, ModBlocks.DIAMOND_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Direction.NORTH));
 		WorldHelper.getBlockEntity(level, peerPos, BackpackBlockEntity.class).orElseThrow(() -> new IllegalStateException("Linked peer Backpack is missing"))
 				.setBackpack(peer);
 
 		BlockPos assemblerPos = origin;
 		BlockPos backpackPos = origin.above();
-		level.setBlock(assemblerPos.below(), Blocks.DIRT.defaultBlockState(), 3);
-		level.setBlock(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 3);
+		level.setBlockAndUpdate(assemblerPos.below(), Blocks.DIRT.defaultBlockState());
+		level.setBlockAndUpdate(assemblerPos.west(), Blocks.REDSTONE_BLOCK.defaultBlockState());
 		CartAssemblerBlock assemblerBlock = (CartAssemblerBlock) ForgeRegistries.BLOCKS
 				.getValue(new net.minecraft.resources.ResourceLocation("create", "cart_assembler"));
-		level.setBlock(assemblerPos, assemblerBlock.defaultBlockState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
-				.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true), 3);
-		level.setBlock(backpackPos, ModBlocks.DIAMOND_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Direction.NORTH), 3);
+		level.setBlockAndUpdate(assemblerPos, assemblerBlock.defaultBlockState().setValue(CartAssemblerBlock.RAIL_SHAPE, RailShape.EAST_WEST)
+				.setValue(CartAssemblerBlock.RAIL_TYPE, CartAssembleRailType.REGULAR).setValue(CartAssemblerBlock.POWERED, true));
+		level.setBlockAndUpdate(backpackPos, ModBlocks.DIAMOND_BACKPACK.get().defaultBlockState().setValue(BackpackBlock.FACING, Direction.NORTH));
 		BackpackBlockEntity backpack = WorldHelper.getBlockEntity(level, backpackPos, BackpackBlockEntity.class)
 				.orElseThrow(() -> new IllegalStateException("Mounted Backpack is missing"));
 		backpack.setBackpack(new ItemStack(ModItems.DIAMOND_BACKPACK.get()));

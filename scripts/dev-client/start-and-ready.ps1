@@ -115,7 +115,7 @@ do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
-        if (-not $LoadWorld -or $state.playerLoaded) {
+        if (-not $LoadWorld -or ($state.playerLoaded -and $state.screenSimpleName -ne "ReceivingLevelScreen")) {
             break
         }
         continue
