@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime.runOnClient;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.bool;
@@ -36,6 +37,10 @@ public final class StorageEndpoints {
 		endpoints.register("/storage/issue-23-reproduce", StorageEndpoints::reproduceStorageIssue23);
 		endpoints.register("/storage/issue-23-status", StorageEndpoints::issue23Status);
 		endpoints.register("/storage/issue-23-open-source", StorageEndpoints::openIssue23SourceStorage);
+		endpoints.register("/storage/linked-storage-regression", StorageEndpoints::linkedStorageRegression);
+		endpoints.register("/storage/linked-double-chest-lifecycle-regression", StorageEndpoints::linkedDoubleChestLifecycleRegression);
+		endpoints.register("/storage/linked-limited-reload/setup", StorageEndpoints::setupLinkedLimitedReload);
+		endpoints.register("/storage/linked-limited-reload/status", StorageEndpoints::linkedLimitedReloadStatus);
 	}
 
 	private static void storageControllerDoubleChestRegressions(HttpExchange exchange) throws IOException {
@@ -109,6 +114,27 @@ public final class StorageEndpoints {
 	private static void openIssue23SourceStorage(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "POST");
 		sendJsonHandling(exchange, LOGGER, StoragePreviewScenarios.openIssue23SourceStorage());
+	}
+
+	private static void linkedStorageRegression(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::run);
+	}
+
+	private static void linkedDoubleChestLifecycleRegression(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::runLinkedDoubleChestLifecycleRegression);
+	}
+
+	private static void setupLinkedLimitedReload(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::setupLinkedLimitedBarrelReloadProjection);
+	}
+
+	private static void linkedLimitedReloadStatus(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		UUID groupId = UUID.fromString(string(readObject(exchange), "groupId", ""));
+		sendJsonHandling(exchange, LOGGER, () -> StorageLinkedStorageRegression.linkedLimitedBarrelReloadProjectionStatus(groupId));
 	}
 
 }
