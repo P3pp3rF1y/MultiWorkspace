@@ -30,6 +30,7 @@ import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime;
@@ -41,14 +42,27 @@ import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageSettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
+import net.p3pp3rf1y.sophisticatedcore.compat.recipeviewers.common.SetMemorySlotPayload;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.ClientLinkedStorageContents;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
 import net.p3pp3rf1y.sophisticatedcore.renderdata.DisplaySide;
+import net.p3pp3rf1y.sophisticatedcore.settings.SettingsContainerBase;
 import net.p3pp3rf1y.sophisticatedcore.settings.SettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsTab;
+import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
+import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsContainer;
+import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsTab;
+import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;
+import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsContainer;
+import net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsTab;
 import net.p3pp3rf1y.sophisticatedcore.util.WorldHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.BarrelBlock;
+import net.p3pp3rf1y.sophisticatedstorage.block.BarrelBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.DecorationTableBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.DecorationTableBlockEntity;
@@ -60,6 +74,7 @@ import net.p3pp3rf1y.sophisticatedstorage.block.VerticalFacing;
 import net.p3pp3rf1y.sophisticatedstorage.block.WoodStorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.client.gui.DecorationTableScreen;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.DecorationTableMenu;
+import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageSettingsContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorage.entity.MovingStorageWrapper;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedstorage.item.SimpleMaterialBlockItem;
@@ -73,12 +88,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class StoragePreviewScenarios {
 	private StoragePreviewScenarios() {
+	}
+
+	private record SettingsSelectionFixture(BlockPos regularPos, BlockPos linkedPrimaryPos) {
 	}
 
 	public static String openItemDisplayPreview(String scenario, DisplaySide displaySide) {
@@ -110,6 +129,144 @@ public final class StoragePreviewScenarios {
 		result.addProperty("target", setupResult.target());
 		result.addProperty("screen", screenName);
 		return result.toString();
+	}
+
+	public static void runOpenSettingsSelectionRegression() {
+		SettingsSelectionFixture fixture = AutomationRuntime.runOnServer(player -> {
+			ServerLevel level = player.level();
+			BlockPos regularPos = player.blockPosition().offset(4, 0, 0);
+			BlockPos linkedPrimaryPos = regularPos.east();
+			BlockPos linkedSecondaryPos = linkedPrimaryPos.east();
+			clearItemDisplayPreviewArea(level, regularPos);
+			level.setBlock(regularPos, ModBlocks.BARREL.get().defaultBlockState(), 3);
+			level.setBlock(linkedPrimaryPos, ModBlocks.BARREL.get().defaultBlockState(), 3);
+			level.setBlock(linkedSecondaryPos, ModBlocks.BARREL.get().defaultBlockState(), 3);
+			BarrelBlockEntity regular = barrel(level, regularPos);
+			BarrelBlockEntity linkedPrimary = barrel(level, linkedPrimaryPos);
+			BarrelBlockEntity linkedSecondary = barrel(level, linkedSecondaryPos);
+			ItemStack linker = new ItemStack(net.p3pp3rf1y.sophisticatedcore.init.ModItems.ENDER_LINKER.get(), 2);
+			if (LinkedStorageService.linkWithResult(level, player.getUUID(), linker, linkedPrimary) != LinkedStorageService.LinkResult.SUCCESS
+					|| LinkedStorageService.linkWithResult(level, player.getUUID(), linker, linkedSecondary) != LinkedStorageService.LinkResult.SUCCESS) {
+				throw new IllegalStateException("Could not create linked settings-selection fixture");
+			}
+			regular.getStorageWrapper().getInventoryHandler().setStackInSlot(0, new ItemStack(Items.DIAMOND));
+			regular.getStorageWrapper().getInventoryHandler().saveInventory();
+			linkedPrimary.getStorageWrapper().getInventoryHandler().setStackInSlot(0, new ItemStack(Items.DIAMOND));
+			linkedPrimary.getStorageWrapper().getInventoryHandler().saveInventory();
+			return new SettingsSelectionFixture(regularPos, linkedPrimaryPos);
+		});
+		try {
+			runOpenSettingsSelectionRegression(fixture.regularPos(), "regular barrel", false);
+			runOpenSettingsSelectionRegression(fixture.linkedPrimaryPos(), "linked primary barrel", true);
+		} finally {
+			AutomationRuntime.runOnServer(player -> {
+				player.closeContainer();
+				clearItemDisplayPreviewArea(player.level(), fixture.regularPos());
+				return "";
+			});
+		}
+	}
+
+	private static void runOpenSettingsSelectionRegression(BlockPos storagePos, String name, boolean linked) {
+		waitForClientStorageBlockEntity(storagePos, false);
+		AutomationRuntime.runOnServer(player -> openStorageInventory(player, storagePos));
+		waitForStorageScreen();
+		waitForStorageScreenContents();
+		waitForStorageScreenAndClickSettingsTab();
+		waitForClientScreen("settings screen for " + name, () -> Minecraft.getInstance().screen instanceof SettingsScreen);
+		AutomationRuntime.runOnClient(() -> {
+			MemorySettingsTab tab = openSettingsTab(MemorySettingsTab.class, name);
+			MemorySettingsContainer container = getSettingsContainer(MemorySettingsContainer.class, name);
+			container.selectSlot(0);
+			if (!container.isSlotSelected(0) || tab.getItemDisplayOverride(0, false).isEmpty()) {
+				throw new IllegalStateException("Memory selection did not update " + name + " immediately");
+			}
+			return true;
+		});
+		if (linked) {
+			UUID groupId = AutomationRuntime.runOnClient(() -> {
+				LinkedStorageEndpointData endpoint = WorldHelper.getBlockEntity(Minecraft.getInstance().level, storagePos, StorageBlockEntity.class)
+						.map(StorageBlockEntity::getLinkedStorageEndpointData).orElseThrow();
+				ClientPacketDistributor.sendToServer(new SetMemorySlotPayload(new ItemStack(Items.EMERALD), 1));
+				return endpoint.groupId();
+			});
+			waitForServerCondition("linked settings fanout", player -> barrel((ServerLevel) player.level(), storagePos).getStorageWrapper().getSettingsHandler()
+					.getTypeCategory(MemorySettingsCategory.class).getSlotFilterStack(1, false).filter(stack -> stack.is(Items.EMERALD)).isPresent());
+			long revision = AutomationRuntime.runOnServer(player -> LinkedStorageGroupsSavedData.get(player.level()).manager().getRevision(groupId));
+			waitForClientScreen("linked settings snapshot",
+					() -> ClientLinkedStorageContents.getRevision(groupId).filter(value -> value == revision).isPresent());
+			waitForClientScreen("linked settings fanout", () -> {
+				MemorySettingsTab tab = openSettingsTab(MemorySettingsTab.class, name);
+				MemorySettingsContainer container = getSettingsContainer(MemorySettingsContainer.class, name);
+				return container.getMemorizedStack(1).is(Items.EMERALD) && tab.getItemDisplayOverride(1, false).is(Items.EMERALD);
+			});
+		}
+		AutomationRuntime.runOnClient(() -> {
+			MemorySettingsTab memoryTab = openSettingsTab(MemorySettingsTab.class, name);
+			MemorySettingsContainer memory = getSettingsContainer(MemorySettingsContainer.class, name);
+			memory.unselectSlot(0);
+			if (memory.isSlotSelected(0) || !memoryTab.getItemDisplayOverride(0, false).isEmpty()) {
+				throw new IllegalStateException("Memory unselection did not update " + name + " immediately");
+			}
+			NoSortSettingsTab noSortTab = openSettingsTab(NoSortSettingsTab.class, name);
+			NoSortSettingsContainer noSort = getSettingsContainer(NoSortSettingsContainer.class, name);
+			noSort.selectSlot(0);
+			if (!noSort.isSlotSelected(0) || noSortTab.getSlotOverlayColor(0, false).isEmpty()) {
+				throw new IllegalStateException("No-sort selection did not update " + name + " immediately");
+			}
+			noSort.unselectSlot(0);
+			if (noSort.isSlotSelected(0) || noSortTab.getSlotOverlayColor(0, false).isPresent()) {
+				throw new IllegalStateException("No-sort unselection did not update " + name + " immediately");
+			}
+			return true;
+		});
+		waitForServerCondition("settings selection cleanup",
+				player -> !barrel((ServerLevel) player.level(), storagePos).getStorageWrapper().getSettingsHandler()
+						.getTypeCategory(MemorySettingsCategory.class).isSlotSelected(0)
+						&& !barrel((ServerLevel) player.level(), storagePos).getStorageWrapper().getSettingsHandler()
+								.getTypeCategory(NoSortSettingsCategory.class).isSlotSelected(0));
+		AutomationRuntime.runOnServer(player -> {
+			player.closeContainer();
+			return true;
+		});
+		waitForClientScreen(name + " settings screen to close", () -> !(Minecraft.getInstance().screen instanceof SettingsScreen));
+	}
+
+	private static BarrelBlockEntity barrel(ServerLevel level, BlockPos pos) {
+		return WorldHelper.getBlockEntity(level, pos, BarrelBlockEntity.class)
+				.orElseThrow(() -> new IllegalStateException("Missing barrel settings-selection fixture at " + pos));
+	}
+
+	private static <T extends SettingsTab<?>> T openSettingsTab(Class<T> type, String name) {
+		if (!(Minecraft.getInstance().screen instanceof SettingsScreen screen)) {
+			throw new IllegalStateException("Settings screen was not open for " + name);
+		}
+		for (GuiEventListener child : screen.getSettingsTabControl().children()) {
+			if (type.isInstance(child)) {
+				T tab = type.cast(child);
+				if (screen.getSettingsTabControl().getOpenTab().map(open -> open != tab).orElse(true)) {
+					tab.mouseClicked(new MouseButtonEvent(tab.getX() + 9, tab.getY() + 12, new MouseButtonInfo(0, 0)), false);
+				}
+				return tab;
+			}
+		}
+		throw new IllegalStateException(type.getSimpleName() + " was not present for " + name);
+	}
+
+	private static <T extends SettingsContainerBase<?>> T getSettingsContainer(Class<T> type, String name) {
+		if (!(Minecraft.getInstance().player != null && Minecraft.getInstance().player.containerMenu instanceof StorageSettingsContainerMenu menu)) {
+			throw new IllegalStateException("Storage settings menu was not open for " + name);
+		}
+		AtomicReference<T> result = new AtomicReference<>();
+		menu.forEachSettingsContainer((category, container) -> {
+			if (type.isInstance(container)) {
+				result.set(type.cast(container));
+			}
+		});
+		if (result.get() == null) {
+			throw new IllegalStateException(type.getSimpleName() + " was not present for " + name);
+		}
+		return result.get();
 	}
 
 	public static String openDecorationTableRenderPreview(String itemName) {
