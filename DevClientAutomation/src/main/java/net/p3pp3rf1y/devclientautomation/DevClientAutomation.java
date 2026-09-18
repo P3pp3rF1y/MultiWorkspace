@@ -104,7 +104,9 @@ import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStoragePerformanceRegression;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackRegressionEndpoints;
+import net.p3pp3rf1y.devclientautomation.scenarios.storage.StorageRegressionEndpoints;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlock;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -214,6 +216,7 @@ public class DevClientAutomation {
 	public DevClientAutomation(IEventBus modBus) {
 		modBus.addListener(DevClientAutomation::clientSetup);
 		DemoCommand.init();
+		BackpackLinkedStoragePerformanceRegression.init();
 	}
 
 	private static void clientSetup(FMLClientSetupEvent event) {
@@ -271,6 +274,7 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/restock-regression", BackpackRegressionEndpoints::runRestock);
 				httpServer.createContext("/backpack/refill-regression", BackpackRegressionEndpoints::runRefill);
 				httpServer.createContext("/backpack/linked-storage-regression", BackpackRegressionEndpoints::runLinkedStorage);
+				httpServer.createContext("/backpack/linked-storage-performance", BackpackRegressionEndpoints::runLinkedStoragePerformance);
 				httpServer.createContext("/backpack/linked-storage-inception-regression", BackpackRegressionEndpoints::runLinkedStorageInception);
 				httpServer.createContext("/backpack/mounted-storage-regression", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
 				httpServer.createContext("/backpack/mounted-linked-storage-regression", BackpackRegressionEndpoints::runMountedLinkedStorageUnavailable);
@@ -282,6 +286,9 @@ public class DevClientAutomation {
 				httpServer.createContext("/backpack/curios-access-regression", BackpackRegressionEndpoints::runCuriosAccess);
 				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
+				httpServer.createContext("/storage/linked-storage-regression", StorageRegressionEndpoints::runLinkedStorage);
+				httpServer.createContext("/storage/linked-limited-reload/setup", StorageRegressionEndpoints::setupLinkedLimitedReload);
+				httpServer.createContext("/storage/linked-limited-reload/status", StorageRegressionEndpoints::linkedLimitedReloadStatus);
 				httpServer.createContext("/storage/item-display-preview/open", this::openStorageItemDisplayPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/open", this::openDecorationTableRenderPreview);
 				httpServer.createContext("/storage/decoration-table-render-preview/drag", this::dragDecorationTableRenderPreview);
