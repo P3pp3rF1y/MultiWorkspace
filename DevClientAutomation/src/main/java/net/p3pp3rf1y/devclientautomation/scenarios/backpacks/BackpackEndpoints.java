@@ -77,7 +77,7 @@ public final class BackpackEndpoints {
 	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "POST");
 		sendJsonHandling(exchange, LOGGER,
-				() -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create does not have a compatible 26.2 runtime artifact in the configured Maven repository.\"}");
+				() -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create is compile-time-only after 1.21.1 and no compatible runtime is configured for 26.2.\"}");
 	}
 
 	private static void giveLinkedStorageStarterKit(HttpExchange exchange) throws IOException {
