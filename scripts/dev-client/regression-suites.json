@@ -78,6 +78,17 @@
       "acceptsMaximizeClient": true
     },
     {
+      "id": "storage-linked-storage",
+      "groups": ["storage", "linked-storage"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-storage-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorage-linked-storage"
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
       "id": "backpack-mounted-linked-storage",
       "groups": ["backpacks", "linked-storage", "create", "contraptions"],
       "tier": "full",
@@ -88,7 +99,7 @@
       },
       "acceptsMaximizeClient": true,
       "disabled": true,
-      "disabledReason": "Create does not have a compatible 26.1 runtime artifact in the configured Maven repository."
+      "disabledReason": "Post-1.21.1 Create is compile-time-only; no supported 26.1 Create runtime artifact is configured for DevClient."
     },
     {
       "id": "backpack-access",
