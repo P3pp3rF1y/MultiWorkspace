@@ -93,7 +93,7 @@ if ($Maximize) {
     Invoke-BridgeJson -Method Post -Path "/window/maximize" | Out-Null
 }
 
-if ($LoadWorld -and -not $state.playerLoaded) {
+if ($LoadWorld -and -not ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
     do {
         Start-Sleep -Seconds 1
         $state = Invoke-BridgeJson -Method Get -Path "/state"
@@ -116,16 +116,20 @@ do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
-        if (-not $LoadWorld -or $state.playerLoaded) {
+        if (-not $LoadWorld -or ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
             break
         }
         continue
     }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
-    if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
+    if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded -and $viewerState.indexStackCount -gt 0))) {
         break
     }
 } while ((Get-Date) -lt $deadline)
+
+if ($LoadWorld -and -not ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
+    throw "Timed out waiting for client level readiness."
+}
 
 $discovery = Get-BridgeDiscovery
 [pscustomobject]@{

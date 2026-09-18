@@ -231,9 +231,14 @@ public final class ClientControlEndpoints {
 				+ jsonProperty("screenSimpleName", screen == null ? null : screen.getClass().getSimpleName()) + ","
 				+ jsonProperty("screenTitle", screen == null ? null : screen.getTitle().getString()) + ","
 				+ jsonProperty("gameDirectory", minecraft.gameDirectory.getAbsolutePath()) + "," + "\"inWorld\":" + (minecraft.level != null) + ","
-				+ "\"playerLoaded\":" + (minecraft.player != null) + "," + "\"windowWidth\":" + minecraft.getWindow().getWidth() + ",\"windowHeight\":"
+				+ "\"playerLoaded\":" + (minecraft.player != null) + ",\"singleplayerServerLoaded\":" + minecraft.hasSingleplayerServer()
+				+ ",\"clientLevelLoaded\":" + hasClientLevelLoaded(minecraft) + ",\"windowWidth\":" + minecraft.getWindow().getWidth() + ",\"windowHeight\":"
 				+ minecraft.getWindow().getHeight() + ",\"guiWidth\":" + minecraft.getWindow().getGuiScaledWidth() + ",\"guiHeight\":"
 				+ minecraft.getWindow().getGuiScaledHeight() + "}";
+	}
+
+	static boolean hasClientLevelLoaded(Minecraft minecraft) {
+		return minecraft.getConnection() != null && minecraft.getConnection().hasClientLoaded();
 	}
 
 	private static String buildScreenJson() {
@@ -466,7 +471,7 @@ public final class ClientControlEndpoints {
 	private static boolean matchesCondition(String condition, String screenName) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if ("worldLoaded".equals(condition)) {
-			return minecraft.level != null && minecraft.player != null;
+			return minecraft.level != null && minecraft.player != null && hasClientLevelLoaded(minecraft);
 		}
 		if ("screen".equals(condition)) {
 			Screen screen = minecraft.screen;
