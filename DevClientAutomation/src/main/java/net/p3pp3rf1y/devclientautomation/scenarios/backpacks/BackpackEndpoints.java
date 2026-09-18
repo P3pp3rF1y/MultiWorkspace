@@ -179,7 +179,7 @@ public final class BackpackEndpoints {
 	private static void mountedLinkedStorageUnavailable(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "POST");
 		sendJsonHandling(exchange, LOGGER,
-				() -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create does not have a compatible 1.21.11 runtime artifact in the configured Maven repository.\"}");
+				() -> "{\"ok\":true,\"skipped\":true,\"reason\":\"Create is compile-time-only after 1.21.1; this DevClient suite requires a Create runtime and is intentionally disabled.\"}");
 	}
 
 	private static void changeMagnetSettings(HttpExchange exchange) throws IOException {
