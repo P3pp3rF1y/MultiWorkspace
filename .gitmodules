@@ -31,3 +31,7 @@
 	path = SophisticatedInventoryInteractions
 	url = https://github.com/P3pp3rF1y/SophisticatedInventoryInteractions.git
 	branch = 1.21.x
+[submodule "SophisticatedAdventureUpgrades"]
+	path = SophisticatedAdventureUpgrades
+	url = https://github.com/P3pp3rF1y/SophisticatedAdventureUpgrades.git
+	branch = 1.21.x

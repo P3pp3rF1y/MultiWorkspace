@@ -262,8 +262,8 @@ public final class InventoryInteractionsKeybindRegression {
 					Component.literal("Inventory interaction regression")));
 			return player.containerMenu.containerId;
 		});
-		waitForClientScreen("crafting table",
-				() -> Minecraft.getInstance().screen instanceof CraftingScreen screen && screen.getMenu().containerId == containerId);
+		waitForClientScreen("crafting table", () -> Minecraft.getInstance().screen instanceof CraftingScreen screen
+				&& screen.getMenu().containerId == containerId && screen.getMenu().slots.get(10).getItem().is(Items.COBBLESTONE));
 		requireHandled(pressSortKeybind(10), "Crafting-table player inventory sort keybind was not handled");
 		waitForPlayerInventorySort("crafting-table player inventory sort");
 	}

@@ -6,11 +6,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.item.ItemStack;
@@ -40,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.bool;
@@ -55,6 +58,8 @@ import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.string;
 public final class WorldAutomationEndpoints {
 	private static final Logger LOGGER = LoggerFactory.getLogger("devclientautomation");
 	private static final String AUTOMATION_WORLD_NAME = "Dev Client Automation Void Platform";
+	private static final int PLATFORM_Y = 72;
+	private static final int PLATFORM_RADIUS = 15;
 
 	private WorldAutomationEndpoints() {
 	}
@@ -90,6 +95,10 @@ public final class WorldAutomationEndpoints {
 		requireMethod(exchange, "POST");
 		JsonObject request = readObject(exchange);
 		String worldName = string(request, "worldName", string(request, "buttonText", AUTOMATION_WORLD_NAME));
+		if (!AUTOMATION_WORLD_NAME.equals(worldName)) {
+			sendJson(exchange, "{\"ok\":false,\"error\":\"Only the automation world can be loaded\"}");
+			return;
+		}
 		boolean autoConfirmExperimental = bool(request, "autoConfirmExperimental", true);
 		long timeoutMs = longValue(request, "timeoutMs", 180_000L);
 
@@ -103,6 +112,7 @@ public final class WorldAutomationEndpoints {
 		while (System.nanoTime() < deadline) {
 			boolean loaded = AutomationRuntime.runOnClient(() -> Minecraft.getInstance().level != null && Minecraft.getInstance().player != null);
 			if (loaded) {
+				AutomationRuntime.runOnServer(WorldAutomationEndpoints::prepareAutomationPlatform);
 				sendJson(exchange, "{\"ok\":true,\"worldLoaded\":true,\"timedOut\":false}");
 				return;
 			}
@@ -146,6 +156,17 @@ public final class WorldAutomationEndpoints {
 		}
 		player.getInventory().setChanged();
 		return "{\"ok\":true,\"filled\":" + filled + "}";
+	}
+
+	private static String prepareAutomationPlatform(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		for (int x = -PLATFORM_RADIUS; x <= PLATFORM_RADIUS; x++) {
+			for (int z = -PLATFORM_RADIUS; z <= PLATFORM_RADIUS; z++) {
+				level.setBlock(new BlockPos(x, PLATFORM_Y, z), Blocks.STONE.defaultBlockState(), 3);
+			}
+		}
+		player.teleportTo(level, 0.5D, PLATFORM_Y + 1.0D, 0.5D, Set.of(), player.getYRot(), player.getXRot());
+		return "{\"ok\":true}";
 	}
 
 	private static AutosaveWaitResult waitForAutosaves(String worldName, int count, long timeoutMs, long pollMs) {

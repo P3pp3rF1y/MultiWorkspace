@@ -310,6 +310,7 @@ dependencies {
         runtimeOnly fileTree(dir: 'local-mods', include: ['*.jar'])
 
         runtimeOnly "curse.maven:jade-324717:6011258"
+        runtimeOnly "curse.maven:artifacts-312353:7875426"
         //runtimeOnly "curse.maven:embeddium-908741:5213210"
         runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
         runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
@@ -395,11 +396,13 @@ dependencies {
     switch (recipeViewer) {
         case "emi":
             runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
+            runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
             break
         case "rei":
             runtimeOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
             runtimeOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
             runtimeOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+            runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
             break
         case "jei":
             runtimeOnly "mezz.jei:jei-${jei_mc_version}:${jei_version}"
