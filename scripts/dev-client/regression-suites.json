@@ -78,6 +78,18 @@
       "acceptsMaximizeClient": true
     },
     {
+      "id": "storage-linked-storage",
+      "groups": ["storage", "linked-storage"],
+      "tier": "full",
+      "loaders": ["neoforge"],
+      "script": "run-storage-regression.ps1",
+      "arguments": {
+        "Suite": "sophisticatedstorage-linked-storage",
+        "MinimalRuntime": true
+      },
+      "acceptsMaximizeClient": true
+    },
+    {
       "id": "backpack-mounted-linked-storage",
       "groups": ["backpacks", "linked-storage", "create", "contraptions"],
       "tier": "full",

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime.runOnClient;
 import static net.p3pp3rf1y.devclientautomation.bridge.HttpJson.bool;
@@ -27,6 +28,10 @@ public final class StorageEndpoints {
 		endpoints.register("/storage/controller-double-chest-regressions", StorageEndpoints::storageControllerDoubleChestRegressions);
 		endpoints.register("/storage/controller-double-chest-tier-upgrade-regressions", StorageEndpoints::storageControllerDoubleChestTierUpgradeRegressions);
 		endpoints.register("/storage/controller-filter-regressions", StorageEndpoints::storageControllerFilterRegressions);
+		endpoints.register("/storage/linked-storage-regression", StorageEndpoints::storageLinkedStorageRegression);
+		endpoints.register("/storage/linked-limited-reload/setup", StorageEndpoints::setupLinkedLimitedReload);
+		endpoints.register("/storage/linked-limited-reload/status", StorageEndpoints::linkedLimitedReloadStatus);
+		endpoints.register("/storage/linked-storage-pickup-inspection", StorageEndpoints::storageLinkedStoragePickupInspection);
 		endpoints.register("/storage/simple-material-decoration-verification", StorageEndpoints::simpleMaterialDecorationVerification);
 		endpoints.register("/storage/simple-material-render-setup", StorageEndpoints::simpleMaterialRenderSetup);
 		endpoints.register("/storage/simple-material-overlay-comparison-setup", StorageEndpoints::simpleMaterialOverlayComparisonSetup);
@@ -57,6 +62,28 @@ public final class StorageEndpoints {
 		int runs = integer(request, "runs", 1);
 		boolean profileCapacity = bool(request, "profileCapacity", false);
 		sendJsonHandling(exchange, LOGGER, () -> StorageControllerRegressions.runFilterRegressions(mode, runs, profileCapacity));
+	}
+
+	private static void storageLinkedStorageRegression(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::run);
+	}
+
+	private static void setupLinkedLimitedReload(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::setupLinkedLimitedBarrelReloadProjection);
+	}
+
+	private static void linkedLimitedReloadStatus(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		JsonObject request = readObject(exchange);
+		sendJsonHandling(exchange, LOGGER,
+				() -> StorageLinkedStorageRegression.linkedLimitedBarrelReloadProjectionStatus(UUID.fromString(string(request, "groupId", ""))));
+	}
+
+	private static void storageLinkedStoragePickupInspection(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, StorageLinkedStorageRegression::setupDroppedItemPickupInspection);
 	}
 
 	private static void simpleMaterialDecorationVerification(HttpExchange exchange) throws IOException {
