@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.scenarios.core;
 
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -242,7 +243,7 @@ public final class WorldAutomationEndpoints {
 			if (child instanceof AbstractWidget widget && widget.visible && widget.active && widget.getMessage().getString().equals("I know what I'm doing!")) {
 				double x = widget.getX() + widget.getWidth() / 2.0;
 				double y = widget.getY() + widget.getHeight() / 2.0;
-				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0));
+				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 				boolean clicked = screen.mouseClicked(event, false);
 				screen.mouseReleased(event);
 				return clicked;

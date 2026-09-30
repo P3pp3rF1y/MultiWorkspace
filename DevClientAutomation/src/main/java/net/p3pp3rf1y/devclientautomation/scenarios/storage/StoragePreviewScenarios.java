@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.scenarios.storage;
 
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -135,9 +136,10 @@ public final class StoragePreviewScenarios {
 		DecorationTableMenu menu = decorationTableScreen.getMenu();
 		Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().size() - 1);
 		Slot resultSlot = menu.getResultSlot();
-		double x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26 + 40D;
-		double y = decorationTableScreen.getGuiTop() + lastDyeSlot.y + (resultSlot.y - lastDyeSlot.y + 20) / 2D;
-		boolean dragged = decorationTableScreen.mouseDragged(new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0)), dragX, dragY);
+		double x = decorationTableScreen.getLeftPos() + lastDyeSlot.x + 26 + 40D;
+		double y = decorationTableScreen.getTopPos() + lastDyeSlot.y + (resultSlot.y - lastDyeSlot.y + 20) / 2D;
+		boolean dragged = decorationTableScreen.mouseDragged(new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), dragX,
+				dragY);
 		return "{\"ok\":" + dragged + ",\"dragged\":" + dragged + '}';
 	}
 
@@ -690,10 +692,10 @@ public final class StoragePreviewScenarios {
 		DecorationTableMenu menu = decorationTableScreen.getMenu();
 		Slot lastDyeSlot = menu.getSlot(menu.getDyeSlotRange().firstSlot() + menu.getDyeSlotRange().size() - 1);
 		Slot resultSlot = menu.getResultSlot();
-		int x = decorationTableScreen.getGuiLeft() + lastDyeSlot.x + 26;
-		int y = decorationTableScreen.getGuiTop() + lastDyeSlot.y;
-		int resultSlotX = decorationTableScreen.getGuiLeft() + resultSlot.x;
-		int resultSlotY = decorationTableScreen.getGuiTop() + resultSlot.y;
+		int x = decorationTableScreen.getLeftPos() + lastDyeSlot.x + 26;
+		int y = decorationTableScreen.getTopPos() + lastDyeSlot.y;
+		int resultSlotX = decorationTableScreen.getLeftPos() + resultSlot.x;
+		int resultSlotY = decorationTableScreen.getTopPos() + resultSlot.y;
 		Slot topCoreSlot = menu.getSlot(DecorationTableBlockEntity.TOP_CORE_SLOT);
 		Slot sideCoreSlot = menu.getSlot(DecorationTableBlockEntity.SIDE_CORE_SLOT);
 		Slot bottomCoreSlot = menu.getSlot(DecorationTableBlockEntity.BOTTOM_CORE_SLOT);
@@ -720,8 +722,8 @@ public final class StoragePreviewScenarios {
 
 	private static JsonObject getDecorationTableCoreSlotHoverTargetJson(DecorationTableScreen screen, Slot slot) {
 		JsonObject result = new JsonObject();
-		result.addProperty("x", screen.getGuiLeft() + slot.x + 8);
-		result.addProperty("y", screen.getGuiTop() + slot.y + 8);
+		result.addProperty("x", screen.getLeftPos() + slot.x + 8);
+		result.addProperty("y", screen.getTopPos() + slot.y + 8);
 		return result;
 	}
 
@@ -790,7 +792,8 @@ public final class StoragePreviewScenarios {
 		}
 		StorageSettingsTab settingsTab = findChild(screen, StorageSettingsTab.class)
 				.orElseThrow(() -> new IllegalStateException("Storage settings tab was not present on " + screen.getClass().getSimpleName()));
-		settingsTab.mouseClicked(new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(0, 0)), false);
+		settingsTab.mouseClicked(
+				new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false);
 		return true;
 	}
 
@@ -817,8 +820,8 @@ public final class StoragePreviewScenarios {
 				if (openTab.map(tab -> tab == itemDisplaySettingsTab).orElse(false)) {
 					return screen.getClass().getSimpleName();
 				}
-				itemDisplaySettingsTab.mouseClicked(
-						new MouseButtonEvent(itemDisplaySettingsTab.getX() + 9, itemDisplaySettingsTab.getY() + 12, new MouseButtonInfo(0, 0)), false);
+				itemDisplaySettingsTab.mouseClicked(new MouseButtonEvent(itemDisplaySettingsTab.getX() + 9, itemDisplaySettingsTab.getY() + 12,
+						new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false);
 				return "";
 			}
 		}

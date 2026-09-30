@@ -1,10 +1,10 @@
 package net.p3pp3rf1y.devclientautomation.scenarios.core;
 
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -26,14 +26,14 @@ import net.p3pp3rf1y.devclientautomation.demo.DemoMouseMotion;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
+import org.lwjgl.sdl.SDLScancode;
+import org.lwjgl.sdl.SDLVideo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -91,7 +91,7 @@ public final class ClientControlEndpoints {
 		JsonObject request = readObject(exchange);
 		String text = string(request, "text", "");
 		boolean contains = bool(request, "contains", false);
-		int button = integer(request, "button", 0);
+		int button = integer(request, "button", InputConstants.MOUSE_BUTTON_LEFT);
 		int index = integer(request, "index", -1);
 		sendJson(exchange, AutomationRuntime.runOnClient(() -> clickWidget(text, contains, button, index)));
 	}
@@ -120,7 +120,7 @@ public final class ClientControlEndpoints {
 		JsonObject request = readObject(exchange);
 		int x = integer(request, "x", -1);
 		int y = integer(request, "y", -1);
-		int button = integer(request, "button", GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		int button = integer(request, "button", 1);
 		boolean shift = bool(request, "shift", false);
 		sendJsonHandling(exchange, LOGGER, () -> AutomationRuntime.runOnClient(() -> clickMouse(x, y, button, shift)));
 	}
@@ -254,8 +254,8 @@ public final class ClientControlEndpoints {
 				first = false;
 				ItemStack stack = slot.getItem();
 				json.append('{').append("\"menuSlot\":").append(i).append(',').append("\"containerSlot\":").append(slot.getSlotIndex()).append(',')
-						.append("\"x\":").append(containerScreen.getGuiLeft() + slot.x).append(',').append("\"y\":")
-						.append(containerScreen.getGuiTop() + slot.y).append(',')
+						.append("\"x\":").append(containerScreen.getLeftPos() + slot.x).append(',').append("\"y\":")
+						.append(containerScreen.getTopPos() + slot.y).append(',')
 						.append(jsonProperty("item", stack.isEmpty() ? null : stack.getHoverName().getString())).append(',').append("\"count\":")
 						.append(stack.getCount()).append('}');
 			}
@@ -289,8 +289,8 @@ public final class ClientControlEndpoints {
 					continue;
 				}
 				Slot slot = backpackContainer.getSlot(capturedMob.slot());
-				int x = containerScreen.getGuiLeft() + slot.x - 1;
-				int y = containerScreen.getGuiTop() + slot.y - 1;
+				int x = containerScreen.getLeftPos() + slot.x - 1;
+				int y = containerScreen.getTopPos() + slot.y - 1;
 				int width = capturedMob.width() * 18;
 				int height = capturedMob.height() * 18;
 				if (!first) {
@@ -321,7 +321,7 @@ public final class ClientControlEndpoints {
 					&& (targetIndex == index || targetIndex < 0 && textMatches(widget.getMessage().getString(), text, contains))) {
 				double x = widget.getX() + widget.getWidth() / 2.0;
 				double y = widget.getY() + widget.getHeight() / 2.0;
-				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(button, 0));
+				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(button == 0 ? InputConstants.MOUSE_BUTTON_LEFT : button, 0));
 				boolean clicked = screen.mouseClicked(event, false);
 				screen.mouseReleased(event);
 				return "{\"ok\":" + clicked + ",\"index\":" + index + ",\"x\":" + x + ",\"y\":" + y + "}";
@@ -334,17 +334,17 @@ public final class ClientControlEndpoints {
 	private static String pressKey(String keyName, boolean ctrl, boolean shift, boolean alt) {
 		Minecraft minecraft = Minecraft.getInstance();
 		int keyCode = keyCode(keyName);
-		if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
+		if (keyCode == SDLScancode.SDL_SCANCODE_UNKNOWN) {
 			return "{\"ok\":false,\"error\":\"Unknown key\"}";
 		}
-		if (keyCode == GLFW.GLFW_KEY_E && minecraft.gui.screen() == null && minecraft.player != null) {
+		if (keyCode == SDLScancode.SDL_SCANCODE_E && minecraft.gui.screen() == null && minecraft.player != null) {
 			minecraft.gui.setScreen(new InventoryScreen(minecraft.player));
 			return "{\"ok\":true,\"handled\":true}";
 		}
 		if (minecraft.gui.screen() != null) {
-			int modifiers = (ctrl ? GLFW.GLFW_MOD_CONTROL : 0) | (shift ? GLFW.GLFW_MOD_SHIFT : 0) | (alt ? GLFW.GLFW_MOD_ALT : 0);
+			int modifiers = (ctrl ? SDLKeycode.SDL_KMOD_CTRL : 0) | (shift ? SDLKeycode.SDL_KMOD_SHIFT : 0) | (alt ? SDLKeycode.SDL_KMOD_ALT : 0);
 			boolean handled = minecraft.gui.screen().keyPressed(new KeyEvent(keyCode, 0, modifiers));
-			if (!handled && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+			if (!handled && keyCode == SDLScancode.SDL_SCANCODE_ESCAPE) {
 				minecraft.gui.screen().onClose();
 				handled = true;
 			}
@@ -362,11 +362,9 @@ public final class ClientControlEndpoints {
 			return "{\"ok\":false,\"error\":\"Invalid menu slot\"}";
 		}
 		Slot slot = containerScreen.getMenu().slots.get(menuSlot);
-		int x = containerScreen.getGuiLeft() + slot.x + 8;
-		int y = containerScreen.getGuiTop() + slot.y + 8;
-		double scale = minecraft.getWindow().getGuiScale();
-		GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), x * scale, y * scale);
-		containerScreen.mouseMoved(x, y);
+		int x = containerScreen.getLeftPos() + slot.x + 8;
+		int y = containerScreen.getTopPos() + slot.y + 8;
+		DemoMouseMotion.setCursor(minecraft, x, y);
 		return "{\"ok\":true,\"menuSlot\":" + menuSlot + ",\"x\":" + x + ",\"y\":" + y + "}";
 	}
 
@@ -413,17 +411,7 @@ public final class ClientControlEndpoints {
 		if (targetX < 0 || targetY < 0) {
 			return "{\"ok\":false,\"error\":\"Missing mouse coordinates\"}";
 		}
-		try {
-			Object mouseHandler = minecraft.mouseHandler;
-			Field xpos = mouseHandler.getClass().getDeclaredField("xpos");
-			Field ypos = mouseHandler.getClass().getDeclaredField("ypos");
-			xpos.setAccessible(true);
-			ypos.setAccessible(true);
-			xpos.setDouble(mouseHandler, targetX * (double) minecraft.getWindow().getScreenWidth() / minecraft.getWindow().getGuiScaledWidth());
-			ypos.setDouble(mouseHandler, targetY * (double) minecraft.getWindow().getScreenHeight() / minecraft.getWindow().getGuiScaledHeight());
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Failed to move mouse", e);
-		}
+		DemoMouseMotion.setCursor(minecraft, targetX, targetY);
 		DemoMouseMotion.moveTo(targetX, targetY, 12, () -> {
 		});
 		return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
@@ -438,28 +426,16 @@ public final class ClientControlEndpoints {
 			return "{\"ok\":false,\"error\":\"Mouse coordinates are outside the screen\"}";
 		}
 
-		try {
-			MouseHandler mouseHandler = minecraft.mouseHandler;
-			Field xpos = MouseHandler.class.getDeclaredField("xpos");
-			Field ypos = MouseHandler.class.getDeclaredField("ypos");
-			Method onPress = MouseHandler.class.getDeclaredMethod("onPress", long.class, int.class, int.class, int.class);
-			xpos.setAccessible(true);
-			ypos.setAccessible(true);
-			onPress.setAccessible(true);
-			xpos.setDouble(mouseHandler, x * (double) minecraft.getWindow().getScreenWidth() / minecraft.getWindow().getGuiScaledWidth());
-			ypos.setDouble(mouseHandler, y * (double) minecraft.getWindow().getScreenHeight() / minecraft.getWindow().getGuiScaledHeight());
-			int modifiers = shift ? GLFW.GLFW_MOD_SHIFT : 0;
-			onPress.invoke(mouseHandler, minecraft.getWindow().handle(), button, GLFW.GLFW_PRESS, modifiers);
-			onPress.invoke(mouseHandler, minecraft.getWindow().handle(), button, GLFW.GLFW_RELEASE, modifiers);
-			return "{\"ok\":true,\"x\":" + x + ",\"y\":" + y + ",\"button\":" + button + ",\"shift\":" + shift + "}";
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Failed to dispatch mouse input", e);
-		}
+		DemoMouseMotion.setCursor(minecraft, x, y);
+		MouseButtonInfo buttonInfo = new MouseButtonInfo(button == 0 ? InputConstants.MOUSE_BUTTON_LEFT : button, shift ? SDLKeycode.SDL_KMOD_SHIFT : 0);
+		minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), buttonInfo, 1);
+		minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), buttonInfo, 0);
+		return "{\"ok\":true,\"x\":" + x + ",\"y\":" + y + ",\"button\":" + button + ",\"shift\":" + shift + "}";
 	}
 
 	private static String maximizeWindow() {
 		Minecraft minecraft = Minecraft.getInstance();
-		GLFW.glfwMaximizeWindow(minecraft.getWindow().handle());
+		SDLVideo.SDL_MaximizeWindow(minecraft.getWindow().handle());
 		return "{\"ok\":true}";
 	}
 
@@ -494,17 +470,19 @@ public final class ClientControlEndpoints {
 
 	private static int keyCode(String keyName) {
 		return switch (keyName.toUpperCase(Locale.ROOT)) {
-			case "ESC", "ESCAPE" -> GLFW.GLFW_KEY_ESCAPE;
-			case "E" -> GLFW.GLFW_KEY_E;
-			case "ENTER", "RETURN" -> GLFW.GLFW_KEY_ENTER;
-			case "TAB" -> GLFW.GLFW_KEY_TAB;
-			case "SPACE" -> GLFW.GLFW_KEY_SPACE;
-			case "KP_0", "NUMPAD0" -> GLFW.GLFW_KEY_KP_0;
-			case "UP" -> GLFW.GLFW_KEY_UP;
-			case "DOWN" -> GLFW.GLFW_KEY_DOWN;
-			case "LEFT" -> GLFW.GLFW_KEY_LEFT;
-			case "RIGHT" -> GLFW.GLFW_KEY_RIGHT;
-			default -> keyName.length() == 1 ? Character.toUpperCase(keyName.charAt(0)) : GLFW.GLFW_KEY_UNKNOWN;
+			case "ESC", "ESCAPE" -> SDLScancode.SDL_SCANCODE_ESCAPE;
+			case "E" -> SDLScancode.SDL_SCANCODE_E;
+			case "ENTER", "RETURN" -> SDLScancode.SDL_SCANCODE_RETURN;
+			case "TAB" -> SDLScancode.SDL_SCANCODE_TAB;
+			case "SPACE" -> SDLScancode.SDL_SCANCODE_SPACE;
+			case "KP_0", "NUMPAD0" -> SDLScancode.SDL_SCANCODE_KP_0;
+			case "UP" -> SDLScancode.SDL_SCANCODE_UP;
+			case "DOWN" -> SDLScancode.SDL_SCANCODE_DOWN;
+			case "LEFT" -> SDLScancode.SDL_SCANCODE_LEFT;
+			case "RIGHT" -> SDLScancode.SDL_SCANCODE_RIGHT;
+			default -> keyName.length() == 1 && Character.toUpperCase(keyName.charAt(0)) >= 'A' && Character.toUpperCase(keyName.charAt(0)) <= 'Z'
+					? SDLScancode.SDL_SCANCODE_A + Character.toUpperCase(keyName.charAt(0)) - 'A'
+					: SDLScancode.SDL_SCANCODE_UNKNOWN;
 		};
 	}
 

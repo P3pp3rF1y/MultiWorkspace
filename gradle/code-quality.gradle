@@ -13,7 +13,7 @@ def findCodeQualityFile = { String relativePath ->
 }
 
 def pmdRulesetFile = findCodeQualityFile('config/pmd/ruleset.xml')
-def pmdRulesetUri = 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/26.2/config/pmd/ruleset.xml'
+def pmdRulesetUri = 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/26.3/config/pmd/ruleset.xml'
 
 pmd {
     toolVersion = '7.25.0'

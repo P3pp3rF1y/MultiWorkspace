@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-menu",
+  "requires": ["minecraft:client", "sophisticatedbackpacks"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "backpack-actions-execute-with-valid-fixture",
+      "tags": ["runtimeConformance", "action-conformance"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "leather"}},
+        {"id": "set-emeralds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:emerald", "count": 3}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "use-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "assert-menu", "action": "assert.menu", "args": {"item": "minecraft:emerald", "count": 3}}
+      ]
+    },
+    {
+      "id": "placed-backpack-opens-synchronized-menu",
+      "tags": ["pilot", "menu", "interaction"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "set-diamonds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "use-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "assert-menu", "action": "assert.menu", "args": {"item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "held-backpack-opens-synchronized-item-menu",
+      "tags": ["menu", "interaction", "held-item"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "set-diamonds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 5}},
+        {"id": "use-held-backpack", "action": "player.useHeldItem"},
+        {"id": "await-item-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "assert-item-menu", "action": "assert.menu", "args": {"kind": "backpackItem", "item": "minecraft:diamond", "count": 5}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "placed-backpack-menu-click-and-quick-move-stay-synchronized",
+      "tags": ["menu", "interaction", "click", "quick-move"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "set-iron", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:iron_ingot", "count": 1}},
+        {"id": "set-stick", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:stick", "count": 1}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "use-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "pick-up-iron", "action": "menu.clickSlot", "args": {"slot": 0}},
+        {"id": "put-down-iron", "action": "menu.clickSlot", "args": {"slot": 1}},
+        {"id": "assert-iron", "action": "assert.menu", "args": {"slot": 1, "item": "minecraft:iron_ingot", "count": 1}},
+        {"id": "quick-move-stick", "action": "menu.quickMovePlayerInventorySlot", "args": {"inventorySlot": 9}},
+        {"id": "assert-stick", "action": "assert.menu", "args": {"item": "minecraft:stick", "count": 1}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "linked-held-backpack-opens-with-enchanted-book",
+      "tags": ["menu", "linked-storage", "enchanted-item"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "set-enchanted-book", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:enchanted_book", "count": 1, "enchantment": "minecraft:sharpness"}},
+        {"id": "link-backpack", "action": "backpack.linkHeld"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "assert-enchanted-book", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 0, "item": "minecraft:enchanted_book", "count": 1, "stableTicks": 20}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "linked-placed-backpack-opens-with-enchanted-book",
+      "tags": ["menu", "linked-storage", "enchanted-item"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "set-enchanted-book", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:enchanted_book", "count": 1, "enchantment": "minecraft:sharpness"}},
+        {"id": "link-backpack", "action": "backpack.linkHeld"},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "assert-enchanted-book", "action": "assert.menu", "args": {"slot": 0, "item": "minecraft:enchanted_book", "count": 1, "stableTicks": 20}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "linked-held-backpack-quick-move-stays-synchronized",
+      "tags": ["menu", "linked-storage", "quick-move"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "link-backpack", "action": "backpack.linkHeld"},
+        {"id": "set-stick", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:stick", "count": 1, "clearMatching": true}},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "quick-move-stick", "action": "menu.quickMovePlayerInventorySlot", "args": {"inventorySlot": 9}},
+        {"id": "assert-stick", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 0, "item": "minecraft:stick", "count": 1, "stableTicks": 20}},
+        {"id": "quick-move-out", "action": "menu.quickMoveBackpackStorageSlot", "args": {"slot": 0}},
+        {"id": "assert-storage-empty", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 0, "item": "minecraft:stick", "count": 0}},
+        {"id": "assert-player-stick", "action": "assert.menu", "args": {"kind": "backpackItem", "item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "linked-placed-backpack-quick-move-stays-synchronized",
+      "tags": ["menu", "linked-storage", "quick-move"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "link-backpack", "action": "backpack.linkHeld"},
+        {"id": "set-stick", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:stick", "count": 1, "clearMatching": true}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "quick-move-stick", "action": "menu.quickMovePlayerInventorySlot", "args": {"inventorySlot": 9}},
+        {"id": "assert-stick", "action": "assert.menu", "args": {"slot": 0, "item": "minecraft:stick", "count": 1, "stableTicks": 20}},
+        {"id": "quick-move-out", "action": "menu.quickMoveBackpackStorageSlot", "args": {"slot": 0}},
+        {"id": "assert-storage-empty", "action": "assert.menu", "args": {"slot": 0, "item": "minecraft:stick", "count": 0}},
+        {"id": "assert-player-stick", "action": "assert.menu", "args": {"item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    }
+  ]
+}

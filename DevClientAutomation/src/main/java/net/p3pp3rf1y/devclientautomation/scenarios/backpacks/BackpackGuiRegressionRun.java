@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.scenarios.backpacks;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -476,7 +477,7 @@ public final class BackpackGuiRegressionRun {
 		int top = field(screen, "topPos");
 		double x = left + slot.x + 8.0;
 		double y = top + slot.y + 8.0;
-		MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0));
+		MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 		if (!screen.mouseClicked(event, false)) {
 			throw new IllegalStateException("Backpack upgrade slot click was not handled");
 		}

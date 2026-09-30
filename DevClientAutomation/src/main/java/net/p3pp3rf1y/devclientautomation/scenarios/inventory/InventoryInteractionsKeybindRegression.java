@@ -29,7 +29,9 @@ import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedcore.client.ClientEventHandler;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
+import org.lwjgl.sdl.SDLMouse;
+import org.lwjgl.sdl.SDLScancode;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -95,9 +97,9 @@ public final class InventoryInteractionsKeybindRegression {
 		KeyMapping transferToInventoryKeybind = ClientEventHandler.TRANSFER_TO_INVENTORY_KEYBIND;
 		InventoryInteractionKeyMappings originalMappings = new InventoryInteractionKeyMappings(sortKeybind.getKey(), transferToStorageKeybind.getKey(),
 				transferToInventoryKeybind.getKey());
-		sortKeybind.setKey(InputConstants.Type.MOUSE.getOrCreate(GLFW.GLFW_MOUSE_BUTTON_MIDDLE));
-		transferToStorageKeybind.setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_LEFT_BRACKET));
-		transferToInventoryKeybind.setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_RIGHT_BRACKET));
+		sortKeybind.setKey(InputConstants.Type.MOUSE.getOrCreate(2));
+		transferToStorageKeybind.setKey(InputConstants.Type.KEYBOARD.getOrCreate(SDLScancode.SDL_SCANCODE_LEFTBRACKET));
+		transferToInventoryKeybind.setKey(InputConstants.Type.KEYBOARD.getOrCreate(SDLScancode.SDL_SCANCODE_RIGHTBRACKET));
 		KeyMapping.resetMapping();
 		return originalMappings;
 	}
@@ -250,7 +252,7 @@ public final class InventoryInteractionsKeybindRegression {
 			}
 			InventoryScreen screen = new InventoryScreen(minecraft.player);
 			minecraft.gui.setScreen(screen);
-			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(screen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(screen, 0, 0, 2);
 		});
 		requireHandled(handled, "Player inventory sort keybind was not handled");
 		waitForPlayerInventorySort("player inventory sort");
@@ -327,8 +329,8 @@ public final class InventoryInteractionsKeybindRegression {
 	}
 
 	private static boolean pressTransferKeybind(boolean toStorage, boolean shift) {
-		int keyCode = toStorage ? GLFW.GLFW_KEY_LEFT_BRACKET : GLFW.GLFW_KEY_RIGHT_BRACKET;
-		return postKeyPressed(keyCode, shift ? GLFW.GLFW_MOD_SHIFT : 0);
+		int keyCode = toStorage ? SDLScancode.SDL_SCANCODE_LEFTBRACKET : SDLScancode.SDL_SCANCODE_RIGHTBRACKET;
+		return postKeyPressed(keyCode, shift ? SDLKeycode.SDL_KMOD_SHIFT : 0);
 	}
 
 	private static boolean postKeyPressed(int keyCode, int modifiers) {
@@ -350,7 +352,7 @@ public final class InventoryInteractionsKeybindRegression {
 				moveToSlot(menuSlot);
 				setHoveredSlot(containerScreen, menuSlot);
 			}
-			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(containerScreen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(containerScreen, 0, 0, 2);
 		});
 	}
 
@@ -386,10 +388,10 @@ public final class InventoryInteractionsKeybindRegression {
 		Minecraft minecraft = Minecraft.getInstance();
 		AbstractContainerScreen<?> containerScreen = (AbstractContainerScreen<?>) minecraft.gui.screen();
 		Slot slot = containerScreen.getMenu().slots.get(menuSlot);
-		int x = containerScreen.getGuiLeft() + slot.x + 8;
-		int y = containerScreen.getGuiTop() + slot.y + 8;
+		int x = containerScreen.getLeftPos() + slot.x + 8;
+		int y = containerScreen.getTopPos() + slot.y + 8;
 		double scale = minecraft.getWindow().getGuiScale();
-		GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), x * scale, y * scale);
+		SDLMouse.SDL_WarpMouseInWindow(minecraft.getWindow().handle(), (float) (x * scale), (float) (y * scale));
 		containerScreen.mouseMoved(x, y);
 	}
 
