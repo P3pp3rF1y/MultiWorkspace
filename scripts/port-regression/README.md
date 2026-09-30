@@ -5,7 +5,7 @@ Reusable regression harness for future Minecraft/NeoForge ports. The goal is to 
 ## Usage
 
 ```powershell
-pwsh -File .\scripts\port-regression\run-port-regression.ps1 -WorkspaceRoot "D:\Development\MultiWorkspace26.2" -Suite critical
+pwsh -File .\scripts\port-regression\run-port-regression.ps1 -WorkspaceRoot "D:\Development\MultiWorkspace26.3" -Suite critical
 pwsh -File .\scripts\port-regression\run-port-regression.ps1 -Suite recipe-viewers
 pwsh -File .\scripts\port-regression\run-port-regression.ps1 -Suite render
 pwsh -File .\scripts\port-regression\run-port-regression.ps1 -Suite all -ContinueOnFailure

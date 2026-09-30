@@ -1,5 +1,6 @@
 package net.p3pp3rf1y.devclientautomation.scenarios.backpacks;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -580,7 +581,8 @@ public final class BackpackLinkedStorageRegression {
 			}
 			StorageSettingsTab settingsTab = findChild(screen, StorageSettingsTab.class)
 					.orElseThrow(() -> new IllegalStateException("Client moved Inception linked child storage settings tab was unavailable"));
-			assertTrue(settingsTab.mouseClicked(new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(0, 0)), false),
+			assertTrue(settingsTab.mouseClicked(
+					new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false),
 					"Client moved Inception linked child storage settings tab did not handle the click");
 			return true;
 		});
@@ -2627,7 +2629,8 @@ public final class BackpackLinkedStorageRegression {
 			}
 			StorageSettingsTab settingsTab = findChild(screen, StorageSettingsTab.class)
 					.orElseThrow(() -> new IllegalStateException("Nested linked child storage settings tab was unavailable"));
-			assertTrue(settingsTab.mouseClicked(new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(0, 0)), false),
+			assertTrue(settingsTab.mouseClicked(
+					new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false),
 					"Nested linked child storage settings tab did not handle the click");
 			return true;
 		});
@@ -3133,7 +3136,8 @@ public final class BackpackLinkedStorageRegression {
 			}
 			StorageSettingsTab settingsTab = findChild(screen, StorageSettingsTab.class)
 					.orElseThrow(() -> new IllegalStateException("Client feedback storage settings tab was unavailable"));
-			assertTrue(settingsTab.mouseClicked(new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(0, 0)), false),
+			assertTrue(settingsTab.mouseClicked(
+					new MouseButtonEvent(settingsTab.getX() + 9, settingsTab.getY() + 12, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0)), false),
 					"Client feedback storage settings tab did not handle the click");
 			return true;
 		});
@@ -3503,7 +3507,7 @@ public final class BackpackLinkedStorageRegression {
 	private static void clickClientSlot(BackpackScreen screen, Slot slot) {
 		double x = screen.getGuiLeft() + slot.x + 8.0;
 		double y = screen.getGuiTop() + slot.y + 8.0;
-		MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0));
+		MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 		if (!screen.mouseClicked(event, false)) {
 			throw new IllegalStateException("Linked backpack Tank upgrade slot click was not handled");
 		}

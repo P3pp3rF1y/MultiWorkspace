@@ -1,8 +1,11 @@
 package net.p3pp3rf1y.devclientautomation.scenarios.recipeviewer;
 
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
@@ -21,6 +24,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
 import net.p3pp3rf1y.sophisticatedbackpacks.init.ModItems;
 import net.p3pp3rf1y.sophisticatedbackpacks.util.PlayerInventoryProvider;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
+import net.p3pp3rf1y.sophisticatedcore.upgrades.crafting.CraftingUpgradeTab;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +53,7 @@ public final class RecipeViewerEndpoints {
 		endpoints.register("/recipe-viewer/open", RecipeViewerEndpoints::open);
 		endpoints.register("/recipe-viewer/query", RecipeViewerEndpoints::query);
 		endpoints.register("/recipe-viewer/backpack-crafting-transfer", RecipeViewerEndpoints::backpackCraftingTransfer);
+		endpoints.register("/recipe-viewer/backpack-crafting-tab-regression", RecipeViewerEndpoints::backpackCraftingTabRegression);
 		endpoints.register("/recipe-viewer/stats", RecipeViewerEndpoints::stats);
 	}
 
@@ -90,6 +95,32 @@ public final class RecipeViewerEndpoints {
 			waitForOpenParentBackpackMenu();
 			waitForClientCraftingTransferBackpack();
 			return AutomationRuntime.runOnClient(() -> RecipeViewerAutomationManager.transferJson(body));
+		});
+	}
+
+	private static void backpackCraftingTabRegression(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJsonHandling(exchange, LOGGER, () -> {
+			AutomationRuntime.runOnServer(RecipeViewerEndpoints::setupBackpackCraftingTransferRegression);
+			AutomationRuntime.runOnServer(RecipeViewerEndpoints::openParentBackpackRegression);
+			waitForOpenParentBackpackMenu();
+			waitForClientCraftingTransferBackpack();
+			return AutomationRuntime.runOnClient(() -> {
+				if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
+					throw new IllegalStateException("Backpack screen closed before crafting tab click");
+				}
+				CraftingUpgradeTab tab = screen.getUpgradeSettingsControl().children().stream().filter(CraftingUpgradeTab.class::isInstance)
+						.map(CraftingUpgradeTab.class::cast).findFirst().orElseThrow(() -> new IllegalStateException("Crafting upgrade tab is missing"));
+				MouseButtonEvent click = new MouseButtonEvent(tab.getX() + 9, tab.getY() + 12, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
+				if (!screen.mouseClicked(click, false)) {
+					throw new IllegalStateException("Crafting upgrade tab click was not handled");
+				}
+				screen.mouseReleased(click);
+				if (screen.getUpgradeSettingsControl().getOpenTab().filter(openTab -> openTab == tab).isEmpty()) {
+					throw new IllegalStateException("Crafting upgrade tab did not open after left click");
+				}
+				return "{\"ok\":true,\"tab\":\"crafting\",\"open\":true}";
+			});
 		});
 	}
 

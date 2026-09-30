@@ -36,6 +36,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -64,7 +65,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorag
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -1335,12 +1336,12 @@ public class DemoCommand {
 		}
 
 		Slot slot = backpackContainer.getSlot(capturedMob.slot());
-		int x = containerScreen.getGuiLeft() + slot.x - 1;
-		int y = containerScreen.getGuiTop() + slot.y - 1;
+		int x = containerScreen.getLeftPos() + slot.x - 1;
+		int y = containerScreen.getTopPos() + slot.y - 1;
 		int clickX = x + capturedMob.width() * 9;
 		int clickY = y + capturedMob.height() * 9;
 		DemoMouseMotion.moveTo(clickX, clickY, 12, 8, () -> {
-			MouseButtonEvent event = new MouseButtonEvent(clickX, clickY, new MouseButtonInfo(0, 0));
+			MouseButtonEvent event = new MouseButtonEvent(clickX, clickY, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 			containerScreen.mouseClicked(event, false);
 			containerScreen.mouseReleased(event);
 		});
@@ -1721,7 +1722,7 @@ public class DemoCommand {
 				rotatePlayer(player, currentYaw(player), currentPitch(player));
 				setMovementKeys(false, false, false, false);
 				player.setShiftKeyDown(true);
-				player.swing(InteractionHand.MAIN_HAND, true);
+				player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
 				InteractionResult result = interactWithMobCatcherTarget(player, target);
 				if (!result.consumesAction()) {
 					throw new IllegalStateException("Mob catcher sneak right-click did not capture " + target.getType().toShortString());
@@ -1864,8 +1865,8 @@ public class DemoCommand {
 			}
 			KeyMapping.set(key, true);
 			KeyMapping.click(key);
-			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, GLFW.GLFW_PRESS), GLFW.GLFW_MOD_ALT));
-			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, GLFW.GLFW_RELEASE), GLFW.GLFW_MOD_ALT));
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, 1), SDLKeycode.SDL_KMOD_ALT));
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, 0), SDLKeycode.SDL_KMOD_ALT));
 			KeyMapping.set(key, false);
 		});
 		if (record) {

@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLMouse;
 
 public class DemoMouseMotion {
 	private static Motion motion;
@@ -31,12 +31,8 @@ public class DemoMouseMotion {
 
 	public static void moveTo(double targetX, double targetY, int ticks, int completionDelayTicks, Runnable onComplete) {
 		Minecraft minecraft = Minecraft.getInstance();
-		double[] cursorX = new double[1];
-		double[] cursorY = new double[1];
-		double scale = minecraft.getWindow().getGuiScale();
-		GLFW.glfwGetCursorPos(minecraft.getWindow().handle(), cursorX, cursorY);
-		double startX = cursorX[0] / scale;
-		double startY = cursorY[0] / scale;
+		double startX = minecraft.mouseHandler.getScaledXPos(minecraft.getWindow());
+		double startY = minecraft.mouseHandler.getScaledYPos(minecraft.getWindow());
 		delayedCompletion = null;
 		motion = new Motion(startX, startY, targetX, targetY, Math.max(1, ticks), 0, Math.max(0, completionDelayTicks), onComplete);
 		setCursor(minecraft, startX, startY);
@@ -44,7 +40,7 @@ public class DemoMouseMotion {
 
 	public static void setCursor(Minecraft minecraft, double x, double y) {
 		double scale = minecraft.getWindow().getGuiScale();
-		GLFW.glfwSetCursorPos(minecraft.getWindow().handle(), x * scale, y * scale);
+		SDLMouse.SDL_WarpMouseInWindow(minecraft.getWindow().handle(), (float) (x * scale), (float) (y * scale));
 		if (minecraft.gui.screen() != null) {
 			minecraft.gui.screen().mouseMoved(x, y);
 		}

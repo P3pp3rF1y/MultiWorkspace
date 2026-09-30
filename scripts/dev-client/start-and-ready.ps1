@@ -2,7 +2,7 @@ param(
     [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot\..\..").Path,
     [ValidateSet("neoforge", "fabric")]
     [string]$Loader = "neoforge",
-    [string]$WorldName = "Dev Client Automation Void Platform",
+    [string]$WorldName = "Dev Client Automation 26.3 Void Platform",
     [int]$TimeoutSeconds = 300,
     [switch]$Maximize,
     [switch]$ShowLauncherWindow,

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "storage-menu",
+  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "place-and-open-barrel-synchronized-menu",
+      "tags": ["menu", "interaction", "storage"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-barrel", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:barrel"}},
+        {"id": "place-barrel", "action": "player.placeHeldBlock"},
+        {"id": "await-barrel", "action": "await.storageBlock"},
+        {"id": "seed-diamonds", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "use-barrel", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "assert-menu", "action": "assert.menu", "args": {"kind": "storageBlock", "item": "minecraft:diamond", "count": 7}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    }
+  ]
+}

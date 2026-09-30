@@ -577,11 +577,11 @@ final class StorageGuiRegressionRunner {
 	}
 
 	private static double getSlotCenterX(AbstractContainerScreen<?> screen, Slot slot) {
-		return screen.getGuiLeft() + slot.x + 8.0;
+		return screen.getLeftPos() + slot.x + 8.0;
 	}
 
 	private static double getSlotCenterY(AbstractContainerScreen<?> screen, Slot slot) {
-		return screen.getGuiTop() + slot.y + 8.0;
+		return screen.getTopPos() + slot.y + 8.0;
 	}
 
 	private static StorageGuiColumnUpgradeExpectation clickStorageGuiColumnUpgrade(StorageGuiAction action) {

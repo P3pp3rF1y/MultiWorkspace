@@ -99,6 +99,10 @@ public final class HttpJson {
 		return GSON.toJson(errorResponse(error));
 	}
 
+	public static String toJson(Object value) {
+		return GSON.toJson(value);
+	}
+
 	private static Optional<JsonElement> value(JsonObject request, String name) {
 		return request.has(name) && !request.get(name).isJsonNull() ? Optional.of(request.get(name)) : Optional.empty();
 	}

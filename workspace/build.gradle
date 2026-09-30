@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.147'
     id "org.openrewrite.rewrite" version "7.35.0"
     id "net.darkhax.curseforgegradle" version "1.1.15"
     id "com.modrinth.minotaur" version "2.+"
@@ -10,7 +10,7 @@ plugins {
 }
 
 def sharedCodeQualityScript = file('../gradle/code-quality.gradle')
-apply from: sharedCodeQualityScript.exists() ? sharedCodeQualityScript : 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/26.2/gradle/code-quality.gradle'
+apply from: sharedCodeQualityScript.exists() ? sharedCodeQualityScript : 'https://raw.githubusercontent.com/P3pp3rF1y/MultiWorkspace/26.3/gradle/code-quality.gradle'
 
 idea {
     module {
@@ -59,6 +59,7 @@ repositories {
         url "https://maven.blamejared.com"
         content {
             includeGroup "mezz.jei"
+            includeGroup "net.mezzdev.config"
             includeGroup "vazkii.patchouli"
         }
     }
@@ -140,7 +141,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 def recipeViewer = (findProperty("recipe_viewer") ?: "jei").toString()
 def minimalDevClientRuntime = (findProperty("dev_client_minimal_runtime") ?: "false").toString().toBoolean()
-def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "false").toString().toBoolean()
+def curiosDevClientRuntime = (findProperty("dev_client_curios_runtime") ?: "true").toString().toBoolean()
 
 neoForge {
     version = project.neo_version
@@ -287,40 +288,36 @@ dependencies {
 //    runtimeOnly "curse.maven:blurplus-393563:7830008"
 //    runtimeOnly "curse.maven:midnightlib-488090:7811718"
 //    runtimeOnly "curse.maven:cyclopscore-232758:7894547"
-    runtimeOnly "curse.maven:biomesoplenty-220318:8377426"
-    runtimeOnly "curse.maven:glitchcore-955399:8332871"
-    runtimeOnly "curse.maven:terrablender-940057:8384516"
+    // TerraBlender 26.3.0.0.7 references the removed DataPackRegistryEvent.NewRegistry
+    // on all published NeoForge 26.3 builds; its worldgen dependents cannot load yet.
+//    runtimeOnly "maven.modrinth:biomes-o-plenty:${biomesoplenty_version}"
+//    runtimeOnly "maven.modrinth:glitchcore:${glitchcore_version}"
+//    runtimeOnly "maven.modrinth:terrablender:${terrablender_version}"
 /*
-    runtimeOnly("com.simibubi.create:create-${create_mc_version}:${create_version}") {
-        transitive = false
-    }
-    runtimeOnly ("net.createmod.ponder:Ponder-NeoForge-${create_mc_version}:${ponder_version}") {
-        transitive = false
-    }
-    runtimeOnly ("dev.engine-room.flywheel:flywheel-neoforge-${create_mc_version}:${flywheel_version}"){
-        transitive = false
-    }
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
 */
-/*
-    runtimeOnly "curse.maven:itemborders-513769:${item_borders_cf_file_id}"
-    runtimeOnly "curse.maven:iceberg-520110:${iceberg_cf_file_id}"
-    runtimeOnly "curse.maven:prism-638111:${prism_cf_file_id}"
-*/
+    runtimeOnly "maven.modrinth:item-borders:${item_borders_version}"
+    runtimeOnly "maven.modrinth:iceberg:${iceberg_version}"
+    runtimeOnly "maven.modrinth:prism-lib:${prism_version}"
+    runtimeOnly "maven.modrinth:open-parties-and-claims:${openpartiesandclaims_version}"
+    runtimeOnly "maven.modrinth:toms-storage:${toms_storage_version}"
+    runtimeOnly "maven.modrinth:mouse-tweaks:${mousetweaks_version}"
 /*
     runtimeOnly "curse.maven:chipped-456956:${chipped_cf_file_id}"
-    runtimeOnly "curse.maven:resourcefullib-570073:${resourcefullib_cf_file_id}"
+    runtimeOnly "maven.modrinth:resourceful-lib:${resourcefullib_version}"
     runtimeOnly "curse.maven:athena-841890:${athena_cf_file_id}"
 */
     // if (!curiosDevClientRuntime) {
     //     runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
     // }
-    runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
-    runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
+    // Balm 26.3.0.2 and 26.3.0.3-SNAPSHOT still implement the old BiomeModifier signature;
+    // Crafting Tweaks and TrashSlot depend on it and crash the integrated server for now.
+//    runtimeOnly "net.blay09.mods:balm-neoforge:${balm_version}"
+//    runtimeOnly "net.blay09.mods:craftingtweaks-neoforge:${craftingtweaks_version}"
 /*
     runtimeOnly "curse.maven:caelus-308989:${caelus_cf_file_id}"
     runtimeOnly "curse.maven:mekanismgenerators-268566:${mekanismgenerators_cf_file_id}"
-    runtimeOnly "curse.maven:carryon-274259:${carryon_cf_file_id}"
+    runtimeOnly "maven.modrinth:carry-on:${carryon_version}"
     runtimeOnly "curse.maven:mekanism-268560:5574951"
     runtimeOnly "curse.maven:buildinggadgets-298187:5615703"
     runtimeOnly "curse.maven:mobgrindingutils-254241:6022733"
@@ -339,17 +336,16 @@ dependencies {
 */
 //        runtimeOnly "curse.maven:guideme-1173950:8129704"
 //        runtimeOnly "curse.maven:AE2-223794:8129795"
-        runtimeOnly "maven.modrinth:construction-sticks:${constructionsticks_version}"
+    // Construction Sticks 5.0.0 intermittently fails to decode its smithing recipe on 26.3.
+//    runtimeOnly "maven.modrinth:construction-sticks:${constructionsticks_version}"
 
 //    runtimeOnly "curse.maven:spark-361579:5971514"
 
 /*
     runtimeOnly "curse.maven:craftingstation-318551:5569165"
 
-    runtimeOnly "curse.maven:mousetweaks-60089:5637846"
-
 */
-    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
+//    runtimeOnly "net.blay09.mods:trashslot-neoforge:${trashslot_version}"
     // runtimeOnly "com.refinedmods.refinedstorage:refinedstorage-neoforge:${rs_version}"
     //runtimeOnly "curse.maven:accessories-938917:${accessories_cf_file_id}"
     //runtimeOnly "curse.maven:owolib-532610:${owolib_cf_file_id}"

@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
 import net.p3pp3rf1y.devclientautomation.bridge.AutomationBridge;
 import net.p3pp3rf1y.devclientautomation.bridge.EndpointRegistry;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.core.ClientControlEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.core.WorldAutomationEndpoints;
@@ -24,6 +25,10 @@ public final class DevClientAutomation {
 	private static AutomationServer server;
 
 	private DevClientAutomation() {
+	}
+
+	public static Logger getLogger() {
+		return LOGGER;
 	}
 
 	public static void start() {
@@ -49,6 +54,7 @@ public final class DevClientAutomation {
 			StorageEndpoints.register(endpoints);
 			ModelEndpoints.register(endpoints);
 			RecipeViewerEndpoints.register(endpoints);
+			RegressionEndpoints.register(endpoints);
 		}
 
 		private void capabilities(HttpExchange exchange) throws IOException {
@@ -61,8 +67,8 @@ public final class DevClientAutomation {
 				}
 				throw new IllegalStateException("Method not allowed");
 			}
-			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"neoforge\",\"minecraftVersion\":\"26.2\","
-					+ "\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"storage\",\"inventory-interactions\"]}")
+			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"neoforge\",\"minecraftVersion\":\"26.3\","
+					+ "\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}")
 					.getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
 			exchange.sendResponseHeaders(200, response.length);

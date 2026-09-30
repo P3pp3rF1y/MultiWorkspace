@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $workspaceRoot = $PSScriptRoot
 
 $owner        = "P3pp3rF1y"
-$branch       = "26.2"
+$branch       = "26.3"
 $workflowPath = ".github/workflows/gradle.yml"
 
 # Polling behavior
