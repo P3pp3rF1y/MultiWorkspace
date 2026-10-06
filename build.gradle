@@ -47,3 +47,30 @@ subprojects { subproject ->
         }
     }
 }
+
+def spotlessCheckAll = tasks.register('spotlessCheckAll') {
+    group = 'verification'
+    description = 'Runs Spotless checks for every Spotless-enabled subproject.'
+}
+
+subprojects { subproject ->
+    subproject.pluginManager.withPlugin('com.diffplug.spotless') {
+        def spotlessCheck = subproject.tasks.named('spotlessCheck')
+
+        spotlessCheckAll.configure {
+            dependsOn spotlessCheck
+        }
+
+        subproject.tasks.configureEach { candidate ->
+            if (candidate.name == 'runClient') {
+                candidate.dependsOn spotlessCheck
+            }
+        }
+    }
+}
+
+project(':workspace').tasks.configureEach { candidate ->
+    if (candidate.name == 'runClient') {
+        candidate.dependsOn spotlessCheckAll
+    }
+}
