@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-menu",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "open-storage-primary-backpack": [
+      {"id": "survival-inventory", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "await-storage", "action": "await.storageBlock"},
+      {"id": "linker-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+      {"id": "link-primary", "action": "player.useHeldItemOnTarget"},
+      {"id": "backpack-item", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "sophisticatedbackpacks:backpack", "count": 1}},
+      {"id": "open-inventory", "action": "player.openInventory"},
+      {"id": "pickup-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+      {"id": "link-secondary", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 9, "button": 1}},
+      {"id": "pickup-secondary", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 9}},
+      {"id": "hold-secondary", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+      {"id": "close-inventory", "action": "menu.close"},
+      {"id": "await-inventory-closed", "action": "await.menuClosed"},
+      {"id": "marker", "action": "player.setInventorySlot", "args": {"slot": 11, "item": "minecraft:diamond", "count": 7}},
+      {"id": "open-secondary", "action": "player.useHeldItem"},
+      {"id": "await-secondary", "action": "await.menu", "args": {"kind": "backpackItem"}},
+      {"id": "native-layout", "action": "assert.menuUpgradeLayout", "args": {"contents": true}},
+      {"id": "native-host", "action": "assert.linkedBackpackHost"},
+      {"id": "pickup-marker", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 11, "click": "pickup"}},
+      {"id": "store-marker", "action": "menu.clickStorageSlot", "args": {"area": "storage", "slot": 0, "click": "pickup"}},
+      {"id": "shared-contents", "action": "assert.menuUpgradeLayout", "args": {"contents": true}},
+      {"id": "primary-contents", "action": "assert.linkedStorageBlock", "args": {"count": 7}}
+    ],
+    "edit-linked-menu": [
+         {"id": "survival-inventory", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "await-barrel", "action": "await.storageBlock"},
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "tank-item", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1}},
+        {"id": "battery-item", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "sophisticatedbackpacks:battery_upgrade", "count": 1}},
+        {"id": "marker-items", "action": "player.setInventorySlot", "args": {"slot": 11, "item": "minecraft:diamond", "count": 7}},
+         {"id": "linker-item", "action": "player.setInventorySlot", "args": {"slot": 12, "item": "sophisticatedcore:ender_linker", "count": 1}},
+         {"id": "open-inventory", "action": "player.openInventory"},
+         {"id": "pickup-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 12}},
+         {"id": "link-backpack", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0, "button": 1}},
+         {"id": "put-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 12}},
+         {"id": "close-inventory", "action": "menu.close"},
+         {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "insert-tank", "action": "menu.quickMovePlayerInventorySlot", "args": {"inventorySlot": 9}},
+        {"id": "tank-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1}},
+        {"id": "insert-battery", "action": "menu.quickMovePlayerInventorySlot", "args": {"inventorySlot": 10}},
+        {"id": "backpack-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2}},
+        {"id": "close-backpack", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"},
+         {"id": "open-linker-inventory", "action": "player.openInventory"},
+         {"id": "pickup-backpack", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+         {"id": "store-backpack", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 8}},
+         {"id": "pickup-bound-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 12}},
+         {"id": "hold-bound-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+         {"id": "close-linker-inventory", "action": "menu.close"},
+         {"id": "await-linker-inventory-closed", "action": "await.menuClosed"},
+        {"id": "link-barrel", "action": "player.useHeldItemOnTarget"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-barrel", "action": "player.useTargetBlock"},
+        {"id": "await-barrel-menu", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "barrel-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "pickup-marker", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 11, "click": "pickup"}},
+        {"id": "store-marker", "action": "menu.clickStorageSlot", "args": {"area": "storage", "slot": 0, "click": "pickup"}},
+        {"id": "remove-tank-shift", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 0, "click": "quickMove"}},
+        {"id": "battery-only-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "remove-battery-click", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 1, "click": "pickup"}},
+        {"id": "empty-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 0, "controls": 0, "contents": true}},
+        {"id": "insert-battery-click", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 1, "click": "pickup"}},
+        {"id": "battery-restored-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "insert-tank-shift", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 7, "click": "quickMove"}},
+        {"id": "both-restored-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "remove-tank-click", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 0, "click": "pickup"}},
+        {"id": "tank-click-removed-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "insert-tank-click", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 0, "click": "pickup"}},
+        {"id": "tank-click-restored-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "remove-battery-shift", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 1, "click": "quickMove"}},
+        {"id": "battery-shift-removed-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "insert-battery-shift", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 7, "click": "quickMove"}},
+        {"id": "battery-shift-restored-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "close-barrel", "action": "menu.close"},
+        {"id": "await-barrel-closed", "action": "await.menuClosed"}
+    ]
+  },
+  "tests": [
+    {
+      "id": "double-chest-primary-backpack-secondary",
+       "tags": ["linked", "menu", "double-chest", "placed-backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "survival-placement", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "chest-items", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:chest", "count": 2}},
+        {"id": "place-first-chest", "action": "player.placeHeldBlock"},
+        {"id": "await-first-chest", "action": "await.storageBlock"},
+        {"id": "place-second-chest", "action": "player.placeHeldBlock", "args": {"offset": [0, 0, -1]}},
+        {"id": "naturally-joined", "action": "assert.doubleChest"},
+        {"id": "backpack-item", "action": "backpack.createInMainHand", "args": {"tier": "leather"}},
+        {"id": "place-backpack", "action": "backpack.placeHeld", "args": {"offset": [2, 0, -1]}},
+        {"id": "linker-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "use-linker-on-double-chest", "action": "player.useHeldItemOnTarget"},
+        {"id": "use-same-bound-linker-on-placed-backpack", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "open-placed-backpack", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "double-capacity", "action": "assert.linkedBackpackHost", "args": {"minimumSlots": 54, "placed": true, "offsetZ": 1}},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-close", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "barrel-primary-backpack-secondary",
+      "tags": ["linked", "menu"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2, 0, -2]}},
+        {"id": "open-secondary", "fixture": "open-storage-primary-backpack"},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-close", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "chest-primary-backpack-secondary",
+      "tags": ["linked", "menu"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "chest", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:chest", "offset": [2, 0, -2]}},
+        {"id": "open-secondary", "fixture": "open-storage-primary-backpack"},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-close", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "shulker-primary-backpack-secondary",
+      "tags": ["linked", "menu"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "shulker", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:shulker_box", "offset": [2, 0, -2]}},
+        {"id": "open-secondary", "fixture": "open-storage-primary-backpack"},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-close", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "backpack-primary-barrel-shows-tank-and-battery-controls",
+      "tags": ["linked", "menu", "fluid", "energy"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:diamond_barrel", "offset": [2, 0, -2]}},
+        {"id": "edit-menu", "fixture": "edit-linked-menu"}
+      ]
+    },
+    {
+      "id": "backpack-primary-chest-upgrade-layout-stays-synchronized",
+      "tags": ["linked", "menu", "fluid", "energy"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "chest", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:diamond_chest", "offset": [2, 0, -2]}},
+        {"id": "edit-menu", "fixture": "edit-linked-menu"}
+      ]
+    },
+    {
+      "id": "backpack-primary-shulker-upgrade-layout-stays-synchronized",
+      "tags": ["linked", "menu", "fluid", "energy"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "shulker", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:diamond_shulker_box", "offset": [2, 0, -2]}},
+        {"id": "edit-menu", "fixture": "edit-linked-menu"}
+      ]
+    }
+  ]
+}

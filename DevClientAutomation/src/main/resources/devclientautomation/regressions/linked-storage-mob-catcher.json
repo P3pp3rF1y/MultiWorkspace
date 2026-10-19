@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-mob-catcher",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "capture-and-open-secondary": [
+      {"id":"floor","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[1,-1,-2]}},
+      {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+      {"id":"backpack","action":"backpack.createInMainHand","args":{"tier":"diamond"}},
+      {"id":"upgrade","action":"fixture.backpack.setUpgrade","args":{"slot":0,"item":"sophisticatedbackpacks:mob_catcher_upgrade"}},
+      {"id":"linker","action":"player.setInventorySlot","args":{"slot":9,"item":"sophisticatedcore:ender_linker","count":1}},
+      {"id":"inventory","action":"player.openInventory"},
+      {"id":"pick-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"link-primary","action":"menu.clickPlayerInventorySlot","args":{"slot":0,"button":1}},
+      {"id":"put-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"close-inventory","action":"menu.close"},
+      {"id":"closed","action":"await.menuClosed"},
+      {"id":"pig","action":"fixture.entity.spawnPig","args":{"saveAs":"pig"}},
+      {"id":"capture","action":"player.sneakUseFixtureEntity","args":{"ref":"pig"}},
+      {"id":"capture-keeps-menu-closed","action":"await.menuClosed"},
+      {"id":"captured","action":"assert.canonicalCapturedMobs","args":{"count":1}},
+      {"id":"select-linker","action":"player.openInventory"},
+      {"id":"pick-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"store-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":8}},
+      {"id":"pick-bound-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"hold-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"close-linker-selection","action":"menu.close"},
+      {"id":"selection-closed","action":"await.menuClosed"},
+      {"id":"link-secondary","action":"player.useHeldItemOnTarget"},
+      {"id":"open-secondary","action":"player.useTargetBlock"},
+      {"id":"secondary-menu","action":"await.menu","args":{"kind":"storageBlock"}},
+      {"id":"mob-rendered","action":"assert.canonicalCapturedMobs","args":{"count":1,"render":true}},
+      {"id":"close-secondary","action":"menu.close"},
+      {"id":"secondary-closed","action":"await.menuClosed"},
+      {"id":"reopen-secondary","action":"player.useTargetBlock"},
+      {"id":"secondary-reopened","action":"await.menu","args":{"kind":"storageBlock"}},
+      {"id":"mob-still-rendered","action":"assert.canonicalCapturedMobs","args":{"count":1,"render":true}},
+      {"id":"close-final","action":"menu.close"},
+      {"id":"closed-final","action":"await.menuClosed"}
+    ]
+  },
+  "tests": [{
+    "id": "canonical-capture-and-menu-release",
+    "tags": ["linked-storage", "mob-catcher"],
+    "timeoutTicks": 500,
+    "steps": [
+      {"id":"floor-one","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[1,-1,-2]}},
+      {"id":"floor-two","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[2,-1,-2]}},
+      {"id":"pig-floor","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[2,-1,-1]}},
+      {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+      {"id":"backpack","action":"backpack.createInMainHand","args":{"tier":"diamond"}},
+      {"id":"upgrade","action":"fixture.backpack.setUpgrade","args":{"slot":0,"item":"sophisticatedbackpacks:mob_catcher_upgrade"}},
+      {"id":"linker","action":"player.setInventorySlot","args":{"slot":9,"item":"sophisticatedcore:ender_linker","count":1}},
+      {"id":"inventory","action":"player.openInventory","args":{}},
+      {"id":"pick-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"link-primary","action":"menu.clickPlayerInventorySlot","args":{"slot":0,"button":1}},
+      {"id":"put-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"close-inventory","action":"menu.close","args":{}},
+      {"id":"closed","action":"await.menuClosed","args":{}},
+      {"id":"pig","action":"fixture.entity.spawnPig","args":{"saveAs":"pig"}},
+       {"id":"capture","action":"player.sneakUseFixtureEntity","args":{"ref":"pig"}},
+       {"id":"capture-keeps-menu-closed","action":"await.menuClosed"},
+      {"id":"captured","action":"assert.canonicalCapturedMobs","args":{"count":1}},
+      {"id":"open","action":"player.useHeldItem","args":{}},
+      {"id":"menu","action":"await.menu","args":{"kind":"backpackItem"}},
+      {"id":"client-captured","action":"assert.canonicalCapturedMobs","args":{"count":1}},
+      {"id":"release","action":"menu.clickCapturedMob","args":{"index":0}},
+      {"id":"released","action":"assert.canonicalCapturedMobs","args":{"count":0}},
+      {"id":"close","action":"menu.close","args":{}},
+      {"id":"closed-final","action":"await.menuClosed","args":{}}
+    ]
+  },
+  {"id":"captured-mob-shows-in-barrel-secondary","tags":["linked-storage","mob-catcher"],"timeoutTicks":500,"steps":[
+    {"id":"barrel","action":"fixture.block.set","args":{"block":"sophisticatedstorage:barrel","offset":[2,0,-2]}},
+    {"id":"capture-and-display","fixture":"capture-and-open-secondary"}
+  ]},
+  {"id":"captured-mob-shows-in-chest-secondary","tags":["linked-storage","mob-catcher"],"timeoutTicks":500,"steps":[
+    {"id":"chest","action":"fixture.block.set","args":{"block":"sophisticatedstorage:chest","offset":[2,0,-2]}},
+    {"id":"capture-and-display","fixture":"capture-and-open-secondary"}
+  ]},
+  {"id":"captured-mob-shows-in-shulker-secondary","tags":["linked-storage","mob-catcher"],"timeoutTicks":500,"steps":[
+    {"id":"shulker","action":"fixture.block.set","args":{"block":"sophisticatedstorage:shulker_box","offset":[2,0,-2]}},
+    {"id":"capture-and-display","fixture":"capture-and-open-secondary"}
+  ]}]
+}
