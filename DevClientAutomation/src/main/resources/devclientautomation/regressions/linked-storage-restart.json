@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-restart",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "prepare-canonical-mob-and-stashed-items",
+      "tags": ["linked-storage", "restart-prepare"],
+      "playerState": "checkpointPrepare",
+      "checkpoint": "canonical-mob-items",
+      "timeoutTicks": 500,
+      "steps": [
+        {"id":"floor-one","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[1,-1,-2]}},
+        {"id":"floor-two","action":"fixture.block.set","args":{"block":"minecraft:stone","offset":[2,-1,-2]}},
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+        {"id":"backpack","action":"backpack.createInMainHand","args":{"tier":"diamond"}},
+        {"id":"mob-upgrade","action":"fixture.backpack.setUpgrade","args":{"item":"sophisticatedbackpacks:mob_catcher_upgrade"}},
+        {"id":"linker","action":"player.setInventorySlot","args":{"slot":9,"item":"sophisticatedcore:ender_linker","count":1}},
+        {"id":"shulker","action":"player.setInventorySlot","args":{"slot":10,"item":"sophisticatedstorage:shulker_box","count":1}},
+        {"id":"marker","action":"player.setInventorySlot","args":{"slot":11,"item":"minecraft:diamond","count":7}},
+        {"id":"inventory","action":"player.openInventory","args":{}},
+        {"id":"pick-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+        {"id":"link-primary","action":"menu.clickPlayerInventorySlot","args":{"slot":0,"button":1}},
+        {"id":"store-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+        {"id":"linked-primary","action":"assert.linkedItemContents","args":{"slot":0,"count":0}},
+        {"id":"pick-bound-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+        {"id":"craft-linker","action":"menu.clickPlayerInventorySlot","args":{"area":"crafting","slot":0}},
+        {"id":"pick-shulker","action":"menu.clickPlayerInventorySlot","args":{"slot":10}},
+        {"id":"craft-shulker","action":"menu.clickPlayerInventorySlot","args":{"area":"crafting","slot":1}},
+        {"id":"result-ready","action":"await.playerCraftingResult","args":{}},
+        {"id":"take-result","action":"menu.clickPlayerInventorySlot","args":{"area":"result","slot":0}},
+        {"id":"store-secondary","action":"menu.clickPlayerInventorySlot","args":{"slot":10}},
+        {"id":"secondary-linked","action":"assert.linkedItemContents","args":{"slot":10,"count":0}},
+        {"id":"pick-marker","action":"menu.clickPlayerInventorySlot","args":{"slot":11}},
+        {"id":"stash-marker","action":"menu.clickPlayerInventorySlot","args":{"slot":10,"button":1}},
+        {"id":"canonical-marker","action":"assert.linkedItemContents","args":{"slot":0,"count":7}},
+        {"id":"close-inventory","action":"menu.close","args":{}},
+        {"id":"closed","action":"await.menuClosed","args":{}},
+        {"id":"pig","action":"fixture.entity.spawnPig","args":{"saveAs":"pig"}},
+        {"id":"capture","action":"player.sneakUseFixtureEntity","args":{"ref":"pig"}},
+        {"id":"canonical-mob","action":"assert.canonicalCapturedMobs","args":{"count":1}}
+      ]
+    },
+    {
+      "id": "verify-canonical-mob-and-stashed-items-after-server-restart",
+      "tags": ["linked-storage", "restart-verify"],
+      "prepareTestCell": false,
+      "playerState": "checkpointVerify",
+      "checkpoint": "canonical-mob-items",
+      "timeoutTicks": 200,
+      "steps": [
+        {"id":"backpack-items-restored","action":"assert.linkedItemContents","args":{"slot":0,"count":7}},
+        {"id":"shulker-items-restored","action":"assert.linkedItemContents","args":{"slot":10,"count":7}},
+        {"id":"mob-restored","action":"assert.canonicalCapturedMobs","args":{"count":1}},
+        {"id":"open-restored-backpack","action":"player.useHeldItem","args":{}},
+        {"id":"restored-menu","action":"await.menu","args":{"kind":"backpackItem"}},
+        {"id":"restored-client-mob","action":"assert.canonicalCapturedMobs","args":{"count":1}},
+        {"id":"close-restored-menu","action":"menu.close","args":{}},
+        {"id":"restored-menu-closed","action":"await.menuClosed","args":{}}
+      ]
+    }
+  ]
+}

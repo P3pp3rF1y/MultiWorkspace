@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "controller-manual-deposit",
+  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "barrel-and-controller": [
+      {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [1,0,-2]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [2,0,-2]}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "contents-item-filter-manual-deposit-conformance",
+      "tags": ["runtimeConformance"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "storage", "fixture": "barrel-and-controller"},
+        {"id": "contents-filter", "action": "fixture.storage.contentsFilter", "args": {"offset": [1,0,-2], "item": "minecraft:stone", "match": "item"}},
+        {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [2,0,-2]}},
+        {"id": "stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 3}},
+        {"id": "first-click", "action": "player.useHeldItemOnTarget"},
+        {"id": "second-click", "action": "player.useHeldItemOnTarget"},
+        {"id": "player-empty", "action": "assert.playerInventoryBaseline"},
+        {"id": "all-stone-stored", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:stone", "count": 4}}
+      ]
+    },
+    {
+      "id": "contents-mod-filter-double-click-preserves-items",
+      "tags": ["controller", "manual-deposit", "filter", "item-conservation"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "storage", "fixture": "barrel-and-controller"},
+        {"id": "contents-filter", "action": "fixture.storage.contentsFilter", "args": {"offset": [1,0,-2], "item": "minecraft:stone", "match": "mod"}},
+        {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [2,0,-2]}},
+        {"id": "diamonds", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:diamond", "count": 7}},
+        {"id": "gold", "action": "player.setInventorySlot", "args": {"slot": 2, "item": "minecraft:gold_ingot", "count": 3}},
+        {"id": "first-click", "action": "player.useHeldItemOnTarget"},
+        {"id": "second-click", "action": "player.useHeldItemOnTarget"},
+        {"id": "player-empty", "action": "assert.playerInventoryBaseline"},
+        {"id": "all-diamonds-stored", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:diamond", "count": 7}},
+        {"id": "all-gold-stored", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:gold_ingot", "count": 3}},
+        {"id": "anchor-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:stone", "count": 1}}
+      ]
+    }
+  ]
+}

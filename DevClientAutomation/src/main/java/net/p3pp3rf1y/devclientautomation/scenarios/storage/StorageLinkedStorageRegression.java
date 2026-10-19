@@ -785,8 +785,7 @@ public final class StorageLinkedStorageRegression {
 						&& level.getBlockState(secondaryMain.getBlockPos()).is(ModBlocks.CHEST.get())
 						&& level.getBlockState(remainingSecondaryPos).is(ModBlocks.CHEST.get())
 						&& secondaryEndpoint.equals(requireEndpoint(secondaryMain, "linked secondary double-chest main after rejected tier upgrade")),
-						"Tier upgrade on a linked secondary double-chest non-main half "
-								+ "was not rejected without changing the main endpoint");
+						"Tier upgrade on a linked secondary double-chest non-main half " + "was not rejected without changing the main endpoint");
 				player.setGameMode(GameType.SURVIVAL);
 				require(player.gameMode.destroyBlock(secondaryMain.getBlockPos()), "Player break did not remove the linked secondary double chest half");
 				List<ItemEntity> secondaryDrops = level.getEntitiesOfClass(ItemEntity.class, new AABB(secondaryMain.getBlockPos()).inflate(1.5D));
