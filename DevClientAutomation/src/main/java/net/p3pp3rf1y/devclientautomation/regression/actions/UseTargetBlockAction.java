@@ -9,6 +9,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public final class UseTargetBlockAction extends TypedRegressionAction<UseTargetBlockAction.Arguments> {
 	public record Arguments() {
@@ -31,6 +32,7 @@ public final class UseTargetBlockAction extends TypedRegressionAction<UseTargetB
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private int deadline;
+		private CompletableFuture<Void> snapshot;
 
 		private Execution(RegressionExecutionContext context) {
 			super(context);
@@ -43,6 +45,14 @@ public final class UseTargetBlockAction extends TypedRegressionAction<UseTargetB
 				deadline = minecraft.player.tickCount + 100;
 			}
 			if (minecraft.player.getMainHandItem().isEmpty()) {
+				if (snapshot == null) {
+					snapshot = context.onServer(player -> context.journal().recordBlock(player.level(), context.target()));
+					return RegressionActionProgress.WAITING;
+				}
+				RegressionActionProgress snapped = await(snapshot);
+				if (snapped != RegressionActionProgress.PASSED) {
+					return snapped;
+				}
 				BlockPos target = context.target();
 				context.putDiagnostic("clientDistance", minecraft.player.position().distanceTo(Vec3.atCenterOf(target)));
 				minecraft.gameMode.useItemOn(minecraft.player, InteractionHand.MAIN_HAND,

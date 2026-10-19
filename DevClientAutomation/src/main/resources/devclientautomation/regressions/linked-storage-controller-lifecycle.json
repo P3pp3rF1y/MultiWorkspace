@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-controller-lifecycle",
+  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "tests": [{
+    "id": "shared-group-retains-all-visual-members-across-controller-reload",
+    "tags": ["controller", "linked-storage", "reload"],
+    "timeoutTicks": 400,
+    "steps": [
+      {"id": "first", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+      {"id": "second", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-1]}},
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+      {"id": "create-group", "action": "player.useHeldItemOnTarget"},
+      {"id": "add-secondary", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+      {"id": "survivor-connection", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [3,0,-1]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+      {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [3,0,-2]}},
+      {"id": "shared-range", "action": "assert.controllerSharedGroup"},
+      {"id": "reload", "action": "fixture.controller.reload"},
+      {"id": "all-members-restored", "action": "assert.controllerSharedGroup"},
+      {"id": "reload-again", "action": "fixture.controller.reload"},
+      {"id": "stable-range-and-members", "action": "assert.controllerSharedGroup"},
+      {"id": "creative-destruction", "action": "fixture.player.setGameMode", "args": {"mode": "creative"}},
+      {"id": "break-representative", "action": "player.breakTargetBlock"},
+      {"id": "survivor-keeps-range", "action": "assert.controllerSharedGroup", "args": {"members": 1, "offsetZ": 1}},
+      {"id": "reload-promoted-controller", "action": "fixture.controller.reload"},
+      {"id": "survivor-membership-restored", "action": "assert.controllerSharedGroup", "args": {"members": 1, "offsetZ": 1}}
+    ]
+  }]
+}

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.sun.net.httpserver.HttpExchange;
 import org.slf4j.Logger;
 
@@ -24,11 +25,19 @@ public final class HttpJson {
 	}
 
 	public static JsonObject readObject(HttpExchange exchange) throws IOException {
-		String body = readBody(exchange);
+		return readObject(readBody(exchange));
+	}
+
+	static JsonObject readObject(String body) {
 		if (body.isBlank()) {
-			return new JsonObject();
+			throw new IllegalArgumentException("Request body must not be blank");
 		}
-		JsonElement element = JsonParser.parseString(body);
+		JsonElement element;
+		try {
+			element = JsonParser.parseString(body);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException("Malformed JSON request", e);
+		}
 		if (!element.isJsonObject()) {
 			throw new IllegalArgumentException("Expected a JSON object");
 		}
@@ -72,23 +81,33 @@ public final class HttpJson {
 	}
 
 	public static String string(JsonObject request, String name, String defaultValue) {
-		return value(request, name).map(JsonElement::getAsString).orElse(defaultValue);
+		return value(request, name).map(value -> {
+			if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+				throw new IllegalArgumentException(name + " must be a string");
+			}
+			return value.getAsString();
+		}).orElse(defaultValue);
 	}
 
 	public static boolean bool(JsonObject request, String name, boolean defaultValue) {
-		return value(request, name).map(JsonElement::getAsBoolean).orElse(defaultValue);
+		return value(request, name).map(value -> {
+			if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+				throw new IllegalArgumentException(name + " must be a boolean");
+			}
+			return value.getAsBoolean();
+		}).orElse(defaultValue);
 	}
 
 	public static int integer(JsonObject request, String name, int defaultValue) {
-		return value(request, name).map(JsonElement::getAsInt).orElse(defaultValue);
+		return value(request, name).map(value -> number(value, name).getAsInt()).orElse(defaultValue);
 	}
 
 	public static double decimal(JsonObject request, String name, double defaultValue) {
-		return value(request, name).map(JsonElement::getAsDouble).orElse(defaultValue);
+		return value(request, name).map(value -> number(value, name).getAsDouble()).orElse(defaultValue);
 	}
 
 	public static long longValue(JsonObject request, String name, long defaultValue) {
-		return value(request, name).map(JsonElement::getAsLong).orElse(defaultValue);
+		return value(request, name).map(value -> number(value, name).getAsLong()).orElse(defaultValue);
 	}
 
 	public static String jsonProperty(String name, String value) {
@@ -104,7 +123,21 @@ public final class HttpJson {
 	}
 
 	private static Optional<JsonElement> value(JsonObject request, String name) {
-		return request.has(name) && !request.get(name).isJsonNull() ? Optional.of(request.get(name)) : Optional.empty();
+		if (!request.has(name)) {
+			return Optional.empty();
+		}
+		JsonElement value = request.get(name);
+		if (value.isJsonNull()) {
+			throw new IllegalArgumentException(name + " must not be null");
+		}
+		return Optional.of(value);
+	}
+
+	private static JsonPrimitive number(JsonElement value, String name) {
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+			throw new IllegalArgumentException(name + " must be a number");
+		}
+		return value.getAsJsonPrimitive();
 	}
 
 	private static JsonObject errorResponse(String error) {

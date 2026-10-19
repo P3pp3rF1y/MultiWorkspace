@@ -14,18 +14,17 @@ public final class SetPlayerInventorySlotAction extends TypedRegressionAction<Se
 	}
 
 	public SetPlayerInventorySlotAction() {
-		super("player.setInventorySlot", "1", Set.of("minecraft:client"));
+		super("player.setInventorySlot", "2", Set.of("minecraft:client"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("slot", "item", "count", "clearMatching"), description);
-		if (args.has("clearMatching") && (!args.get("clearMatching").isJsonPrimitive() || !args.get("clearMatching").getAsJsonPrimitive().isBoolean())) {
-			throw new IllegalArgumentException("Argument clearMatching on " + description + " must be a boolean");
+		if (!args.has("slot")) {
+			throw new IllegalArgumentException("Argument slot on " + description + " must be numeric");
 		}
-		boolean clearMatching = args.has("clearMatching") && args.get("clearMatching").getAsBoolean();
-		return new Arguments(requirePositiveInt(args, "slot", description), requireString(args, "item", description),
-				requirePositiveInt(args, "count", description), clearMatching);
+		return new Arguments(optionalNonNegativeInt(args, "slot", 0, description), requireString(args, "item", description),
+				requirePositiveInt(args, "count", description), optionalBoolean(args, "clearMatching", false, description));
 	}
 
 	@Override
@@ -53,7 +52,7 @@ public final class SetPlayerInventorySlotAction extends TypedRegressionAction<Se
 							.orElseThrow(() -> new IllegalArgumentException("Unknown player inventory item " + arguments.item()));
 					if (arguments.clearMatching()) {
 						for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-							if (player.getInventory().getItem(slot).is(item)) {
+							if (slot != arguments.slot() && player.getInventory().getItem(slot).is(item)) {
 								player.getInventory().setItem(slot, ItemStack.EMPTY);
 							}
 						}

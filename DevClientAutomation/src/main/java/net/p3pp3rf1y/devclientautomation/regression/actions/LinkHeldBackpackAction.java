@@ -2,8 +2,10 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
+import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
 
 import java.util.Set;
@@ -11,47 +13,69 @@ import java.util.concurrent.CompletableFuture;
 
 import static net.p3pp3rf1y.sophisticatedcore.init.ModItems.ENDER_LINKER;
 
-public final class LinkHeldBackpackAction extends TypedRegressionAction<Void> {
+public final class LinkHeldBackpackAction extends TypedRegressionAction<LinkHeldBackpackAction.Arguments> {
+	public record Arguments(String linkerRef) {
+	}
+
 	public LinkHeldBackpackAction() {
 		super("backpack.linkHeld", "1", Set.of("minecraft:client", "sophisticatedbackpacks"));
 	}
 
 	@Override
-	protected Void parseArguments(JsonObject args, String description) {
-		requireNoArguments(args, description);
-		return null;
+	protected Arguments parseArguments(JsonObject args, String description) {
+		requireOnly(args, Set.of("linkerRef"), description);
+		return new Arguments(optionalString(args, "linkerRef", "", description));
 	}
 
 	@Override
-	protected RegressionActionExecution start(RegressionExecutionContext context, Void arguments) {
-		return new Execution(context);
+	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
+		return new Execution(context, arguments);
 	}
 
 	private static final class Execution extends TickRegressionActionExecution {
+		private final Arguments arguments;
 		private CompletableFuture<Void> future;
+		private int deadline = -1;
 
-		private Execution(RegressionExecutionContext context) {
+		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
+			this.arguments = arguments;
 		}
 
 		@Override
 		public RegressionActionProgress tick() {
+			if (deadline < 0) {
+				deadline = context.minecraft().player.tickCount + 100;
+			}
 			if (future == null) {
 				future = context.onServer(player -> {
 					ItemStack backpack = player.getMainHandItem();
 					if (!(backpack.getItem() instanceof BackpackItem)) {
 						throw new IllegalStateException("Main hand does not contain a backpack to link");
 					}
-					LinkedStorageService.LinkResult result = LinkedStorageService.linkWithResult((ServerLevel) player.level(), player.getUUID(),
-							new ItemStack(ENDER_LINKER.get()), backpack);
+					ItemStack linker = arguments.linkerRef().isEmpty()
+							? new ItemStack(ENDER_LINKER.get())
+							: context.values().require(arguments.linkerRef(), ItemStack.class);
+					LinkedStorageService.LinkResult result = LinkedStorageService.linkWithResult((ServerLevel) player.level(), player.getUUID(), linker,
+							backpack);
 					if (result != LinkedStorageService.LinkResult.SUCCESS) {
 						throw new IllegalStateException("Could not link held backpack: " + result);
 					}
+					player.setItemInHand(InteractionHand.MAIN_HAND, backpack);
 					player.getInventory().setChanged();
 					player.inventoryMenu.broadcastFullState();
 				});
 			}
-			return await(future);
+			RegressionActionProgress progress = await(future);
+			if (progress != RegressionActionProgress.PASSED) {
+				return progress;
+			}
+			if (context.minecraft().player.getMainHandItem().has(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT)) {
+				return RegressionActionProgress.PASSED;
+			}
+			return context.minecraft().player.tickCount >= deadline
+					? fail("Linked backpack endpoint did not synchronize to client")
+					: RegressionActionProgress.WAITING;
 		}
 	}
 }

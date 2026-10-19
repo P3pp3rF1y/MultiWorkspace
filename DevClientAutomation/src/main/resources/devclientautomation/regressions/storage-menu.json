@@ -20,6 +20,26 @@
         {"id": "close-menu", "action": "menu.close"},
         {"id": "await-closed", "action": "await.menuClosed"}
       ]
+    },
+    {
+      "id": "placed-linked-block-open-menu-receives-live-slot-delta",
+      "tags": ["storage", "menu", "sync"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "hold-barrel", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:barrel"}},
+        {"id": "place-barrel", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "seed-diamonds", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-block", "action": "player.useHeldItemOnTarget"},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-block", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "assert-initial", "action": "assert.menu", "args": {"kind": "storageBlock", "item": "minecraft:diamond", "count": 7}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "storageBlock", "saveAs": "opening"}},
+        {"id": "change-slot", "action": "storage.setBlockSlot", "args": {"item": "minecraft:emerald", "count": 9}},
+        {"id": "assert-delta", "action": "assert.linkedMenuDelta", "args": {"kind": "storageBlock", "baseline": "opening", "item": "minecraft:emerald", "count": 9}}
+      ]
     }
   ]
 }

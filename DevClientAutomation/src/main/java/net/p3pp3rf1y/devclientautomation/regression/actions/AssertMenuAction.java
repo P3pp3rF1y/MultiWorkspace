@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
@@ -12,7 +14,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertMenuAction extends TypedRegressionAction<AssertMenuAction.Arguments> {
-	public record Arguments(String kind, int slot, String item, int count, boolean playerInventory, int stableTicks) {
+	public record Arguments(String kind, int slot, String item, int count, boolean playerInventory, int stableTicks, String ref) {
 	}
 
 	public AssertMenuAction() {
@@ -21,18 +23,18 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("kind", "slot", "item", "count", "playerInventory", "stableTicks"), description);
+		requireOnly(args, Set.of("kind", "slot", "item", "count", "playerInventory", "stableTicks", "ref"), description);
 		String kind = optionalString(args, "kind", "backpackBlock", description);
-		if (!Set.of("backpackBlock", "backpackItem", "storageBlock").contains(kind)) {
+		if (!Set.of("backpackBlock", "backpackItem", "storageBlock", "moving").contains(kind)) {
 			throw new IllegalArgumentException("Argument kind on " + description + " must be backpackBlock, backpackItem, or storageBlock");
 		}
-		boolean playerInventory = args.has("playerInventory") && args.get("playerInventory").isJsonPrimitive()
-				&& args.get("playerInventory").getAsJsonPrimitive().isBoolean() && args.get("playerInventory").getAsBoolean();
-		if (args.has("playerInventory") && (!args.get("playerInventory").isJsonPrimitive() || !args.get("playerInventory").getAsJsonPrimitive().isBoolean())) {
-			throw new IllegalArgumentException("Argument playerInventory on " + description + " must be a boolean");
+		if (kind.equals("moving") != args.has("ref")) {
+			throw new IllegalArgumentException("Argument ref on " + description + " is required exactly for moving menus");
 		}
 		return new Arguments(kind, optionalNonNegativeInt(args, "slot", 0, description), requireString(args, "item", description),
-				optionalNonNegativeInt(args, "count", 1, description), playerInventory, optionalNonNegativeInt(args, "stableTicks", 0, description));
+				optionalNonNegativeInt(args, "count", 1, description), optionalBoolean(args, "playerInventory", false, description),
+				optionalNonNegativeInt(args, "stableTicks", 0, description),
+				kind.equals("moving") ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null);
 	}
 
 	@Override
@@ -61,9 +63,9 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 			}
 			if (serverAssertion == null) {
 				serverAssertion = context.onServer(player -> {
-					StorageContainerMenuBase<?> menu = (StorageContainerMenuBase<?>) player.containerMenu;
-					serverMatched = matchesStack(menu);
-					if (!serverMatched && arguments.playerInventory()) {
+					serverMatched = AwaitMenuAction.matchesServerMenu(player, arguments.kind(), arguments.ref(), context)
+							&& player.containerMenu instanceof StorageContainerMenuBase<?> menu && matchesStack(menu);
+					if (!serverMatched && arguments.playerInventory() && player.containerMenu instanceof StorageContainerMenuBase<?> menu) {
 						serverInventory = describeInventory(menu);
 					}
 				});
@@ -80,13 +82,16 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 						? fail("Server menu did not receive the expected item stack" + (serverInventory == null ? "" : "; inventory=" + serverInventory))
 						: RegressionActionProgress.WAITING;
 			}
-			if (!context.isExpectedMenu(arguments.kind())) {
+			if (!context.isExpectedMenu(arguments.kind(), arguments.ref())) {
+				matchedSince = -1;
+				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
 						? fail("Expected " + arguments.kind() + " menu closed before client synchronization")
 						: RegressionActionProgress.WAITING;
 			}
 			if (!matchesStack((StorageContainerMenuBase<?>) minecraft.player.containerMenu)) {
 				matchedSince = -1;
+				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
 						? fail("Client menu did not synchronize the expected item stack")
 						: RegressionActionProgress.WAITING;
@@ -98,17 +103,14 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 				return RegressionActionProgress.PASSED;
 			}
 			serverAssertion = null;
-			return minecraft.player.tickCount >= deadline ? fail("Menu items did not remain synchronized long enough") : RegressionActionProgress.WAITING;
+			return RegressionActionProgress.WAITING;
 		}
 
 		private boolean matchesStack(StorageContainerMenuBase<?> menu) {
 			if (arguments.playerInventory()) {
-				for (int i = menu.getNumberOfStorageInventorySlots(); i < menu.getInventorySlotsSize(); i++) {
-					if (matchesStack(menu.getSlot(i).getItem())) {
-						return true;
-					}
-				}
-				return false;
+				return menu.slots.stream().filter(slot -> slot.container instanceof Inventory && slot.getContainerSlot() == arguments.slot()).findFirst()
+						.map(Slot::getItem).map(this::matchesStack)
+						.orElseThrow(() -> new IllegalStateException("Menu has no player inventory slot " + arguments.slot()));
 			}
 			if (arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
 				throw new IllegalStateException(

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "controller-deposit",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "cross-chunk-chest": [
+      {"id": "chest", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:chest", "offset": [-1, 0, -1]}},
+      {"id": "connector-west", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [0, 0, -1]}},
+      {"id": "connector-middle", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [1, 0, -1]}},
+      {"id": "connector-east", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [2, 0, -1]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [2, 0, -2]}},
+      {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [2, 0, -2]}}
+    ],
+    "cross-chunk-backpack": [
+      {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+      {"id": "seed", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:emerald", "count": 1}},
+      {"id": "place", "action": "backpack.placeHeld", "args": {"offset": [-1, 0, -1]}},
+      {"id": "connector-west", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [0, 0, -1]}},
+      {"id": "connector-middle", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [1, 0, -1]}},
+      {"id": "connector-east", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:oak_storage_connector", "offset": [2, 0, -1]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [2, 0, -2]}},
+      {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [2, 0, -2]}}
+    ],
+    "deposit-backpack": [
+      {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+      {"id": "configure", "action": "backpack.configureDeposit", "args": {"item": "minecraft:diamond"}},
+      {"id": "seed", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:diamond", "count": 7}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "deposit-actions-conformance",
+      "tags": ["runtimeConformance"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "arrange-storage", "fixture": "cross-chunk-chest"},
+        {"id": "arrange-backpack", "fixture": "deposit-backpack"},
+        {"id": "before-backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 7}},
+        {"id": "before-storage", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 0}},
+        {"id": "deposit", "action": "backpack.useOnStorage"},
+        {"id": "after-backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0}},
+        {"id": "after-storage", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}},
+        {"id": "replace-chest-block-entities", "action": "fixture.chunk.reloadBlockEntities", "args": {"offset": [-1, 0, -1], "assertControllerEmpty": true}},
+        {"id": "preserved-storage", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "deposit-after-chest-chunk-lifecycle",
+      "tags": ["controller", "deposit", "chunk-lifecycle", "synthetic-reload"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "arrange-storage", "fixture": "cross-chunk-chest"},
+        {"id": "arrange-backpack", "fixture": "deposit-backpack"},
+        {"id": "warm-controller-cache", "action": "backpack.useOnStorage"},
+        {"id": "initial-backpack-empty", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0}},
+        {"id": "initial-chest-contents", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}},
+        {"id": "replace-chest-block-entities", "action": "fixture.chunk.reloadBlockEntities", "args": {"offset": [-1, 0, -1], "assertControllerEmpty": true}},
+        {"id": "preserved-chest-contents", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}},
+        {"id": "refill-backpack", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:diamond", "count": 5}},
+        {"id": "deposit-after-reload", "action": "backpack.useOnStorage"},
+        {"id": "backpack-consumed", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0}},
+        {"id": "live-chest-received-deposit", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 12}}
+      ]
+    },
+    {
+      "id": "deposit-after-placed-backpack-chunk-lifecycle",
+      "tags": ["controller", "deposit", "placed-backpack", "chunk-lifecycle", "synthetic-reload"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "arrange-storage", "fixture": "cross-chunk-backpack"},
+        {"id": "arrange-backpack", "fixture": "deposit-backpack"},
+        {"id": "warm-controller-cache", "action": "backpack.useOnStorage"},
+        {"id": "initial-backpack-empty", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0}},
+        {"id": "initial-placed-contents", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}},
+        {"id": "replace-placed-block-entities", "action": "fixture.chunk.reloadBlockEntities", "args": {"offset": [-1, 0, -1], "assertControllerEmpty": true}},
+        {"id": "preserved-placed-contents", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 7}},
+        {"id": "refill-backpack", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:diamond", "count": 5}},
+        {"id": "deposit-after-reload", "action": "backpack.useOnStorage"},
+        {"id": "backpack-consumed", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0}},
+        {"id": "live-placed-received-deposit", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:diamond", "count": 12}},
+        {"id": "original-placed-contents-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [-1, 0, -1], "item": "minecraft:emerald", "count": 1}}
+      ]
+    }
+  ]
+}
