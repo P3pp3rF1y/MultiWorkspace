@@ -144,4 +144,18 @@ dependencies {
     compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}"
     compileOnly "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+    testRuntimeOnly(project(':SophisticatedCore')) { transitive = false }
+    testRuntimeOnly(project(':SophisticatedBackpacks')) { transitive = false }
+    testRuntimeOnly(project(':SophisticatedStorage')) { transitive = false }
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.+'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.+'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.+'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
