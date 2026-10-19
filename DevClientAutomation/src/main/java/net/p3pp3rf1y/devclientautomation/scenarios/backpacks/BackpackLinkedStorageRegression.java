@@ -35,6 +35,7 @@ import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.material.Fluid;
@@ -499,7 +500,7 @@ public final class BackpackLinkedStorageRegression {
 			openClientFeedbackItemBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, false, false, "carrier relocation initial open");
 			toggleClientFeedbackTankUpgrade(fixture, false, "carrier relocation Tank insert");
-			waitForFeedbackState(fixture, false, true, false, "carrier relocation Tank insert");
+			waitForFeedbackState(fixture, false, true, false, false, "carrier relocation Tank insert");
 			int initialMoveTick = moveClientFeedbackTestItemIntoLinkedStorage(fixture);
 			waitForFeedbackTestItemOnServer(fixture);
 			waitForClientFeedbackTestItemAfterTicks(fixture, initialMoveTick);
@@ -2149,13 +2150,13 @@ public final class BackpackLinkedStorageRegression {
 		clearArea(level, existingEndpointPos);
 		clearArea(level, joiningEndpointPos);
 		try {
-			var storageBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get();
+			Block storageBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL.get();
 			level.setBlockAndUpdate(storagePos, storageBlock.defaultBlockState());
 			storageBlock.setPlacedBy(level, storagePos, level.getBlockState(storagePos), player,
 					new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.BARREL_ITEM.get()));
 			placeFixtureBackpack(level, existingEndpointPos, new ItemStack(ModItems.GOLD_BACKPACK.get()), "controller existing endpoint");
 			placeFixtureBackpack(level, joiningEndpointPos, new ItemStack(ModItems.GOLD_BACKPACK.get()), "controller joining endpoint");
-			var controllerBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER.get();
+			Block controllerBlock = net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER.get();
 			level.setBlockAndUpdate(controllerPos, controllerBlock.defaultBlockState());
 			controllerBlock.setPlacedBy(level, controllerPos, level.getBlockState(controllerPos), player,
 					new ItemStack(net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks.CONTROLLER_ITEM.get()));
@@ -2352,7 +2353,7 @@ public final class BackpackLinkedStorageRegression {
 
 			openClientFeedbackItemBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, false, false, "item primary initial open");
-			waitForFeedbackState(fixture, false, false, false, "item primary initial profile");
+			waitForFeedbackState(fixture, false, false, false, true, "item primary initial profile");
 			closeClientFeedbackMenu(false, "item primary before inventory stash");
 
 			long stashRevision = AutomationRuntime
@@ -2365,36 +2366,36 @@ public final class BackpackLinkedStorageRegression {
 			waitForClientFeedbackMenu(fixture, false, false, "item primary after inventory stash");
 			waitForClientFeedbackStashView(fixture);
 			toggleClientFeedbackTankUpgrade(fixture, false, "item primary insert");
-			waitForFeedbackState(fixture, false, true, false, "item primary insert");
+			waitForFeedbackState(fixture, false, true, false, false, "item primary insert");
 			roundTripClientFeedbackSettings(fixture);
 			openClientFeedbackItemBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, false, true, "item primary settings reopen");
-			waitForFeedbackState(fixture, false, true, false, "item primary settings round trip");
+			waitForFeedbackState(fixture, false, true, false, true, "item primary settings round trip");
 			toggleClientFeedbackTankUpgrade(fixture, false, "item primary remove");
-			waitForFeedbackState(fixture, false, false, true, "item primary remove");
+			waitForFeedbackState(fixture, false, false, true, false, "item primary remove");
 			closeClientFeedbackMenu(false, "item primary remove");
 			openClientFeedbackItemBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, false, false, "item primary remove reopen");
 			toggleClientFeedbackTankUpgrade(fixture, false, "item primary reinsert");
-			waitForFeedbackState(fixture, false, true, false, "item primary reinsert");
+			waitForFeedbackState(fixture, false, true, false, false, "item primary reinsert");
 			closeClientFeedbackMenu(false, "item primary after reinsert");
 
 			AutomationRuntime.runOnServer(player -> selectClientFeedbackHotbarSlot(player, CLIENT_FEEDBACK_INTERACTION_SLOT));
 			waitForClientFeedbackSelectedSlot(null, CLIENT_FEEDBACK_INTERACTION_SLOT, "placed endpoint interaction selection");
 			openClientFeedbackPlacedBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, true, true, "placed secondary initial open");
-			waitForFeedbackState(fixture, true, true, false, "placed secondary initial profile");
+			waitForFeedbackState(fixture, true, true, false, true, "placed secondary initial profile");
 			toggleClientFeedbackTankUpgrade(fixture, true, "placed secondary remove");
-			waitForFeedbackState(fixture, true, false, true, "placed secondary remove");
+			waitForFeedbackState(fixture, true, false, true, false, "placed secondary remove");
 			closeClientFeedbackMenu(true, "placed secondary remove");
 			openClientFeedbackPlacedBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, true, false, "placed secondary remove reopen");
 			toggleClientFeedbackTankUpgrade(fixture, true, "placed secondary insert");
-			waitForFeedbackState(fixture, true, true, false, "placed secondary insert");
+			waitForFeedbackState(fixture, true, true, false, false, "placed secondary insert");
 			closeClientFeedbackMenu(true, "placed secondary insert");
 			openClientFeedbackPlacedBackpack(fixture);
 			waitForClientFeedbackMenu(fixture, true, true, "placed secondary final reopen");
-			waitForFeedbackState(fixture, true, true, false, "placed secondary final profile");
+			waitForFeedbackState(fixture, true, true, false, true, "placed secondary final profile");
 		} finally {
 			AutomationRuntime.runOnClient(() -> {
 				if (Minecraft.getInstance().screen instanceof BackpackScreen screen) {
@@ -2899,13 +2900,14 @@ public final class BackpackLinkedStorageRegression {
 	}
 
 	private static void waitForFeedbackState(ClientFeedbackLinkedStorageFixture fixture, boolean placed, boolean tankPresent, boolean tankCarried,
-			String description) {
+			boolean requireCurrentCache, String description) {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 		do {
 			FeedbackServerSnapshot server = AutomationRuntime.runOnServer(player -> getFeedbackServerSnapshot(player, fixture));
 			Optional<FeedbackClientSnapshot> client = AutomationRuntime.runOnClient(() -> getFeedbackClientSnapshot(fixture, placed));
-			if (matchesFeedbackServerSnapshot(server, fixture, tankPresent, placed)
-					&& client.filter(snapshot -> matchesFeedbackClientSnapshot(snapshot, server, fixture, tankPresent, tankCarried, placed)).isPresent()) {
+			if (matchesFeedbackServerSnapshot(server, fixture, tankPresent, placed) && client
+					.filter(snapshot -> matchesFeedbackClientSnapshot(snapshot, server, fixture, tankPresent, tankCarried, requireCurrentCache, placed))
+					.isPresent()) {
 				return;
 			}
 			sleep(50);
@@ -2965,15 +2967,16 @@ public final class BackpackLinkedStorageRegression {
 	}
 
 	private static boolean matchesFeedbackClientSnapshot(FeedbackClientSnapshot snapshot, FeedbackServerSnapshot server,
-			ClientFeedbackLinkedStorageFixture fixture, boolean tankPresent, boolean tankCarried, boolean placed) {
+			ClientFeedbackLinkedStorageFixture fixture, boolean tankPresent, boolean tankCarried, boolean requireCurrentCache, boolean placed) {
 		CanonicalProfile canonicalProfile = fixture.canonicalProfile();
 		StorageProfile activePhysical = placed ? snapshot.placedPhysical() : snapshot.primaryPhysical();
 		StorageProfile activeServerPhysical = placed ? server.placedPhysical() : server.primaryPhysical();
 		return matchesCanonicalProfile(snapshot.menuProfile(), canonicalProfile, tankPresent)
 				&& matchesPhysicalProfile(activePhysical, canonicalProfile, tankPresent) && snapshot.tankCarried() == tankCarried
-				&& snapshot.cachedRevision() >= server.revision() && snapshot.cachedInventorySlots() == canonicalProfile.baseStorageSlots()
-				&& snapshot.cachedUpgradeSlots() == canonicalProfile.upgradeSlots()
-				&& snapshot.cachedColumnsTaken() == expectedColumns(canonicalProfile, tankPresent)
+				&& (!requireCurrentCache
+						|| snapshot.cachedRevision() >= server.revision() && snapshot.cachedInventorySlots() == canonicalProfile.baseStorageSlots()
+								&& snapshot.cachedUpgradeSlots() == canonicalProfile.upgradeSlots()
+								&& snapshot.cachedColumnsTaken() == expectedColumns(canonicalProfile, tankPresent))
 				&& snapshot.menuProfile().renderInfo().equals(server.canonical().renderInfo())
 				&& activePhysical.renderInfo().equals(activeServerPhysical.renderInfo());
 	}

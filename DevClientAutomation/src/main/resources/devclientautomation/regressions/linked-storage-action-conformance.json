@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-action-conformance",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "empty-crafting-times-out-with-slot-diagnostics",
+      "tags": ["runtimeConformance"], "timeoutTicks": 150,
+      "steps": [
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+        {"id":"inventory","action":"player.openInventory"},
+        {"id":"timeout","action":"await.playerCraftingResult","args":{"timeoutTicks":5},"expectFailure":"Player crafting result did not appear; client slots="},
+        {"id":"baseline","action":"assert.playerInventoryBaseline"}
+      ]
+    },
+    {
+      "id": "missing-and-out-of-range-entity-handles-fail-deterministically",
+      "tags": ["runtimeConformance"], "timeoutTicks": 180,
+      "steps": [
+        {"id":"unknown","action":"player.sneakUseFixtureEntity","args":{"ref":"missing"},"expectFailure":"Regression value missing has not been bound"},
+        {"id":"spawn","action":"fixture.entity.spawnPig","args":{"saveAs":"distant","offsetX":12}},
+        {"id":"range","action":"player.sneakUseFixtureEntity","args":{"ref":"distant"},"expectFailure":"outside player interaction range"},
+        {"id":"baseline","action":"assert.playerInventoryBaseline"}
+      ]
+    },
+    {
+      "id": "missing-mob-index-and-menu-fail-deterministically",
+      "tags": ["runtimeConformance"], "timeoutTicks": 200,
+      "steps": [
+        {"id":"closed","action":"menu.clickCapturedMob","args":{"index":0},"expectFailure":"Backpack screen is not open"},
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+        {"id":"backpack","action":"backpack.createInMainHand","args":{"tier":"diamond"}},
+        {"id":"upgrade","action":"fixture.backpack.setUpgrade","args":{"item":"sophisticatedbackpacks:mob_catcher_upgrade"}},
+        {"id":"open","action":"player.useHeldItem"},
+        {"id":"menu","action":"await.menu","args":{"kind":"backpackItem"}},
+        {"id":"index","action":"menu.clickCapturedMob","args":{"index":1},"expectFailure":"Captured mob index is missing"}
+      ]
+    },
+    {
+      "id": "missing-controller-and-capabilities-fail-deterministically",
+      "tags": ["runtimeConformance"], "timeoutTicks": 150,
+      "steps": [
+        {"id":"reload","action":"fixture.controller.reload","expectFailure":"Fixture controller is missing"},
+        {"id":"fluid","action":"capability.transferStorageResource","args":{"operation":"fill","amount":1},"expectFailure":"No fluid capability at endpoint"},
+         {"id":"energy","action":"capability.transferStorageResource","args":{"operation":"receive","amount":1},"expectFailure":"No energy capability at endpoint"},
+         {"id":"settings-click","action":"menu.clickStorageSettings","expectFailure":"Storage inventory screen is not open"},
+         {"id":"settings-timeout","action":"assert.linkedSettings","args":{"backpackPrimary":true},"expectFailure":"Linked settings screen did not open with canonical categories"},
+         {"id":"baseline","action":"assert.playerInventoryBaseline"}
+      ]
+    },
+    {
+      "id": "inventory-mutation-is-journal-owned",
+      "tags": ["runtimeConformance"], "timeoutTicks": 150,
+      "steps": [
+        {"id":"baseline","action":"assert.playerInventoryBaseline"},
+        {"id":"main","action":"player.createMainHandItem","args":{"item":"minecraft:diamond","count":7}},
+        {"id":"shulker","action":"player.setInventorySlot","args":{"slot":10,"item":"sophisticatedstorage:shulker_box","count":1}},
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+        {"id":"inventory","action":"player.openInventory"},
+        {"id":"cursor","action":"menu.clickPlayerInventorySlot","args":{"slot":0}}
+      ]
+    },
+    {
+      "id": "qualification-and-cleanup-consumer",
+      "tags": ["isolation", "repeatability"], "timeoutTicks": 150,
+      "steps": [{"id":"baseline","action":"assert.playerInventoryBaseline"}]
+    }
+  ]
+}
