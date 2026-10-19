@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-filters",
+  "requires": ["minecraft:client", "sophisticatedbackpacks"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "basic-filter-input-allow-diamond-block-redstone",
+      "tags": ["backpack", "filter", "input", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureFilter", "args": {"upgrade": "basic", "operation": "input"}},
+        {"id": "insert-diamond", "action": "backpack.probeFilterIO", "args": {"operation": "input", "item": "minecraft:diamond", "returnedCount": 0}},
+        {"id": "insert-redstone", "action": "backpack.probeFilterIO", "args": {"operation": "input", "item": "minecraft:redstone", "returnedCount": 1}},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-diamond", "action": "assert.heldBackpackFilter", "args": {"upgrade": "basic", "operation": "input", "slot": 0, "item": "minecraft:diamond", "count": 1}},
+        {"id": "observe-redstone", "action": "assert.heldBackpackFilter", "args": {"upgrade": "basic", "operation": "input", "slot": 1, "item": "minecraft:air", "count": 0}}
+      ]
+    },
+    {
+      "id": "advanced-filter-input-allow-diamond-block-redstone",
+      "tags": ["backpack", "filter", "input", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureFilter", "args": {"upgrade": "advanced", "operation": "input"}},
+        {"id": "insert-diamond", "action": "backpack.probeFilterIO", "args": {"operation": "input", "item": "minecraft:diamond", "returnedCount": 0}},
+        {"id": "insert-redstone", "action": "backpack.probeFilterIO", "args": {"operation": "input", "item": "minecraft:redstone", "returnedCount": 1}},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-diamond", "action": "assert.heldBackpackFilter", "args": {"upgrade": "advanced", "operation": "input", "slot": 0, "item": "minecraft:diamond", "count": 1}},
+        {"id": "observe-redstone", "action": "assert.heldBackpackFilter", "args": {"upgrade": "advanced", "operation": "input", "slot": 1, "item": "minecraft:air", "count": 0}}
+      ]
+    },
+    {
+      "id": "basic-filter-output-block-redstone-allow-diamond",
+      "tags": ["backpack", "filter", "output", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureFilter", "args": {"upgrade": "basic", "operation": "output"}},
+        {"id": "seed-redstone", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:redstone", "count": 1}},
+        {"id": "seed-diamond", "action": "backpack.setStorageSlot", "args": {"slot": 1, "item": "minecraft:diamond", "count": 1}},
+        {"id": "extract-redstone", "action": "backpack.probeFilterIO", "args": {"operation": "output", "item": "minecraft:redstone", "slot": 0, "returnedCount": 0}},
+        {"id": "extract-diamond", "action": "backpack.probeFilterIO", "args": {"operation": "output", "item": "minecraft:diamond", "slot": 1, "returnedCount": 1}},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-redstone", "action": "assert.heldBackpackFilter", "args": {"upgrade": "basic", "operation": "output", "slot": 0, "item": "minecraft:redstone", "count": 1}},
+        {"id": "observe-diamond", "action": "assert.heldBackpackFilter", "args": {"upgrade": "basic", "operation": "output", "slot": 1, "item": "minecraft:air", "count": 0}}
+      ]
+    },
+    {
+      "id": "advanced-filter-output-block-redstone-allow-diamond",
+      "tags": ["backpack", "filter", "output", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureFilter", "args": {"upgrade": "advanced", "operation": "output"}},
+        {"id": "seed-redstone", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:redstone", "count": 1}},
+        {"id": "seed-diamond", "action": "backpack.setStorageSlot", "args": {"slot": 1, "item": "minecraft:diamond", "count": 1}},
+        {"id": "extract-redstone", "action": "backpack.probeFilterIO", "args": {"operation": "output", "item": "minecraft:redstone", "slot": 0, "returnedCount": 0}},
+        {"id": "extract-diamond", "action": "backpack.probeFilterIO", "args": {"operation": "output", "item": "minecraft:diamond", "slot": 1, "returnedCount": 1}},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-redstone", "action": "assert.heldBackpackFilter", "args": {"upgrade": "advanced", "operation": "output", "slot": 0, "item": "minecraft:redstone", "count": 1}},
+        {"id": "observe-diamond", "action": "assert.heldBackpackFilter", "args": {"upgrade": "advanced", "operation": "output", "slot": 1, "item": "minecraft:air", "count": 0}}
+      ]
+    }
+  ]
+}

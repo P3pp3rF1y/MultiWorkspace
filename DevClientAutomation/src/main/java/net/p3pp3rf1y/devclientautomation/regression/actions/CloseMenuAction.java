@@ -1,0 +1,42 @@
+package net.p3pp3rf1y.devclientautomation.regression.actions;
+
+import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.Set;
+
+public final class CloseMenuAction extends TypedRegressionAction<CloseMenuAction.Arguments> {
+	public record Arguments() {
+	}
+
+	public CloseMenuAction() {
+		super("menu.close", "1", Set.of("minecraft:client"));
+	}
+
+	@Override
+	protected Arguments parseArguments(JsonObject args, String description) {
+		requireNoArguments(args, description);
+		return new Arguments();
+	}
+
+	@Override
+	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
+		return new Execution(context);
+	}
+
+	private static final class Execution extends TickRegressionActionExecution {
+		private Execution(RegressionExecutionContext context) {
+			super(context);
+		}
+
+		@Override
+		public RegressionActionProgress tick() {
+			Minecraft minecraft = context.minecraft();
+			if (minecraft.screen != null) {
+				minecraft.screen.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0);
+			}
+			return RegressionActionProgress.PASSED;
+		}
+	}
+}

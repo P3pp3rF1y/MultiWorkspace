@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-storage-settings",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion", "jei"],
+  "isolation": "testCell",
+  "fixtures": {
+    "storage-primary-backpack": [
+      {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+      {"id":"await-storage","action":"await.storageBlock"},
+      {"id":"linker","action":"player.createMainHandItem","args":{"item":"sophisticatedcore:ender_linker"}},
+      {"id":"link-primary","action":"player.useHeldItemOnTarget"},
+      {"id":"backpack","action":"player.setInventorySlot","args":{"slot":9,"item":"sophisticatedbackpacks:backpack","count":1}},
+      {"id":"inventory","action":"player.openInventory"},
+      {"id":"pick-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"link-secondary","action":"menu.clickPlayerInventorySlot","args":{"slot":9,"button":1}},
+      {"id":"pick-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"hold-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"close-inventory","action":"menu.close"},
+      {"id":"await-inventory-close","action":"await.menuClosed"},
+      {"id":"open-backpack","action":"player.useHeldItem"},
+      {"id":"await-backpack","action":"await.menu","args":{"kind":"backpackItem"}},
+      {"id":"settings-tab","action":"menu.clickStorageSettings"},
+      {"id":"canonical-settings","action":"assert.linkedSettings","args":{"backpackPrimary":false}},
+      {"id":"memory-tab","action":"menu.clickSettingsControl","args":{"operation":"memory"}},
+      {"id":"jei-memory-drop","action":"recipeviewer.dropSettingsGhost"},
+      {"id":"memory-synchronized","action":"assert.settingsSelection","args":{"display":false}},
+      {"id":"display-tab","action":"menu.clickSettingsControl","args":{"operation":"display"}},
+      {"id":"select-display-slot","action":"menu.clickSettingsControl","args":{"operation":"slot"}},
+      {"id":"display-overlay","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-settings","action":"menu.close"},
+      {"id":"await-inventory-return","action":"await.menu","args":{"kind":"backpackItem"}},
+      {"id":"inventory-settings-persist","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-backpack","action":"menu.close"},
+      {"id":"await-backpack-close","action":"await.menuClosed"}
+    ],
+    "backpack-primary-linker": [
+      {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
+      {"id":"backpack","action":"backpack.createInMainHand","args":{"tier":"diamond"}},
+      {"id":"linker","action":"player.setInventorySlot","args":{"slot":9,"item":"sophisticatedcore:ender_linker","count":1}},
+      {"id":"inventory","action":"player.openInventory"},
+      {"id":"pick-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"link-primary","action":"menu.clickPlayerInventorySlot","args":{"slot":0,"button":1}},
+      {"id":"put-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"pick-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"store-backpack","action":"menu.clickPlayerInventorySlot","args":{"slot":8}},
+      {"id":"pick-bound-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":9}},
+      {"id":"hold-bound-linker","action":"menu.clickPlayerInventorySlot","args":{"slot":0}},
+      {"id":"close-inventory","action":"menu.close"},
+      {"id":"await-inventory-close","action":"await.menuClosed"}
+    ],
+    "open-storage-settings": [
+      {"id":"link-secondary","action":"player.useHeldItemOnTarget"},
+      {"id":"clear-hand","action":"player.clearMainHand"},
+      {"id":"open-storage","action":"player.useTargetBlock"},
+      {"id":"await-storage-menu","action":"await.menu","args":{"kind":"storageBlock"}},
+      {"id":"settings-tab","action":"menu.clickStorageSettings"},
+      {"id":"canonical-settings","action":"assert.linkedSettings","args":{"backpackPrimary":true}},
+      {"id":"memory-tab","action":"menu.clickSettingsControl","args":{"operation":"memory"}},
+      {"id":"jei-memory-drop","action":"recipeviewer.dropSettingsGhost"},
+      {"id":"memory-synchronized","action":"assert.settingsSelection","args":{"display":false}},
+      {"id":"display-tab","action":"menu.clickSettingsControl","args":{"operation":"display"}},
+      {"id":"select-display-slot","action":"menu.clickSettingsControl","args":{"operation":"slot"}},
+      {"id":"display-overlay","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-settings","action":"menu.close"},
+      {"id":"await-inventory-return","action":"await.menu","args":{"kind":"storageBlock"}},
+      {"id":"inventory-settings-persist","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-storage","action":"menu.close"},
+      {"id":"await-storage-close","action":"await.menuClosed"}
+    ],
+    "open-moving-settings": [
+      {"id":"link-secondary","action":"player.useMovingStorage","args":{"ref":"moving"}},
+      {"id":"clear-hand","action":"player.clearMainHand"},
+      {"id":"open-moving","action":"player.useMovingStorage","args":{"ref":"moving"}},
+      {"id":"await-moving-menu","action":"await.menu","args":{"kind":"moving","ref":"moving"}},
+      {"id":"settings-tab","action":"menu.clickStorageSettings"},
+      {"id":"canonical-settings","action":"assert.linkedSettings","args":{"backpackPrimary":true}},
+      {"id":"memory-tab","action":"menu.clickSettingsControl","args":{"operation":"memory"}},
+      {"id":"jei-memory-drop","action":"recipeviewer.dropSettingsGhost"},
+      {"id":"memory-synchronized","action":"assert.settingsSelection","args":{"display":false}},
+      {"id":"display-tab","action":"menu.clickSettingsControl","args":{"operation":"display"}},
+      {"id":"select-display-slot","action":"menu.clickSettingsControl","args":{"operation":"slot"}},
+      {"id":"display-overlay","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-settings","action":"menu.close"},
+      {"id":"await-inventory-return","action":"await.menu","args":{"kind":"moving","ref":"moving"}},
+      {"id":"inventory-settings-persist","action":"assert.settingsSelection","args":{"display":true}},
+      {"id":"close-moving","action":"menu.close"},
+      {"id":"await-moving-close","action":"await.menuClosed"}
+    ]
+  },
+  "tests": [
+    {
+      "id":"settings-edit-actions-reject-missing-screen",
+      "tags":["runtimeConformance"], "timeoutTicks":180,
+      "steps":[
+        {"id":"tab","action":"menu.clickSettingsControl","args":{"operation":"memory"},"expectFailure":"Settings screen is not open"},
+        {"id":"ghost","action":"recipeviewer.dropSettingsGhost","expectFailure":"Settings screen is not open"},
+        {"id":"selection","action":"assert.settingsSelection","args":{"display":true},"expectFailure":"Memory/display settings did not persist on server and client; server=no menu; client=no menu"},
+        {"id":"baseline","action":"assert.playerInventoryBaseline"}
+      ]
+    },
+    {"id":"barrel-primary-backpack-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"barrel","action":"fixture.block.set","args":{"block":"sophisticatedstorage:barrel","offset":[2,0,-2]}},
+      {"id":"native-link-and-settings","fixture":"storage-primary-backpack"}]},
+    {"id":"chest-primary-backpack-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"chest","action":"fixture.block.set","args":{"block":"sophisticatedstorage:chest","offset":[2,0,-2]}},
+      {"id":"native-link-and-settings","fixture":"storage-primary-backpack"}]},
+    {"id":"shulker-primary-backpack-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"shulker","action":"fixture.block.set","args":{"block":"sophisticatedstorage:shulker_box","offset":[2,0,-2]}},
+      {"id":"native-link-and-settings","fixture":"storage-primary-backpack"}]},
+    {"id":"backpack-primary-barrel-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"barrel","action":"fixture.block.set","args":{"block":"sophisticatedstorage:barrel","offset":[2,0,-2]}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-storage-settings"}]},
+    {"id":"backpack-primary-chest-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"chest","action":"fixture.block.set","args":{"block":"sophisticatedstorage:chest","offset":[2,0,-2]}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-storage-settings"}]},
+    {"id":"backpack-primary-shulker-settings","tags":["linked","settings"],"timeoutTicks":400,"steps":[
+      {"id":"shulker","action":"fixture.block.set","args":{"block":"sophisticatedstorage:shulker_box","offset":[2,0,-2]}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-storage-settings"}]},
+    {"id":"backpack-primary-boat-settings","tags":["linked","settings","moving"],"timeoutTicks":400,"steps":[
+      {"id":"boat","action":"fixture.moving.spawn","args":{"kind":"boat","saveAs":"moving"}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-moving-settings"}]},
+    {"id":"backpack-primary-minecart-settings","tags":["linked","settings","moving"],"timeoutTicks":400,"steps":[
+      {"id":"minecart","action":"fixture.moving.spawn","args":{"kind":"minecart","saveAs":"moving"}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-moving-settings"}]},
+    {"id":"backpack-primary-llama-settings","tags":["linked","settings","moving"],"timeoutTicks":400,"steps":[
+      {"id":"llama","action":"fixture.moving.spawn","args":{"kind":"llama","saveAs":"moving"}},
+      {"id":"barrel-item","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:barrel"}},
+      {"id":"attach-storage","action":"player.useMovingStorage","args":{"ref":"moving"}},
+      {"id":"native-link-backpack","fixture":"backpack-primary-linker"},
+      {"id":"native-link-and-settings","fixture":"open-moving-settings"}]}
+  ]
+}

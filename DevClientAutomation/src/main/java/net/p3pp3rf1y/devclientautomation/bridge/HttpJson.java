@@ -72,11 +72,25 @@ public final class HttpJson {
 	}
 
 	public static String string(JsonObject request, String name, String defaultValue) {
-		return value(request, name).map(JsonElement::getAsString).orElse(defaultValue);
+		if (!request.has(name)) {
+			return defaultValue;
+		}
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+			throw new IllegalArgumentException(name + " must be a string");
+		}
+		return value.getAsString();
 	}
 
 	public static boolean bool(JsonObject request, String name, boolean defaultValue) {
-		return value(request, name).map(JsonElement::getAsBoolean).orElse(defaultValue);
+		if (!request.has(name)) {
+			return defaultValue;
+		}
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+			throw new IllegalArgumentException(name + " must be a boolean");
+		}
+		return value.getAsBoolean();
 	}
 
 	public static int integer(JsonObject request, String name, int defaultValue) {
@@ -97,6 +111,10 @@ public final class HttpJson {
 
 	public static String errorJson(String error) {
 		return GSON.toJson(errorResponse(error));
+	}
+
+	public static String toJson(Object value) {
+		return GSON.toJson(value);
 	}
 
 	private static Optional<JsonElement> value(JsonObject request, String name) {

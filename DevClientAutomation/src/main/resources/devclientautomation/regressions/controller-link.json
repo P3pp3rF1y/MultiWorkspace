@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "controller-link",
+  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "line": [
+      {"id": "first-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [-3, 0, 0]}},
+      {"id": "near-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [-1, 0, 0]}},
+      {"id": "linked-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2, 0, 0]}},
+      {"id": "last-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [3, 0, 0]}},
+      {"id": "link", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:storage_link", "offset": [1, 0, 0], "facing": "west"}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [-2, 0, 0]}},
+      {"id": "scan-controller", "action": "fixture.controller.scanAdjacent", "args": {"offset": [-2, 0, 0]}}
+    ],
+    "groups": [
+      {"id": "first-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [-1, 0, 0]}},
+      {"id": "second-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [0, 0, 0]}},
+      {"id": "third-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2, 0, 0]}},
+      {"id": "fourth-barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [3, 0, 0]}},
+      {"id": "first-link", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:storage_link", "offset": [-1, 0, -1], "facing": "north"}},
+      {"id": "second-link", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:storage_link", "offset": [3, 0, -1], "facing": "north"}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [-3, 0, 0]}},
+      {"id": "scan-controller", "action": "fixture.controller.scanAdjacent", "args": {"offset": [-3, 0, 0]}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "breaking-first-barrel-preserves-storage-link",
+      "tags": ["controller", "storage-link", "break"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare-line", "fixture": "line"},
+        {"id": "hold-storage-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+        {"id": "select-controller", "action": "player.useControllerLinkTool", "args": {"target": "controller"}},
+        {"id": "link-storage-link", "action": "player.useControllerLinkTool", "args": {"target": "link"}},
+        {"id": "assert-initial-connections", "action": "assert.controllerLinkLine", "args": {"phase": "beforeBreak"}},
+        {"id": "break-first-barrel", "action": "fixture.controllerLinkLine.breakFirstBarrel"},
+        {"id": "assert-remaining-connections", "action": "assert.controllerLinkLine", "args": {"phase": "afterBreak"}}
+      ]
+    },
+    {
+      "id": "two-links-survive-shared-group-split",
+      "tags": ["controller", "storage-link", "split"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare-shared-group", "fixture": "groups"},
+        {"id": "add-bridge", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [1, 0, 0]}},
+        {"id": "hold-storage-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+        {"id": "select-controller", "action": "player.useControllerLinkTool", "args": {"target": "groupController"}},
+        {"id": "link-first", "action": "player.useControllerLinkTool", "args": {"target": "firstGroupLink"}},
+        {"id": "link-second", "action": "player.useControllerLinkTool", "args": {"target": "secondGroupLink"}},
+        {"id": "assert-both-links", "action": "assert.controllerLinkGroups", "args": {"layout": "shared", "phase": "beforeBreak"}},
+        {"id": "break-bridge", "action": "fixture.controllerLinkGroups.breakBarrel", "args": {"layout": "shared"}},
+        {"id": "assert-both-halves", "action": "assert.controllerLinkGroups", "args": {"layout": "shared", "phase": "afterBreak"}}
+      ]
+    },
+    {
+      "id": "two-separate-groups-remain-linked",
+      "tags": ["controller", "storage-link", "separate-groups"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare-separate-groups", "fixture": "groups"},
+        {"id": "hold-storage-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+        {"id": "select-controller", "action": "player.useControllerLinkTool", "args": {"target": "groupController"}},
+        {"id": "link-first", "action": "player.useControllerLinkTool", "args": {"target": "firstGroupLink"}},
+        {"id": "link-second", "action": "player.useControllerLinkTool", "args": {"target": "secondGroupLink"}},
+        {"id": "assert-both-groups", "action": "assert.controllerLinkGroups", "args": {"layout": "separate", "phase": "beforeBreak"}},
+        {"id": "break-first-group-barrel", "action": "fixture.controllerLinkGroups.breakBarrel", "args": {"layout": "separate"}},
+        {"id": "assert-both-groups-remain", "action": "assert.controllerLinkGroups", "args": {"layout": "separate", "phase": "afterBreak"}}
+      ]
+    }
+  ]
+}
