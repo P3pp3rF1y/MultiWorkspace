@@ -6,6 +6,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.p3pp3rf1y.devclientautomation.DevClientAutomation;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionCoordinator;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStoragePerformanceRegression;
 
 @Mod(value = DevClientAutomation.MOD_ID, dist = Dist.CLIENT)
@@ -14,6 +15,7 @@ public final class NeoForgeAutomationBootstrap {
 		modBus.addListener(this::clientSetup);
 		DemoCommand.init();
 		BackpackLinkedStoragePerformanceRegression.init();
+		RegressionCoordinator.init();
 	}
 
 	private void clientSetup(FMLClientSetupEvent event) {

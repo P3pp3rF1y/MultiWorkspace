@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-restock",
+  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "barrel": [
+      {"id": "create-barrel", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:barrel"}},
+      {"id": "place-barrel", "action": "player.placeHeldBlock"},
+      {"id": "await-barrel", "action": "await.storageBlock"}
+    ],
+    "contents": [
+      {"id": "seed-diamonds", "action": "storage.setBlockSlot", "args": {"slot": 0, "item": "minecraft:diamond", "count": 5}},
+      {"id": "seed-redstone", "action": "storage.setBlockSlot", "args": {"slot": 1, "item": "minecraft:redstone", "count": 5}}
+    ],
+    "observe-barrel": [
+      {"id": "close-backpack", "action": "menu.close"},
+      {"id": "await-closed", "action": "await.menuClosed"},
+      {"id": "clear-hand", "action": "player.clearMainHand"},
+      {"id": "use-barrel", "action": "player.useTargetBlock"},
+      {"id": "await-barrel-menu", "action": "await.menu", "args": {"kind": "storageBlock"}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "basic-restock-allow-diamond",
+      "tags": ["backpack", "restock", "allow", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "prepare-contents", "fixture": "contents"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "basic", "mode": "allow"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "basic", "mode": "allow", "diamonds": 5, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 5}}
+      ]
+    },
+    {
+      "id": "advanced-restock-allow-diamond",
+      "tags": ["backpack", "restock", "allow", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "prepare-contents", "fixture": "contents"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "advanced", "mode": "allow"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "advanced", "mode": "allow", "diamonds": 5, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 5}}
+      ]
+    },
+    {
+      "id": "basic-restock-block-redstone",
+      "tags": ["backpack", "restock", "block", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "prepare-contents", "fixture": "contents"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "basic", "mode": "block"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "basic", "mode": "block", "diamonds": 5, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 5}}
+      ]
+    },
+    {
+      "id": "advanced-restock-block-redstone",
+      "tags": ["backpack", "restock", "block", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "prepare-contents", "fixture": "contents"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "advanced", "mode": "block"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "advanced", "mode": "block", "diamonds": 5, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 5}}
+      ]
+    },
+    {
+      "id": "basic-restock-empty-barrel",
+      "tags": ["backpack", "restock", "empty", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "basic", "mode": "empty"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "basic", "mode": "empty", "diamonds": 0, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 0}}
+      ]
+    },
+    {
+      "id": "advanced-restock-empty-barrel",
+      "tags": ["backpack", "restock", "empty", "legacy-migration"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "prepare-barrel", "fixture": "barrel"},
+        {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "configure", "action": "backpack.configureRestock", "args": {"upgrade": "advanced", "mode": "empty"}},
+        {"id": "restock", "action": "backpack.useOnStorage"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-backpack", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "observe-backpack", "action": "assert.restockBackpack", "args": {"upgrade": "advanced", "mode": "empty", "diamonds": 0, "redstone": 0}},
+        {"id": "prepare-barrel-menu", "fixture": "observe-barrel"},
+        {"id": "observe-barrel", "action": "assert.restockBarrel", "args": {"diamonds": 0, "redstone": 0}}
+      ]
+    }
+  ]
+}
