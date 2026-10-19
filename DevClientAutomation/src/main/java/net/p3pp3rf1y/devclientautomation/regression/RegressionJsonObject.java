@@ -27,6 +27,10 @@ final class RegressionJsonObject {
 		return new RegressionJsonObject(object, newDescription, object.keySet());
 	}
 
+	boolean has(String name) {
+		return object.has(name);
+	}
+
 	String id(String name) {
 		String value = string(name);
 		if (!value.matches("[a-z0-9][a-z0-9-]{0,63}")) {
@@ -46,7 +50,11 @@ final class RegressionJsonObject {
 		if (!object.has(name) || !object.get(name).isJsonPrimitive() || !object.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Missing numeric " + name + " on " + description);
 		}
-		return object.get(name).getAsInt();
+		try {
+			return RegressionJsonNumbers.integer(object.get(name));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Expected integer " + name + " on " + description, e);
+		}
 	}
 
 	boolean optionalBoolean(String name, boolean defaultValue) {

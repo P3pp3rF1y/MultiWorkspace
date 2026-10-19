@@ -51,6 +51,7 @@ public final class SetStorageBlockSlotAction extends TypedRegressionAction<SetSt
 					}
 					Item item = BuiltInRegistries.ITEM.getOptional(Identifier.parse(arguments.item()))
 							.orElseThrow(() -> new IllegalArgumentException("Unknown storage item " + arguments.item()));
+					context.journal().recordBlock(player.level(), context.target());
 					storage.getStorageWrapper().getInventoryHandler().setStackInSlot(arguments.slot(), new ItemStack(item, arguments.count()));
 					storage.getStorageWrapper().getInventoryHandler().saveInventory();
 					storage.setChanged();

@@ -42,7 +42,8 @@ public final class UseHeldItemAction extends TypedRegressionAction<UseHeldItemAc
 				minecraft.player.closeContainer();
 				return RegressionActionProgress.WAITING;
 			}
-			if (!minecraft.player.getMainHandItem().isEmpty() && minecraft.gameMode != null) {
+			if (!minecraft.player.getMainHandItem().isEmpty() && minecraft.gameMode != null
+					&& !minecraft.player.getCooldowns().isOnCooldown(minecraft.player.getMainHandItem())) {
 				minecraft.gameMode.useItem(minecraft.player, InteractionHand.MAIN_HAND);
 				return RegressionActionProgress.PASSED;
 			}

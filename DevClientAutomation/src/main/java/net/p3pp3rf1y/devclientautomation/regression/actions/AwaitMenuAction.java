@@ -5,12 +5,13 @@ import net.minecraft.client.Minecraft;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
+import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction.Arguments> {
-	public record Arguments(String kind, int timeoutTicks) {
+	public record Arguments(String kind, int timeoutTicks, String ref) {
 	}
 
 	public AwaitMenuAction() {
@@ -19,17 +20,25 @@ public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("kind", "timeoutTicks"), description);
+		requireOnly(args, Set.of("kind", "timeoutTicks", "ref"), description);
 		String kind = optionalString(args, "kind", "backpackBlock", description);
-		if (!Set.of("backpackBlock", "backpackItem", "storageBlock").contains(kind)) {
+		if (!Set.of("backpackBlock", "backpackItem", "storageBlock", "moving").contains(kind)) {
 			throw new IllegalArgumentException("Argument kind on " + description + " must be backpackBlock, backpackItem, or storageBlock");
 		}
-		return new Arguments(kind, optionalPositiveInt(args, "timeoutTicks", 100, description));
+		if (kind.equals("moving") != args.has("ref")) {
+			throw new IllegalArgumentException("Argument ref on " + description + " is required exactly for moving menus");
+		}
+		return new Arguments(kind, optionalPositiveInt(args, "timeoutTicks", 100, description),
+				kind.equals("moving") ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null);
 	}
 
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
+	}
+
+	static boolean matchesServerMenu(net.minecraft.server.level.ServerPlayer player, String kind, String ref, RegressionExecutionContext context) {
+		return Execution.matchesServerMenu(player, kind, ref, context);
 	}
 
 	private static final class Execution extends TickRegressionActionExecution {
@@ -48,12 +57,12 @@ public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction
 			if (deadline < 0) {
 				deadline = minecraft.player.tickCount + arguments.timeoutTicks();
 			}
-			if (context.isExpectedMenu(arguments.kind())) {
+			if (context.isExpectedMenu(arguments.kind(), arguments.ref())) {
 				context.putDiagnostic("clientMenu", minecraft.player.containerMenu.getClass().getName());
 				if (serverMenu == null) {
 					serverMenu = context.onServer(player -> {
 						context.putDiagnostic("serverMenu", player.containerMenu.getClass().getName());
-						if (!matchesServerMenu(player, arguments.kind(), context)) {
+						if (!matchesServerMenu(player, arguments.kind(), arguments.ref(), context)) {
 							throw new IllegalStateException("Server menu did not match expected " + arguments.kind() + " identity");
 						}
 					});
@@ -69,7 +78,7 @@ public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction
 			return RegressionActionProgress.WAITING;
 		}
 
-		private static boolean matchesServerMenu(net.minecraft.server.level.ServerPlayer player, String kind, RegressionExecutionContext context) {
+		static boolean matchesServerMenu(net.minecraft.server.level.ServerPlayer player, String kind, String ref, RegressionExecutionContext context) {
 			return switch (kind) {
 				case "backpackBlock" ->
 					player.containerMenu instanceof BackpackContainer menu && menu.getBackpackContext().getType() == BackpackContext.ContextType.BLOCK_BACKPACK
@@ -78,6 +87,8 @@ public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction
 						&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK && menu.getBlockPosition().isEmpty();
 				case "storageBlock" ->
 					player.containerMenu instanceof StorageContainerMenu menu && menu.getBlockPosition().filter(context.target()::equals).isPresent();
+				case "moving" -> player.containerMenu instanceof MovingStorageContainerMenu<?> menu && menu.getStorageEntity()
+						.filter(entity -> entity == context.values().require(ref, MovingStorageEntityHandle.class).requireServer(player)).isPresent();
 				default -> false;
 			};
 		}

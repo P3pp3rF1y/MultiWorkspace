@@ -56,7 +56,7 @@ public final class SetBackpackStorageSlotAction extends TypedRegressionAction<Se
 					if (!(backpack.getItem() instanceof BackpackItem)) {
 						throw new IllegalStateException("Main hand does not contain a backpack");
 					}
-					BackpackWrapper wrapper = new BackpackWrapper(backpack);
+					var wrapper = BackpackWrapper.fromStack(backpack);
 					if (arguments.slot() >= wrapper.getInventoryHandler().size()) {
 						throw new IllegalArgumentException("Storage slot " + arguments.slot() + " is outside the backpack inventory");
 					}

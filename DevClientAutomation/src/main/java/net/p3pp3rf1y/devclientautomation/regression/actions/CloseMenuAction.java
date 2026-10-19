@@ -2,6 +2,8 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.KeyEvent;
+import org.lwjgl.sdl.SDLScancode;
 
 import java.util.Set;
 
@@ -32,8 +34,10 @@ public final class CloseMenuAction extends TypedRegressionAction<CloseMenuAction
 		@Override
 		public RegressionActionProgress tick() {
 			Minecraft minecraft = context.minecraft();
-			if (minecraft.player.containerMenu != minecraft.player.inventoryMenu) {
-				minecraft.player.closeContainer();
+			if (minecraft.gui.screen() != null) {
+				if (!minecraft.gui.screen().keyPressed(new KeyEvent(SDLScancode.SDL_SCANCODE_ESCAPE, 0, 0)) && minecraft.gui.screen() != null) {
+					minecraft.gui.screen().onClose();
+				}
 			}
 			return RegressionActionProgress.PASSED;
 		}

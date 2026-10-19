@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "moving-linked-storage",
+  "requires": ["minecraft:client", "sophisticatedstorageinmotion"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "boat-link-through-entity-interaction",
+      "tags": ["moving", "link", "boat"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-identity", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "assert-group-title-and-primary-icon", "action": "assert.movingMenuPresentation", "args": {"ref": "boat", "role": "primary"}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "minecart-link-through-entity-interaction",
+      "tags": ["moving", "link", "minecart"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "saveAs": "minecart"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-identity", "action": "assert.movingLinked", "args": {"ref": "minecart", "primary": true}}
+      ]
+    },
+    {
+      "id": "primary-tier-migrates-once-secondary-rejected",
+      "tags": ["moving", "link", "tier", "authorization"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "minecart"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-secondary", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7}},
+        {"id": "hold-upgrades", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 2}},
+        {"id": "upgrade-secondary", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-rejected", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7, "hostItem": "sophisticatedstorage:barrel", "handCount": 2}},
+        {"id": "upgrade-primary", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-migrated", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7, "hostItem": "sophisticatedstorage:iron_barrel", "handCount": 1}},
+        {"id": "assert-secondary-sees-migration", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7, "hostItem": "sophisticatedstorage:iron_barrel"}}
+      ]
+    },
+    {
+      "id": "recoverable-boat-destruction-reopens-same-group",
+      "tags": ["moving", "boat", "lifecycle"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "destroy", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "restore-drop", "action": "fixture.moving.restoreDrop", "args": {"ref": "boat", "saveAs": "restored-boat"}},
+        {"id": "assert-same-group", "action": "assert.movingLinked", "args": {"ref": "restored-boat", "primary": true, "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-restored", "action": "player.useMovingStorage", "args": {"ref": "restored-boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "restored-boat"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "restored-boat", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "recoverable-minecart-destruction-reopens-same-group",
+      "tags": ["moving", "minecart", "lifecycle"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "saveAs": "minecart"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "minecart", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "minecart", "primary": true, "count": 7}},
+        {"id": "destroy", "action": "moving.destroy", "args": {"ref": "minecart"}},
+        {"id": "restore-drop", "action": "fixture.moving.restoreDrop", "args": {"ref": "minecart", "saveAs": "restored-minecart"}},
+        {"id": "assert-same-group", "action": "assert.movingLinked", "args": {"ref": "restored-minecart", "primary": true, "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-restored", "action": "player.useMovingStorage", "args": {"ref": "restored-minecart"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "restored-minecart"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "restored-minecart", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "horse-attach-and-drop-preserves-linked-carrier",
+      "tags": ["moving", "horse", "lifecycle"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "recover-carrier", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "hold-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "spawn-llama", "action": "fixture.moving.spawn", "args": {"kind": "llama", "offsetX": 4, "saveAs": "llama"}},
+        {"id": "attach-inner", "action": "player.useMovingStorage", "args": {"ref": "llama"}},
+        {"id": "assert-same-primary", "action": "assert.movingLinked", "args": {"ref": "llama", "primary": true, "count": 7, "handCount": 0}},
+        {"id": "destroy-llama", "action": "moving.destroy", "args": {"ref": "llama"}}
+      ]
+    },
+    {
+      "id": "nonrecoverable-secondary-detaches-without-erasing-group",
+      "tags": ["moving", "lifecycle", "secondary"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "minecart"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-secondary", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7}},
+        {"id": "lose-secondary", "action": "moving.destroy", "args": {"ref": "minecart", "drops": false}},
+        {"id": "assert-primary-intact", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}}
+      ]
+    },
+    {
+      "id": "removed-primary-pauses-authority-but-secondary-remains-usable",
+      "tags": ["moving", "lifecycle", "secondary", "authority"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "minecart"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "remove-primary", "action": "moving.destroy", "args": {"ref": "boat", "drops": false}},
+        {"id": "assert-secondary-retained", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-secondary", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "minecart"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "minecart", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "carried-primary-pauses-authority-but-secondary-remains-usable",
+      "tags": ["moving", "lifecycle", "secondary", "authority"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "minecart"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "recover-primary", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "assert-secondary-retained", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-secondary", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "minecart"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "minecart", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "forged-endpoint-and-tooltip-request-denied",
+      "tags": ["moving", "authorization", "tooltip"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-authentic", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true}},
+        {"id": "reject-forgeries", "action": "assert.movingForgedRejected", "args": {"ref": "boat"}},
+        {"id": "assert-authentic-intact", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true}}
+      ]
+    },
+    {
+      "id": "limited-barrel-moving-links-with-compatible-profile",
+      "tags": ["moving", "limited", "compatibility"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-limited", "action": "fixture.moving.spawn", "args": {"kind": "boat", "storageItem": "sophisticatedstorage:limited_barrel_1", "saveAs": "limited"}},
+        {"id": "assert-unlinked", "action": "assert.movingUnlinked", "args": {"ref": "limited"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "limited", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-limited", "action": "player.useMovingStorage", "args": {"ref": "limited"}},
+        {"id": "assert-linked", "action": "assert.movingLinked", "args": {"ref": "limited", "primary": true, "hostItem": "sophisticatedstorage:limited_barrel_1", "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-limited", "action": "player.useMovingStorage", "args": {"ref": "limited"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "limited"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "limited", "item": "minecraft:diamond", "count": 7}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "only-active-primary-runs-canonical-pickup-upgrade",
+      "tags": ["moving", "authority", "upgrade", "pickup"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "install-pickup", "action": "moving.setUpgrade", "args": {"ref": "boat", "item": "sophisticatedstorage:pickup_upgrade"}},
+        {"id": "spawn-secondary-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "offsetX": 4, "saveAs": "secondary"}},
+        {"id": "link-secondary-boat", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "assert-shared", "action": "assert.movingLinked", "args": {"ref": "secondary"}},
+        {"id": "spawn-pickup", "action": "moving.probePickup", "args": {"phase": "spawn", "ref": "secondary", "primaryRef": "boat"}},
+        {"id": "assert-secondary-paused", "action": "moving.probePickup", "args": {"phase": "assertPaused", "ref": "secondary", "primaryRef": "boat"}},
+        {"id": "move-item-to-primary", "action": "moving.probePickup", "args": {"phase": "moveToPrimary", "ref": "boat", "primaryRef": "boat"}},
+        {"id": "assert-primary-picked", "action": "moving.probePickup", "args": {"phase": "assertPicked", "ref": "boat", "primaryRef": "boat"}},
+        {"id": "assert-canonical", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 1}},
+        {"id": "assert-secondary-canonical", "action": "assert.movingLinked", "args": {"ref": "secondary", "count": 1}}
+      ]
+    },
+    {
+      "id": "packed-primary-pauses-pickup-secondary-menu-stays-usable",
+      "tags": ["moving", "authority", "packed", "secondary"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "spawn-primary", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "primary"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-primary", "action": "player.useMovingStorage", "args": {"ref": "primary"}},
+        {"id": "install-pickup", "action": "moving.setUpgrade", "args": {"ref": "primary", "item": "sophisticatedstorage:pickup_upgrade"}},
+        {"id": "spawn-secondary", "action": "fixture.moving.spawn", "args": {"kind": "boat", "offsetX": 6, "saveAs": "secondary"}},
+        {"id": "link-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "assert-shared", "action": "assert.movingLinked", "args": {"ref": "secondary"}},
+        {"id": "pack-primary", "action": "moving.setPacked", "args": {"ref": "primary", "packed": true}},
+        {"id": "assert-paused", "action": "moving.probePackedPrimary", "args": {"phase": "paused", "primaryRef": "primary", "secondaryRef": "secondary"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "secondary"}},
+        {"id": "assert-canonical-contents", "action": "assert.movingLinked", "args": {"ref": "secondary"}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"},
+        {"id": "unpack-primary", "action": "moving.setPacked", "args": {"ref": "primary", "packed": false}},
+        {"id": "assert-resumed", "action": "moving.probePackedPrimary", "args": {"phase": "resumed", "primaryRef": "primary", "secondaryRef": "secondary"}}
+      ]
+    },
+    {
+      "id": "recovered-moving-carrier-places-original-linked-block",
+      "tags": ["moving", "block", "conversion"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "recover-carrier", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "hold-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "place-inner", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "assert-original-endpoint", "action": "assert.linkedStorageBlock", "args": {"count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-block", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "storageBlock", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "create-cart-mount-opens-original-linked-group",
+      "tags": ["moving", "create", "conversion", "menu"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "recover-carrier", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "hold-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "place-inner", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "assert-original-endpoint", "action": "assert.linkedStorageBlock", "args": {"count": 7}},
+        {"id": "mount-block", "action": "fixture.create.mountLinkedStorage", "args": {"saveAs": "mounted"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}}
+      ]
+    },
+    {
+      "id": "limited-barrel-mount-opens-linked-group",
+      "tags": ["moving", "limited", "create", "conversion", "menu"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "spawn-limited", "action": "fixture.moving.spawn", "args": {"kind": "boat", "storageItem": "sophisticatedstorage:limited_barrel_1", "saveAs": "limited"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "limited", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-limited", "action": "player.useMovingStorage", "args": {"ref": "limited"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "limited", "primary": true, "hostItem": "sophisticatedstorage:limited_barrel_1", "count": 7}},
+        {"id": "recover-carrier", "action": "moving.destroy", "args": {"ref": "limited"}},
+        {"id": "hold-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "place-inner", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "assert-original-endpoint", "action": "assert.linkedStorageBlock", "args": {"count": 7}},
+        {"id": "mount-block", "action": "fixture.create.mountLinkedStorage", "args": {"saveAs": "mounted"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7, "checkPresentation": false}}
+      ]
+    },
+    {
+      "id": "secondary-minecart-sees-boat-canonical-contents",
+      "tags": ["moving", "link", "secondary", "inventory"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-minecart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "minecart"}},
+        {"id": "link-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "assert-secondary", "action": "assert.movingLinked", "args": {"ref": "minecart", "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-minecart", "action": "player.useMovingStorage", "args": {"ref": "minecart"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "minecart"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "minecart", "item": "minecraft:diamond", "count": 7}},
+        {"id": "assert-group-title-and-secondary-icon", "action": "assert.movingMenuPresentation", "args": {"ref": "minecart", "role": "secondary"}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "serialized-moving-entity-reloads-same-canonical-group",
+      "tags": ["moving", "persistence", "client"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "reload", "action": "fixture.moving.reload", "args": {"ref": "boat"}},
+        {"id": "assert-identity", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-restored", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "boat", "item": "minecraft:diamond", "count": 7}}
+      ]
+    },
+    {
+      "id": "moving-endpoints-share-upgrade-settings-and-display",
+      "tags": ["moving", "secondary", "settings", "display"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "spawn-primary", "action": "fixture.moving.spawn", "args": {"kind": "boat", "offsetX": 4, "saveAs": "primary"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "primary", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-primary", "action": "player.useMovingStorage", "args": {"ref": "primary"}},
+        {"id": "assert-primary", "action": "assert.movingLinked", "args": {"ref": "primary", "primary": true, "count": 7}},
+        {"id": "spawn-secondary", "action": "fixture.moving.spawn", "args": {"kind": "boat", "offsetX": 6, "saveAs": "secondary"}},
+        {"id": "link-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "assert-secondary", "action": "assert.movingLinked", "args": {"ref": "secondary", "count": 7}},
+        {"id": "install-upgrade", "action": "moving.setUpgrade", "args": {"ref": "primary", "item": "sophisticatedstorage:pickup_upgrade"}},
+        {"id": "set-presentation", "action": "moving.setPresentation", "args": {"ref": "primary"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "secondary"}},
+        {"id": "assert-inventory", "action": "assert.menu", "args": {"kind": "moving", "ref": "secondary", "item": "minecraft:diamond", "count": 7}},
+        {"id": "assert-presentation", "action": "assert.movingPresentation", "args": {"primaryRef": "primary", "secondaryRef": "secondary"}},
+        {"id": "close-menu", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"},
+        {"id": "recover-secondary", "action": "moving.destroy", "args": {"ref": "secondary"}},
+        {"id": "hold-secondary-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "place-secondary", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "assert-placed-presentation", "action": "assert.linkedStorageBlock", "args": {"count": 7, "presentation": true}},
+        {"id": "assert-moving-still-shared", "action": "assert.movingLinked", "args": {"ref": "primary", "primary": true, "count": 7}}
+      ]
+    },
+    {
+      "id": "removed-endpoint-invalidates-open-menu",
+      "tags": ["moving", "authorization", "menu", "lifecycle"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "remove-endpoint", "action": "moving.destroy", "args": {"ref": "boat", "drops": false}},
+        {"id": "await-invalidated", "action": "await.menuClosed"}
+      ]
+    },
+    {
+      "id": "moving-primary-open-menu-receives-live-slot-delta",
+      "tags": ["moving", "menu", "sync"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "assert-initial", "action": "assert.menu", "args": {"kind": "moving", "ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "moving", "ref": "boat", "saveAs": "opening"}},
+        {"id": "change-slot", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:emerald", "count": 9}},
+        {"id": "assert-delta", "action": "assert.linkedMenuDelta", "args": {"kind": "moving", "ref": "boat", "baseline": "opening", "item": "minecraft:emerald", "count": 9}}
+      ]
+    },
+    {
+      "id": "moving-secondary-open-menu-receives-primary-slot-delta",
+      "tags": ["moving", "secondary", "menu", "sync"],
+      "timeoutTicks": 450,
+      "steps": [
+        {"id": "spawn-primary", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "primary"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "primary", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-primary", "action": "player.useMovingStorage", "args": {"ref": "primary"}},
+        {"id": "spawn-secondary", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "secondary"}},
+        {"id": "link-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-secondary", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "secondary"}},
+        {"id": "assert-initial", "action": "assert.menu", "args": {"kind": "moving", "ref": "secondary", "item": "minecraft:diamond", "count": 7}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "moving", "ref": "secondary", "saveAs": "opening"}},
+        {"id": "change-primary-slot", "action": "moving.setSlot", "args": {"ref": "primary", "item": "minecraft:emerald", "count": 9}},
+        {"id": "assert-delta", "action": "assert.linkedMenuDelta", "args": {"kind": "moving", "ref": "secondary", "baseline": "opening", "item": "minecraft:emerald", "count": 9}},
+        {"id": "change-primary-settings", "action": "moving.setPresentation", "args": {"ref": "primary"}},
+        {"id": "assert-settings-only", "action": "assert.linkedMenuSettings", "args": {"ref": "secondary", "baseline": "opening"}}
+      ]
+    },
+    {
+      "id": "mounted-open-menu-receives-live-slot-delta",
+      "tags": ["moving", "create", "menu", "sync"],
+      "timeoutTicks": 550,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "recover-carrier", "action": "moving.destroy", "args": {"ref": "boat"}},
+        {"id": "hold-inner", "action": "fixture.moving.holdRecoveredInner"},
+        {"id": "place-inner", "action": "player.placeHeldBlock"},
+        {"id": "await-block", "action": "await.storageBlock"},
+        {"id": "mount-block", "action": "fixture.create.mountLinkedStorage", "args": {"saveAs": "mounted"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-mounted", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7, "checkPresentation": false}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "mounted", "ref": "mounted", "saveAs": "opening"}},
+        {"id": "change-slot", "action": "fixture.create.setMountedSlot", "args": {"ref": "mounted", "item": "minecraft:emerald", "count": 9}},
+        {"id": "assert-delta", "action": "assert.linkedMenuDelta", "args": {"kind": "mounted", "ref": "mounted", "baseline": "opening", "item": "minecraft:emerald", "count": 9}}
+      ]
+    },
+    {
+      "id": "linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot",
+      "tags": ["moving", "jukebox", "menu", "sync"],
+      "timeoutTicks": 450,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "install-jukebox", "action": "moving.setUpgrade", "args": {"ref": "boat", "item": "sophisticatedstorage:jukebox_upgrade"}},
+        {"id": "insert-disc", "action": "fixture.moving.setJukeboxDisc", "args": {"ref": "boat", "item": "minecraft:music_disc_13"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "moving", "ref": "boat", "saveAs": "opening"}},
+        {"id": "play-disc", "action": "menu.jukeboxPlayback", "args": {"ref": "boat", "control": "play"}},
+        {"id": "assert-playing-progress", "action": "assert.linkedJukeboxPlayback", "args": {"ref": "boat", "baseline": "opening", "playing": true}},
+        {"id": "stop-disc", "action": "menu.jukeboxPlayback", "args": {"ref": "boat", "control": "stop"}},
+        {"id": "assert-stopped", "action": "assert.linkedJukeboxPlayback", "args": {"ref": "boat", "baseline": "opening", "playing": false}}
+      ]
+    },
+    {
+      "id": "linked-carrier-copy-preserves-identity-and-limited-profile",
+      "tags": ["moving", "link", "identity", "compatibility"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
+        {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+        {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "capture-nested-copy", "action": "fixture.moving.captureNestedLinkedCarrier", "args": {"ref": "boat", "saveAs": "nested-copy"}},
+        {"id": "assert-nested-identity", "action": "assert.movingNestedLinkedIdentity", "args": {"ref": "nested-copy"}},
+        {"id": "assert-limited-profile", "action": "assert.movingStorageCompatibilityProfile"}
+      ]
+    }
+  ]
+}

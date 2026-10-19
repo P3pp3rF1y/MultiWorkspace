@@ -30,6 +30,7 @@ public final class AwaitStorageBlockAction extends TypedRegressionAction<AwaitSt
 		private final Arguments arguments;
 		private int deadline = -1;
 		private CompletableFuture<Void> serverBlock;
+		private boolean serverPlaced;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
@@ -44,13 +45,16 @@ public final class AwaitStorageBlockAction extends TypedRegressionAction<AwaitSt
 			}
 			if (minecraft.level.getBlockEntity(context.target()) instanceof StorageBlockEntity) {
 				if (serverBlock == null) {
-					serverBlock = context.onServer(player -> {
-						if (!(player.level().getBlockEntity(context.target()) instanceof StorageBlockEntity)) {
-							throw new IllegalStateException("Server did not place a storage block at the target");
-						}
-					});
+					serverBlock = context.onServer(player -> serverPlaced = player.level().getBlockEntity(context.target()) instanceof StorageBlockEntity);
 				}
-				return await(serverBlock);
+				RegressionActionProgress checked = await(serverBlock);
+				if (checked != RegressionActionProgress.PASSED) {
+					return checked;
+				}
+				if (serverPlaced) {
+					return RegressionActionProgress.PASSED;
+				}
+				return fail("Server did not place a storage block at the target");
 			}
 			return minecraft.player.tickCount >= deadline ? fail("Placed storage block did not synchronize to the client") : RegressionActionProgress.WAITING;
 		}

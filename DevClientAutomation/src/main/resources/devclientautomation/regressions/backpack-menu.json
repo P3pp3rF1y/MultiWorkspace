@@ -143,6 +143,30 @@
         {"id": "close-menu", "action": "menu.close"},
         {"id": "await-closed", "action": "await.menuClosed"}
       ]
+    },
+    {
+      "id": "linked-held-backpack-menu-receives-slot-delta",
+      "tags": ["backpack", "linked", "menu", "sync"],
+      "timeoutTicks": 450,
+      "steps": [
+        {"id": "create-backpack", "action": "backpack.createInMainHand", "args": {"tier": "gold"}},
+        {"id": "seed-diamonds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "create-linker", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "sophisticatedcore:ender_linker", "count": 1}},
+        {"id": "open-inventory", "action": "player.openInventory"},
+        {"id": "pick-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 9}},
+        {"id": "link-backpack", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0, "button": 1}},
+        {"id": "store-linker", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 9}},
+        {"id": "close-inventory", "action": "menu.close"},
+        {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "open-backpack", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "assert-initial", "action": "assert.menu", "args": {"kind": "backpackItem", "item": "minecraft:diamond", "count": 7}},
+        {"id": "capture-revision", "action": "menu.captureLinkedRevision", "args": {"kind": "backpackItem", "saveAs": "opening"}},
+        {"id": "pick-up-diamonds", "action": "menu.clickSlot", "args": {"slot": 0}},
+        {"id": "put-down-diamonds", "action": "menu.clickSlot", "args": {"slot": 1}},
+        {"id": "assert-delta", "action": "assert.linkedMenuDelta", "args": {"kind": "backpackItem", "baseline": "opening", "slot": 1, "item": "minecraft:diamond", "count": 7}}
+      ]
     }
   ]
 }

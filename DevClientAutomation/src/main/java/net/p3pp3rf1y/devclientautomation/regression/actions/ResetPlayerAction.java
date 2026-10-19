@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAction.Arguments> {
+	private static final float CAMERA_YAW = -90.0F;
+	private static final float CAMERA_PITCH = 20.0F;
+
 	public record Arguments() {
 	}
 
@@ -42,12 +45,10 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 				future = context.onServer(player -> {
 					BlockPos target = context.standingPosition();
 					player.closeContainer();
-					player.teleportTo(player.level(), target.getX() + 0.5D, target.getY(), target.getZ() + 0.5D, Set.of(), 0.0F, 0.0F, false);
+					player.setShiftKeyDown(false);
+					player.teleportTo(player.level(), target.getX() + 0.5D, target.getY(), target.getZ() + 0.5D, Set.of(), CAMERA_YAW, CAMERA_PITCH, false);
 					player.setDeltaMovement(Vec3.ZERO);
 					player.resetFallDistance();
-					if (!player.onGround() || player.getDeltaMovement().lengthSqr() != 0.0D) {
-						throw new IllegalStateException("Player reset did not leave the server player supported and stationary");
-					}
 				});
 			}
 			RegressionActionProgress reset = await(future);
@@ -57,11 +58,17 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 			Minecraft minecraft = context.minecraft();
 			BlockPos target = context.standingPosition();
 			if (minecraft.player != null) {
+				if (minecraft.player.containerMenu != minecraft.player.inventoryMenu) {
+					minecraft.player.closeContainer();
+				}
 				BlockPos clientPosition = minecraft.player.blockPosition();
 				context.putDiagnostic("clientPlayerPosition", Map.of("x", clientPosition.getX(), "y", clientPosition.getY(), "z", clientPosition.getZ()));
 				context.putDiagnostic("clientPlayerOnGround", minecraft.player.onGround());
 				context.putDiagnostic("clientPlayerVelocity", minecraft.player.getDeltaMovement().lengthSqr());
-				if (clientPosition.equals(target) && minecraft.player.onGround()) {
+				if (clientPosition.equals(target) && minecraft.player.onGround() && minecraft.player.containerMenu == minecraft.player.inventoryMenu
+						&& minecraft.gui.screen() == null) {
+					minecraft.player.setYRot(CAMERA_YAW);
+					minecraft.player.setXRot(CAMERA_PITCH);
 					minecraft.player.setDeltaMovement(Vec3.ZERO);
 					minecraft.player.resetFallDistance();
 					return RegressionActionProgress.PASSED;

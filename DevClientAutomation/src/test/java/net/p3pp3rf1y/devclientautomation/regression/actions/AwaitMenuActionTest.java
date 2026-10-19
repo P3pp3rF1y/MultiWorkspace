@@ -29,4 +29,14 @@ class AwaitMenuActionTest {
 
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": false}"));
 	}
+
+	@Test
+	void movingMenusRequireExactReference() {
+		AwaitMenuAction.Arguments arguments = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(new AwaitMenuAction(), "{\"kind\":\"moving\",\"ref\":\"primary\"}"), AwaitMenuAction.Arguments.class);
+
+		assertEquals("primary", arguments.ref());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AwaitMenuAction(), "{\"kind\":\"moving\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AwaitMenuAction(), "{\"ref\":\"primary\"}"));
+	}
 }

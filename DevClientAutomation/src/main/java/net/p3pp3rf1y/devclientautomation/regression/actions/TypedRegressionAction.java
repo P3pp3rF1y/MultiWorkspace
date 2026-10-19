@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionJsonNumbers;
 
 import java.util.Set;
 
@@ -24,6 +25,10 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 	protected abstract A parseArguments(JsonObject args, String description);
 
 	protected abstract RegressionActionExecution start(RegressionExecutionContext context, A arguments);
+
+	protected Set<String> dependencies(A arguments) {
+		return metadata.dependencies();
+	}
 
 	protected static void requireNoArguments(JsonObject args, String description) {
 		if (!args.isEmpty()) {
@@ -50,11 +55,21 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 		return args.has(name) ? requireString(args, name, description) : defaultValue;
 	}
 
+	protected static boolean optionalBoolean(JsonObject args, String name, boolean defaultValue, String description) {
+		if (!args.has(name)) {
+			return defaultValue;
+		}
+		if (!args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isBoolean()) {
+			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be a boolean");
+		}
+		return args.get(name).getAsBoolean();
+	}
+
 	protected static int requirePositiveInt(JsonObject args, String name, String description) {
 		if (!args.has(name) || !args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be numeric");
 		}
-		int value = args.get(name).getAsInt();
+		int value = integer(args, name, description);
 		if (value < 1) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be positive");
 		}
@@ -72,11 +87,19 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 		if (!args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be numeric");
 		}
-		int value = args.get(name).getAsInt();
+		int value = integer(args, name, description);
 		if (value < 0) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must not be negative");
 		}
 		return value;
+	}
+
+	private static int integer(JsonObject args, String name, String description) {
+		try {
+			return RegressionJsonNumbers.integer(args.get(name));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be an integer", e);
+		}
 	}
 
 }
