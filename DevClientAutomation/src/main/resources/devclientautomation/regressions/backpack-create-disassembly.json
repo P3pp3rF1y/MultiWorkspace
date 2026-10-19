@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-create-disassembly",
+  "requires": ["minecraft:client", "sophisticatedbackpackscreateintegration"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "cart-disassembly-preserves-iron-backpack-contents",
+      "tags": ["backpack", "create", "disassembly"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "create-iron-backpack", "action": "backpack.createInMainHand", "args": {"tier": "iron"}},
+        {"id": "seed-diamonds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "install-upgrade", "action": "backpack.configureFilter", "args": {"upgrade": "basic", "operation": "input"}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "assert-original", "action": "assert.placedBackpackContents", "args": {"item": "minecraft:diamond", "count": 7, "upgrade": "filter"}},
+        {"id": "assert-original-automation", "action": "assert.backpackAutomationExtractable", "args": {"item": "minecraft:diamond"}},
+        {"id": "clear-hand-before-mount", "action": "player.clearMainHand"},
+        {"id": "open-original", "action": "player.useTargetBlock"},
+        {"id": "await-original-menu", "action": "await.menu"},
+        {"id": "assert-original-menu", "action": "assert.menu", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "close-original-menu", "action": "menu.close"},
+        {"id": "await-original-closed", "action": "await.menuClosed"},
+        {"id": "mount", "action": "fixture.create.mountBackpack", "args": {"saveAs": "mounted"}},
+        {"id": "disassemble", "action": "create.disassembleBackpack", "args": {"ref": "mounted"}},
+        {"id": "await-restored", "action": "await.backpackBlock"},
+        {"id": "assert-restored", "action": "assert.placedBackpackContents", "args": {"item": "minecraft:diamond", "count": 7, "upgrade": "filter", "client": true}},
+        {"id": "assert-restored-automation", "action": "assert.backpackAutomationExtractable", "args": {"item": "minecraft:diamond"}},
+        {"id": "clear-hand", "action": "player.clearMainHand"},
+        {"id": "open-backpack", "action": "player.useTargetBlock"},
+        {"id": "await-menu", "action": "await.menu"},
+        {"id": "assert-menu", "action": "assert.menu", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "close-restored-menu", "action": "menu.close"},
+        {"id": "await-restored-closed", "action": "await.menuClosed"},
+        {"id": "pickup-restored", "action": "backpack.pickupPlaced"},
+        {"id": "assert-picked-contents", "action": "assert.heldBackpackContents", "args": {"item": "minecraft:diamond", "count": 7, "upgrade": "filter"}},
+        {"id": "open-picked", "action": "player.useHeldItem"},
+        {"id": "await-picked-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "assert-picked-upgrade", "action": "assert.heldBackpackFilter", "args": {"upgrade": "basic", "operation": "input", "slot": 1, "item": "minecraft:air", "count": 0}}
+      ]
+    },
+    {
+      "id": "cart-disassembly-preserves-iron-backpack-break-drop",
+      "tags": ["backpack", "create", "disassembly", "drop"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "create-iron-backpack", "action": "backpack.createInMainHand", "args": {"tier": "iron"}},
+        {"id": "seed-diamonds", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "install-upgrade", "action": "backpack.configureFilter", "args": {"upgrade": "basic", "operation": "input"}},
+        {"id": "place-backpack", "action": "backpack.placeHeld"},
+        {"id": "await-backpack", "action": "await.backpackBlock"},
+        {"id": "mount", "action": "fixture.create.mountBackpack", "args": {"saveAs": "mounted"}},
+        {"id": "mutate-mounted-inventory", "action": "fixture.create.setMountedBackpackSlot", "args": {"ref": "mounted", "item": "minecraft:diamond", "count": 11}},
+        {"id": "disassemble", "action": "create.disassembleBackpack", "args": {"ref": "mounted"}},
+        {"id": "await-restored", "action": "await.backpackBlock"},
+        {"id": "break-and-assert-drop", "action": "backpack.breakAndAssertDrop", "args": {"count": 11}}
+      ]
+    }
+  ]
+}

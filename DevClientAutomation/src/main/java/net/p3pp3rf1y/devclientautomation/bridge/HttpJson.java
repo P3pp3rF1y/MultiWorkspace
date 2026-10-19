@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class HttpJson {
@@ -26,7 +25,7 @@ public final class HttpJson {
 	public static JsonObject readObject(HttpExchange exchange) throws IOException {
 		String body = readBody(exchange);
 		if (body.isBlank()) {
-			return new JsonObject();
+			throw new IllegalArgumentException("Expected a non-blank JSON object");
 		}
 		JsonElement element = JsonParser.parseString(body);
 		if (!element.isJsonObject()) {
@@ -72,23 +71,37 @@ public final class HttpJson {
 	}
 
 	public static String string(JsonObject request, String name, String defaultValue) {
-		return value(request, name).map(JsonElement::getAsString).orElse(defaultValue);
+		if (!request.has(name)) {
+			return defaultValue;
+		}
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+			throw new IllegalArgumentException(name + " must be a string");
+		}
+		return value.getAsString();
 	}
 
 	public static boolean bool(JsonObject request, String name, boolean defaultValue) {
-		return value(request, name).map(JsonElement::getAsBoolean).orElse(defaultValue);
+		if (!request.has(name)) {
+			return defaultValue;
+		}
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+			throw new IllegalArgumentException(name + " must be a boolean");
+		}
+		return value.getAsBoolean();
 	}
 
 	public static int integer(JsonObject request, String name, int defaultValue) {
-		return value(request, name).map(JsonElement::getAsInt).orElse(defaultValue);
+		return request.has(name) ? Integer.parseInt(number(request, name).getAsString()) : defaultValue;
 	}
 
 	public static double decimal(JsonObject request, String name, double defaultValue) {
-		return value(request, name).map(JsonElement::getAsDouble).orElse(defaultValue);
+		return request.has(name) ? Double.parseDouble(number(request, name).getAsString()) : defaultValue;
 	}
 
 	public static long longValue(JsonObject request, String name, long defaultValue) {
-		return value(request, name).map(JsonElement::getAsLong).orElse(defaultValue);
+		return request.has(name) ? Long.parseLong(number(request, name).getAsString()) : defaultValue;
 	}
 
 	public static String jsonProperty(String name, String value) {
@@ -99,8 +112,16 @@ public final class HttpJson {
 		return GSON.toJson(errorResponse(error));
 	}
 
-	private static Optional<JsonElement> value(JsonObject request, String name) {
-		return request.has(name) && !request.get(name).isJsonNull() ? Optional.of(request.get(name)) : Optional.empty();
+	public static String toJson(Object value) {
+		return GSON.toJson(value);
+	}
+
+	private static JsonElement number(JsonObject request, String name) {
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+			throw new IllegalArgumentException(name + " must be a number");
+		}
+		return value;
 	}
 
 	private static JsonObject errorResponse(String error) {
