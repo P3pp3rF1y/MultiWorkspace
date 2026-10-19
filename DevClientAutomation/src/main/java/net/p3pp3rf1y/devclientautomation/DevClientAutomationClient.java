@@ -96,6 +96,8 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionCoordinator;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStoragePerformanceRegression;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackLinkedStorageRegression;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.MountedLinkedBackpackRegression;
@@ -208,6 +210,7 @@ public class DevClientAutomationClient {
 	public static void init() {
 		DemoCommand.init();
 		BackpackLinkedStoragePerformanceRegression.init();
+		RegressionCoordinator.init();
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(DevClientAutomationClient::clientSetup);
 	}
 
@@ -294,6 +297,7 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/recipe-viewer/query", this::recipeViewerQuery);
 				httpServer.createContext("/recipe-viewer/backpack-crafting-transfer", this::recipeViewerBackpackCraftingTransfer);
 				httpServer.createContext("/recipe-viewer/stats", this::recipeViewerStats);
+				RegressionEndpoints.register(httpServer, LOGGER);
 				httpServer.setExecutor(executor);
 				httpServer.start();
 				writeDiscoveryFile(httpServer.getAddress().getPort());
@@ -306,7 +310,7 @@ public class DevClientAutomationClient {
 		private void capabilities(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "GET");
 			sendJson(exchange,
-					"{\"ok\":true,\"protocolVersion\":1,\"loader\":\"forge\",\"minecraftVersion\":\"1.20.1\",\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"linked-storage\",\"storage\",\"inventory-interactions\"]}");
+					"{\"ok\":true,\"protocolVersion\":1,\"loader\":\"forge\",\"minecraftVersion\":\"1.20.1\",\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"linked-storage\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}");
 		}
 
 		private void state(HttpExchange exchange) throws IOException {

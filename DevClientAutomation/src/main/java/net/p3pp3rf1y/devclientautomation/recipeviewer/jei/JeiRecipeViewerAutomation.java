@@ -3,7 +3,9 @@ package net.p3pp3rf1y.devclientautomation.recipeviewer.jei;
 import com.google.gson.JsonObject;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
+import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
+import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.IRecipeManager;
@@ -19,10 +21,13 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.p3pp3rf1y.devclientautomation.JsonUtil;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.*;
+import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
+import net.p3pp3rf1y.sophisticatedcore.compat.recipeviewers.jei.JeiSettingsGhostIngredientHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -37,6 +42,24 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 
 	public static void setRuntime(@Nullable IJeiRuntime jeiRuntime) {
 		runtime = jeiRuntime;
+	}
+
+	public static void dropSettingsGhost(SettingsScreen screen, int slotIndex, ItemStack stack) {
+		if (runtime == null) {
+			throw new IllegalStateException("JEI runtime is not available");
+		}
+		ITypedIngredient<ItemStack> ingredient = runtime.getIngredientManager().createTypedIngredient(VanillaTypes.ITEM_STACK, stack)
+				.orElseThrow(() -> new IllegalStateException("JEI rejected the ghost ingredient"));
+		Slot slot = screen.getMenu().getStorageInventorySlots().get(slotIndex);
+		JeiSettingsGhostIngredientHandler<SettingsScreen> handler = new JeiSettingsGhostIngredientHandler<>();
+		try {
+			IGhostIngredientHandler.Target<ItemStack> target = handler.getTargetsTyped(screen, ingredient, true).stream()
+					.filter(candidate -> candidate.getArea().contains(screen.getGuiLeft() + slot.x + 8, screen.getGuiTop() + slot.y + 8)).findFirst()
+					.orElseThrow(() -> new IllegalStateException("JEI memory ghost target is missing"));
+			target.accept(stack);
+		} finally {
+			handler.onComplete();
+		}
 	}
 
 	@Override
