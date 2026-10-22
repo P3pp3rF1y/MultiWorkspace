@@ -53,12 +53,12 @@ class RegressionSuiteParserTest {
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
 			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-create-disassembly.json",
-					"storage-menu.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
-					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
-					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+					"storage-menu.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json",
+					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
+					"linked-storage-menu.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
 					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(20, indexedPaths.size());
+			assertEquals(21, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
 			try (var resources = Files.list(resourceDirectory)) {
@@ -66,7 +66,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(21, physicalJson.size());
+				assertEquals(22, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -91,8 +91,8 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(98, testCount);
-			assertEquals(16, fixtureCount);
+			assertEquals(102, testCount);
+			assertEquals(18, fixtureCount);
 		}
 	}
 

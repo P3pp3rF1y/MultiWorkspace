@@ -5,24 +5,26 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
+import net.p3pp3rf1y.sophisticatedcore.controller.ControllerBlockEntityBase;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlockEntity;
 
 import javax.annotation.Nullable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertDoubleChestAction extends TypedRegressionAction<AssertDoubleChestAction.Arguments> {
-	public record Arguments() {
+	public record Arguments(boolean controller) {
 	}
 	public AssertDoubleChestAction() {
-		super("assert.doubleChest", "1", Set.of("minecraft:client", "sophisticatedstorage"));
+		super("assert.doubleChest", "2", Set.of("minecraft:client", "sophisticatedstorage"));
 	}
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireNoArguments(args, description);
-		return new Arguments();
+		requireOnly(args, Set.of("controller"), description);
+		return new Arguments(optionalBoolean(args, "controller", false, description));
 	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
@@ -51,6 +53,15 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 								|| !(level.getBlockEntity(firstEntity.getMainPos()) instanceof ChestBlockEntity main)
 								|| main.getStorageWrapper().getInventoryHandler().size() != chest.getNumberOfInventorySlots() * 2) {
 							throw new IllegalStateException("Naturally joined chest did not acquire shared double capacity");
+						}
+						if (arguments.controller()) {
+							BlockPos controllerPos = main.getControllerPos()
+									.orElseThrow(() -> new IllegalStateException("Double chest did not connect to its controller"));
+							if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntityBase controller)
+									|| !controller.getStoragePositions().equals(List.of(main.getBlockPos()))
+									|| controller.size() != main.getStorageWrapper().getInventoryForInputOutput().size()) {
+								throw new IllegalStateException("Controller did not expose exactly the shared double-chest inventory");
+							}
 						}
 					});
 				}

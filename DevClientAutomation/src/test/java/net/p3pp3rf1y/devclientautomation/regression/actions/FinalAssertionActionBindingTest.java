@@ -26,14 +26,16 @@ class FinalAssertionActionBindingTest {
 		assertEquals(new AssertCanonicalCapturedMobsAction.Arguments(0, false), bind("assert.canonicalCapturedMobs", "{}"));
 		assertEquals(new AssertCanonicalCapturedMobsAction.Arguments(2, true), bind("assert.canonicalCapturedMobs", "{\"count\":2,\"render\":true}"));
 		assertThrows(IllegalArgumentException.class, () -> bind("assert.canonicalCapturedMobs", "{\"render\":1}"));
-		assertEquals(new AssertDoubleChestAction.Arguments(), bind("assert.doubleChest", "{}"));
+		assertEquals(new AssertDoubleChestAction.Arguments(false), bind("assert.doubleChest", "{}"));
+		assertEquals(new AssertDoubleChestAction.Arguments(true), bind("assert.doubleChest", "{\"controller\":true}"));
+		assertThrows(IllegalArgumentException.class, () -> bind("assert.doubleChest", "{\"controller\":1}"));
 		assertThrows(IllegalArgumentException.class, () -> bind("assert.doubleChest", "{\"count\":1}"));
 		RegressionActionTestSupport.assertMetadata(registry.require("assert.canonicalBackpackTemplate"), "assert.canonicalBackpackTemplate",
 				Set.of("minecraft:client", "sophisticatedbackpacks"));
 		RegressionActionTestSupport.assertMetadata(registry.require("assert.canonicalCapturedMobs"), "assert.canonicalCapturedMobs",
 				Set.of("minecraft:client", "sophisticatedbackpacks"));
-		RegressionActionTestSupport.assertMetadata(registry.require("assert.doubleChest"), "assert.doubleChest",
-				Set.of("minecraft:client", "sophisticatedstorage"));
+		assertEquals("2", registry.require("assert.doubleChest").metadata().revision());
+		assertEquals(Set.of("minecraft:client", "sophisticatedstorage"), registry.require("assert.doubleChest").metadata().dependencies());
 	}
 
 	@Test
