@@ -11,7 +11,7 @@
       {"id": "place-second", "action": "player.placeHeldBlock", "args": {"offset": [0,0,1]}},
       {"id": "fill-main", "action": "player.sendCommand", "args": {"command": "item replace block ~2 ~ ~ container.0 with minecraft:diamond 7"}},
       {"id": "fill-secondary", "action": "player.sendCommand", "args": {"command": "item replace block ~2 ~ ~1 container.0 with minecraft:emerald 9"}},
-      {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_tier_upgrade"}}
+      {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_tier_upgrade", "count": 2}}
     ],
     "verify-upgraded-pair": [
       {"id": "shared-inventory", "action": "assert.doubleChest", "args": {"controller": true}},
