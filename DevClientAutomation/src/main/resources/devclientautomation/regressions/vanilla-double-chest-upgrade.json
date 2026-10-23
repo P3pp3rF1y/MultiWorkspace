@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "vanilla-double-chest-upgrade",
+  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "isolation": "testCell",
+  "fixtures": {
+    "filled-vanilla-double-chest": [
+      {"id": "first-chest-item", "action": "player.createMainHandItem", "args": {"item": "minecraft:chest"}},
+      {"id": "place-first", "action": "player.placeHeldBlock"},
+      {"id": "second-chest-item", "action": "player.createMainHandItem", "args": {"item": "minecraft:chest"}},
+      {"id": "place-second", "action": "player.placeHeldBlock", "args": {"offset": [0,0,1]}},
+      {"id": "fill-main", "action": "player.sendCommand", "args": {"command": "item replace block ~2 ~ ~ container.0 with minecraft:diamond 7"}},
+      {"id": "fill-secondary", "action": "player.sendCommand", "args": {"command": "item replace block ~2 ~ ~1 container.0 with minecraft:emerald 9"}},
+      {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_tier_upgrade", "count": 2}}
+    ],
+    "verify-upgraded-pair": [
+      {"id": "shared-inventory", "action": "assert.doubleChest", "args": {"controller": true}},
+      {"id": "main-diamonds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 7}},
+      {"id": "main-emeralds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:emerald", "count": 9}},
+      {"id": "secondary-no-diamonds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-1], "item": "minecraft:diamond", "count": 0}},
+      {"id": "secondary-no-emeralds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-1], "item": "minecraft:emerald", "count": 0}},
+      {"id": "empty-hand", "action": "player.clearMainHand"},
+      {"id": "open-chest", "action": "player.useTargetBlock"},
+      {"id": "visible-main-items", "action": "assert.menu", "args": {"kind": "storageBlock", "slot": 0, "item": "minecraft:diamond", "count": 7}},
+      {"id": "visible-secondary-items", "action": "assert.menu", "args": {"kind": "storageBlock", "slot": 27, "item": "minecraft:emerald", "count": 9}},
+      {"id": "extract-secondary-items", "action": "menu.clickStorageSlot", "args": {"area": "storage", "slot": 27, "click": "pickup"}},
+      {"id": "secondary-slot-empty", "action": "assert.menu", "args": {"kind": "storageBlock", "slot": 27, "item": "minecraft:emerald", "count": 0}},
+      {"id": "reinsert-items", "action": "menu.clickStorageSlot", "args": {"area": "storage", "slot": 1, "click": "pickup"}},
+      {"id": "reinserted-items-visible", "action": "assert.menu", "args": {"kind": "storageBlock", "slot": 1, "item": "minecraft:emerald", "count": 9}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "upgrade-main-controller-at-main",
+      "tags": ["chest", "controller", "upgrade", "item-conservation", "runtimeConformance"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+        {"id": "upgrade", "action": "player.useHeldItemOnTarget"},
+        {"id": "verify", "fixture": "verify-upgraded-pair"}
+      ]
+    },
+    {
+      "id": "upgrade-main-controller-at-secondary",
+      "tags": ["chest", "controller", "upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-1]}},
+        {"id": "upgrade", "action": "player.useHeldItemOnTarget"},
+        {"id": "verify", "fixture": "verify-upgraded-pair"}
+      ]
+    },
+    {
+      "id": "upgrade-secondary-controller-at-main",
+      "tags": ["chest", "controller", "upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+        {"id": "upgrade", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "verify", "fixture": "verify-upgraded-pair"}
+      ]
+    },
+    {
+      "id": "upgrade-secondary-controller-at-secondary",
+      "tags": ["chest", "controller", "upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-1]}},
+        {"id": "upgrade", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "verify", "fixture": "verify-upgraded-pair"}
+      ]
+    }
+  ]
+}
