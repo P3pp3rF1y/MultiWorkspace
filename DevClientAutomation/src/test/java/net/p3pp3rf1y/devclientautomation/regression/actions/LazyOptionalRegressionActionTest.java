@@ -10,18 +10,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LazyOptionalRegressionActionTest {
 	@Test
-	void linkageErrorsAreReportedAsUnavailableButRuntimeFailuresPropagate() {
-		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-				() -> proxy(LinkageFailureAction.class).bind(new JsonObject(), "test").start(null));
-		assertEquals("Optional implementation for test.lazy is unavailable", unavailable.getMessage());
-		assertThrows(IllegalArgumentException.class, () -> proxy(RuntimeFailureAction.class).bind(new JsonObject(), "test").start(null));
+	void constructorLinkageAndRuntimeFailuresAreInfrastructure() {
+		for (Class<?> implementation : new Class<?>[]{LinkageFailureAction.class, RuntimeFailureAction.class}) {
+			RegressionActionFailure failure = assertThrows(RegressionActionFailure.class,
+					() -> proxy(implementation).bind(new JsonObject(), "test").start(null));
+
+			assertEquals(RegressionActionFailure.Kind.INFRASTRUCTURE, RegressionActionFailure.classify(failure));
+			assertEquals("Optional implementation for test.lazy could not initialize", failure.getMessage());
+			assertEquals(implementation == LinkageFailureAction.class ? NoClassDefFoundError.class : IllegalArgumentException.class,
+					failure.getCause().getClass());
+		}
 	}
 
 	@Test
 	void delegateMetadataMustExactlyMatchTheProxyBeforeStarting() {
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		RegressionActionFailure failure = assertThrows(RegressionActionFailure.class,
 				() -> proxy(MismatchedMetadataAction.class).bind(new JsonObject(), "test").start(null));
 		assertEquals("Optional implementation metadata does not match proxy for test.lazy", failure.getMessage());
+		assertEquals(RegressionActionFailure.Kind.INFRASTRUCTURE, failure.kind());
 	}
 
 	private static LazyOptionalRegressionAction proxy(Class<?> implementation) {

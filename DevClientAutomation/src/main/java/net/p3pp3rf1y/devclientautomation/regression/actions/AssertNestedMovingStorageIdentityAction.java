@@ -26,6 +26,11 @@ public final class AssertNestedMovingStorageIdentityAction extends TypedRegressi
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.NESTED_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
@@ -38,15 +43,15 @@ public final class AssertNestedMovingStorageIdentityAction extends TypedRegressi
 						NestedMovingStorageSnapshot snapshot = context.values().require(arguments.ref(), NestedMovingStorageSnapshot.class);
 						ItemStack outer = snapshot.outerCopy();
 						if (outer.has(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT) || outer.has(ModCoreDataComponents.STORAGE_UUID)) {
-							throw new IllegalStateException("Nested moving carrier has linked or ordinary storage identity on its outer stack");
+							throw RegressionActionFailure.assertion("Nested moving carrier has linked or ordinary storage identity on its outer stack");
 						}
 						ItemStack inner = MovingStorageItem.getStorageItem(outer);
 						LinkedStorageEndpointData endpoint = inner.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 						if (endpoint == null || !snapshot.endpoint().equals(endpoint.toString())) {
-							throw new IllegalStateException("Nested moving carrier did not preserve its linked endpoint through copy");
+							throw RegressionActionFailure.assertion("Nested moving carrier did not preserve its linked endpoint through copy");
 						}
 						if (inner.has(ModCoreDataComponents.STORAGE_UUID)) {
-							throw new IllegalStateException("Nested moving carrier assigned an ordinary storage UUID to its linked inner stack");
+							throw RegressionActionFailure.assertion("Nested moving carrier assigned an ordinary storage UUID to its linked inner stack");
 						}
 					});
 				}

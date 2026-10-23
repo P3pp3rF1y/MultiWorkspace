@@ -6,7 +6,14 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.CleanupResult;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ConformanceResult;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ReportContext;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.RunStatus;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.RuntimeConformanceResult;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.StepResult;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionExecution;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionFailure;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionMetadata;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionProgress;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionExecutionContext;
@@ -26,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public final class RegressionCoordinator {
 	private static final String SUITE_INDEX_RESOURCE = "/devclientautomation/regressions/index.json";
@@ -33,11 +41,23 @@ public final class RegressionCoordinator {
 	private static final RegressionActionRegistry ACTIONS = new RegressionActionRegistry();
 	@Nullable
 	private static RegressionCoordinator instance;
+	private final Predicate<String> available;
+	private final Supplier<Map<String, RegressionSuite>> suiteSource;
 
 	@Nullable
 	private RunState run;
 
 	private RegressionCoordinator() {
+		this(RegressionCoordinator::isAvailable);
+	}
+
+	RegressionCoordinator(Predicate<String> available) {
+		this(available, RegressionCoordinator::loadSuites);
+	}
+
+	RegressionCoordinator(Predicate<String> available, Supplier<Map<String, RegressionSuite>> suiteSource) {
+		this.available = available;
+		this.suiteSource = suiteSource;
 	}
 
 	public static void init() {
@@ -67,20 +87,37 @@ public final class RegressionCoordinator {
 		if (run != null && !run.finished()) {
 			throw new IllegalStateException("Regression run " + run.runId + " is already active");
 		}
-		RegressionSuite suite = loadSuites().get(suiteId);
+		RegressionSuite suite = suiteSource.get().get(suiteId);
 		if (suite == null) {
 			throw new IllegalArgumentException("No regression suite with id " + suiteId);
 		}
 		RegressionTest test = suite.tests().stream().filter(candidate -> candidate.id().equals(testId)).findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No regression test " + suiteId + "/" + testId));
+		String runId = suiteId + "/" + testId;
+		List<String> missing = RegressionPreflight.missing(test.requires(), available);
+		if (!missing.isEmpty()) {
+			run = RunState.stopped(runId, suiteId, test, List.of(), Outcome.SKIPPED, "expectedUnavailable", "Missing external mods " + missing, missing);
+			return run.status();
+		}
 		List<RegressionTest> runtimeConformanceTests = test.tags().contains("runtimeConformance")
 				? List.of()
 				: suite.tests().stream().filter(candidate -> candidate.tags().contains("runtimeConformance")).toList();
-		List<ConformanceResult> conformance = qualify(suite, runtimeConformanceTests, test, conformanceFailureAction, RegressionCoordinator::isAvailable);
-		String runId = suiteId + "/" + testId;
+		try {
+			RegressionPreflight.validateValues(test);
+			for (RegressionTest conformanceTest : runtimeConformanceTests) {
+				RegressionPreflight.validateValues(conformanceTest);
+			}
+		} catch (IllegalArgumentException e) {
+			run = RunState.stopped(runId, suiteId, test, List.of(), Outcome.ERROR, "preflight", e.getMessage(), List.of());
+			return run.status();
+		}
+		List<ConformanceResult> conformance = qualify(suite, runtimeConformanceTests, test, conformanceFailureAction, available);
 		if (conformance.stream().anyMatch(result -> !result.passed())) {
 			String dependency = conformance.stream().filter(result -> !result.passed()).findFirst().orElseThrow().dependency();
-			run = RunState.skipped(runId, suiteId, testId, conformance, "Missing action dependency " + dependency);
+			boolean unavailable = conformance.stream().anyMatch(result -> !result.passed() && !available.test(result.dependency()));
+			run = RunState.stopped(runId, suiteId, test, conformance, unavailable ? Outcome.ERROR : Outcome.BLOCKED,
+					unavailable ? "infrastructure" : "dependencyBlocked", "Unqualified action dependency " + dependency + " (" + conformanceFailureAction + ")",
+					List.of());
 			return run.status();
 		}
 		run = RunState.running(runId, suiteId, test, runtimeConformanceTests, conformance, actionFailureAfter, cleanupFailure);
@@ -90,6 +127,13 @@ public final class RegressionCoordinator {
 
 	public synchronized RunStatus status() {
 		return run == null ? RunStatus.idle() : run.status();
+	}
+
+	public synchronized RunStatus start(String suiteId, String testId, String conformanceFailureAction, String actionFailureAfter, boolean cleanupFailure,
+			String preparationToken, ReportContext context) {
+		start(suiteId, testId, conformanceFailureAction, actionFailureAfter, cleanupFailure, preparationToken);
+		run.reportContext = context;
+		return run.status();
 	}
 
 	public synchronized RunStatus cancel() {
@@ -120,7 +164,8 @@ public final class RegressionCoordinator {
 			try {
 				current.tick();
 			} catch (RuntimeException e) {
-				current.fail(e.getMessage());
+				// Lifecycle boundary: retain the exception and still restore journaled mutations.
+				current.fail(Outcome.ERROR, RegressionResultModel.Failure.exception("unexpectedException", e));
 			}
 		}
 	}
@@ -194,6 +239,7 @@ public final class RegressionCoordinator {
 	}
 
 	private static final class RunState {
+		private ReportContext reportContext = ReportContext.unknown();
 		private final String runId;
 		private final String suiteId;
 		private final RegressionTest test;
@@ -206,6 +252,7 @@ public final class RegressionCoordinator {
 		private final String actionFailureAfter;
 		private final boolean forcedCleanupFailure;
 		private final long startedNanos = System.nanoTime();
+		@Nullable
 		private RegressionExecutionContext executionContext;
 		private String preparationToken = "";
 		@Nullable
@@ -227,6 +274,15 @@ public final class RegressionCoordinator {
 		@Nullable
 		private Outcome terminalOutcome;
 		private String primaryFailure = "";
+		@Nullable
+		private RegressionResultModel.Failure failure;
+		@Nullable
+		private RegressionResultModel.Failure cleanupError;
+		private long cleanupStartedNanos;
+		private String primaryOutcome = "running";
+		private String primaryCategory = "";
+		private String category = "";
+		private List<String> missingRequirements = List.of();
 		private Outcome outcome;
 		private String message;
 		private int deadlineTick = -1;
@@ -246,7 +302,6 @@ public final class RegressionCoordinator {
 			this.message = message;
 			this.actionFailureAfter = actionFailureAfter;
 			this.forcedCleanupFailure = forcedCleanupFailure;
-			executionContext = new RegressionExecutionContext(runId, diagnostics);
 			if (outcome != Outcome.RUNNING) {
 				finishedNanos = System.nanoTime();
 			}
@@ -257,9 +312,18 @@ public final class RegressionCoordinator {
 			return new RunState(runId, suiteId, test, runtimeConformanceTests, conformance, Outcome.RUNNING, "", actionFailureAfter, forcedCleanupFailure);
 		}
 
-		static RunState skipped(String runId, String suiteId, String testId, List<ConformanceResult> conformance, String message) {
-			return new RunState(runId, suiteId, new RegressionTest(testId, Set.of(), 0, false, List.of()), List.of(), conformance, Outcome.SKIPPED, message, "",
-					false);
+		static RunState stopped(String runId, String suiteId, RegressionTest test, List<ConformanceResult> conformance, Outcome outcome, String category,
+				String message, List<String> missing) {
+			RunState state = new RunState(runId, suiteId, test, List.of(), conformance, outcome, message, "", false);
+			state.category = category;
+			state.primaryOutcome = outcome.serializedName();
+			state.primaryCategory = category;
+			state.primaryFailure = message;
+			if (outcome == Outcome.ERROR || outcome == Outcome.FAILED) {
+				state.failure = RegressionResultModel.Failure.message(category, message);
+			}
+			state.missingRequirements = List.copyOf(missing);
+			return state;
 		}
 
 		boolean finished() {
@@ -272,6 +336,7 @@ public final class RegressionCoordinator {
 				return;
 			}
 			if (cancelRequested) {
+				category = "cancellation";
 				terminate(Outcome.CANCELLED, "Regression run was cancelled");
 				return;
 			}
@@ -284,6 +349,9 @@ public final class RegressionCoordinator {
 				} else {
 					beginTest(test, false);
 				}
+				if (finished()) {
+					return;
+				}
 			}
 			if (journalPreparation == null) {
 				journalPreparation = executionContext.onServer(executionContext::prepareJournal);
@@ -295,13 +363,13 @@ public final class RegressionCoordinator {
 			try {
 				journalPreparation.join();
 			} catch (RuntimeException e) {
-				fail("Could not prepare recovery journal: " + rootCause(e));
+				fail(Outcome.ERROR, RegressionResultModel.Failure.exception("infrastructure", e));
 				return;
 			}
 			if (deadlineTick < 0) {
 				deadlineTick = Minecraft.getInstance().player.tickCount + activeTest.timeoutTicks();
 			} else if (Minecraft.getInstance().player.tickCount >= deadlineTick) {
-				fail("Test exceeded timeoutTicks " + activeTest.timeoutTicks());
+				fail(Outcome.ERROR, RegressionResultModel.Failure.message("timeout", "Test exceeded timeoutTicks " + activeTest.timeoutTicks()));
 				return;
 			}
 			if (activeAction == null) {
@@ -311,18 +379,26 @@ public final class RegressionCoordinator {
 				}
 				activeStep = activeExecutionSteps.get(stepIndex);
 				activeActionStartedNanos = System.nanoTime();
-				activeAction = activeStep.action().start(executionContext);
 			}
 			RegressionActionProgress progress;
 			String actionFailure = "";
+			RegressionResultModel.Failure actionException = null;
 			try {
+				// Action lifecycle boundary: classify start and tick failures identically, then restore the journal.
+				if (activeAction == null) {
+					activeAction = activeStep.action().start(executionContext);
+				}
 				progress = activeAction.tick();
 				if (progress == RegressionActionProgress.FAILED) {
 					actionFailure = activeAction.failure();
+					if (activeAction.failureException() != null) {
+						actionException = RegressionResultModel.Failure.exception(activeAction.failureKind().category(), activeAction.failureException());
+					}
 				}
 			} catch (RuntimeException e) {
 				progress = RegressionActionProgress.FAILED;
-				actionFailure = rootCause(e);
+				actionException = RegressionResultModel.Failure.exception(RegressionActionFailure.classify(e).category(), e);
+				actionFailure = actionException.message();
 			}
 			if (!activeStep.expectFailure().isEmpty() && progress != RegressionActionProgress.WAITING) {
 				if (progress != RegressionActionProgress.FAILED || !actionFailure.contains(activeStep.expectFailure())) {
@@ -336,18 +412,43 @@ public final class RegressionCoordinator {
 					fail("Injected action failure after " + actionFailureAfter);
 					return;
 				}
-				activeSteps.add(new StepResult(activeStep.id(), activeStep.action().action().metadata().id(), "passed", actionFailure,
-						elapsedMillis(activeActionStartedNanos, System.nanoTime())));
+				activeSteps.add(stepResult("passed", "", actionFailure, null));
 				activeStep = null;
 				activeAction = null;
 				activeActionStartedNanos = 0;
 				stepIndex++;
 			} else if (progress == RegressionActionProgress.FAILED) {
-				fail(actionFailure);
+				if (actionException != null) {
+					fail(actionException.category().equals("assertion") ? Outcome.FAILED : Outcome.ERROR, actionException);
+				} else {
+					RegressionActionFailure.Kind kind = activeAction.failureKind();
+					fail(kind == RegressionActionFailure.Kind.ASSERTION ? Outcome.FAILED : Outcome.ERROR,
+							RegressionResultModel.Failure.message(kind.category(), actionFailure));
+				}
 			}
 		}
 
 		private void beginTest(RegressionTest nextTest, boolean conformanceTest) {
+			List<String> missing = RegressionPreflight.missing(nextTest.requires(), RegressionCoordinator::isAvailable);
+			if (!missing.isEmpty()) {
+				missingRequirements = missing;
+				category = conformanceTest ? "dependencyBlocked" : "expectedUnavailable";
+				outcome = conformanceTest ? Outcome.BLOCKED : Outcome.SKIPPED;
+				primaryOutcome = outcome.serializedName();
+				primaryCategory = category;
+				message = "Missing external mods for " + nextTest.id() + ": " + missing;
+				primaryFailure = message;
+				finishedNanos = System.nanoTime();
+				return;
+			}
+			RegressionPreflight.validateValues(nextTest);
+			List<ConformanceResult> dependencies = new ArrayList<>();
+			qualifyActions(dependencies, nextTest, "", RegressionCoordinator::isAvailable);
+			if (dependencies.stream().anyMatch(result -> !result.passed())) {
+				category = "infrastructure";
+				fail(Outcome.ERROR, RegressionResultModel.Failure.message(category, "Action dependencies changed before execution: " + dependencies));
+				return;
+			}
 			executionContext = new RegressionExecutionContext(runId + "/" + nextTest.id(), diagnostics);
 			executionContext.configurePlayerState(nextTest.playerState(), nextTest.checkpoint());
 			executionContext.putDiagnostic("expectedPreparationToken", preparationToken);
@@ -366,49 +467,75 @@ public final class RegressionCoordinator {
 
 		private void completeActiveTest() {
 			executionContext.markSuccessful();
+			category = "";
 			terminate(Outcome.PASSED, "All steps passed");
 		}
 
 		private void completeAfterCleanup(boolean cleaned, String cleanupMessage) {
 			long now = System.nanoTime();
-			cleanup.add(new CleanupResult(activeTest.id(), cleaned ? "passed" : "failed", cleanupMessage));
-			Outcome result = cleaned ? terminalOutcome : Outcome.FAILED;
+			cleanup.add(
+					new CleanupResult(activeTest.id(), cleaned ? "passed" : "error", cleanupMessage, elapsedMillis(cleanupStartedNanos, now), cleanupError));
+			Outcome result = cleaned ? terminalOutcome : Outcome.ERROR;
 			String detail = cleaned ? primaryFailure : primaryFailure + (primaryFailure.isBlank() ? "" : "; ") + "Cleanup failed: " + cleanupMessage;
 			if (runningConformance) {
 				runtimeConformance.add(new RuntimeConformanceResult(activeTest.id(), result.serializedName(), detail, List.copyOf(activeSteps),
-						elapsedMillis(activeTestStartedNanos, now)));
+						elapsedMillis(activeTestStartedNanos, now), terminalOutcome.serializedName(), category, failure));
 				if (result == Outcome.PASSED) {
 					conformanceTestIndex++;
 					activeTest = null;
 					cleanupFuture = null;
+					failure = null;
+					primaryOutcome = "running";
+					primaryCategory = "";
 					return;
 				}
 				detail = "Runtime conformance " + activeTest.id() + " failed: " + detail;
+				primaryOutcome = "blocked";
+				primaryCategory = "dependencyBlocked";
+				primaryFailure = detail;
+				failure = RegressionResultModel.Failure.message(primaryCategory, detail);
+				result = cleaned ? Outcome.BLOCKED : Outcome.ERROR;
 			} else {
 				steps.addAll(activeSteps);
 				selectedTestDurationNanos = now - activeTestStartedNanos;
 			}
 			finishedNanos = now;
 			outcome = result;
+			category = cleaned ? primaryCategory : "cleanup";
 			message = detail;
 		}
 
 		void fail(@Nullable String failure) {
+			fail(Outcome.FAILED,
+					RegressionResultModel.Failure.message("assertion", failure == null || failure.isBlank() ? "Regression action failed" : failure));
+		}
+
+		void fail(Outcome desiredOutcome, RegressionResultModel.Failure detail) {
 			if (cleanupFuture != null) {
 				return;
 			}
-			long now = System.nanoTime();
+			failure = detail;
+			category = detail.category();
 			if (activeStep != null) {
-				activeSteps.add(new StepResult(activeStep.id(), activeStep.action().action().metadata().id(), "failed", failure,
-						elapsedMillis(activeActionStartedNanos, now)));
+				activeSteps.add(stepResult(desiredOutcome.serializedName(), category, detail.message(), detail));
 			}
-			terminate(Outcome.FAILED, failure == null || failure.isBlank() ? "Regression action failed" : failure);
+			terminate(desiredOutcome, detail.message());
+		}
+
+		private StepResult stepResult(String stepOutcome, String stepCategory, String detail, @Nullable RegressionResultModel.Failure exception) {
+			RegressionActionMetadata metadata = activeStep.action().action().metadata();
+			return new StepResult(activeStep.id(), metadata.id(), stepOutcome, detail, elapsedMillis(activeActionStartedNanos, System.nanoTime()),
+					metadata.revision(), stepCategory, activeStep.provenance(), activeAction == null ? Map.of() : activeAction.expectedActual(), exception);
 		}
 
 		private void terminate(Outcome desiredOutcome, String detail) {
 			terminalOutcome = desiredOutcome;
+			primaryOutcome = desiredOutcome.serializedName();
+			primaryCategory = category;
 			primaryFailure = detail;
-			executionContext.minecraft().options.keyShift.setDown(false);
+			if (executionContext != null) {
+				executionContext.minecraft().options.keyShift.setDown(false);
+			}
 			activeAction = null;
 			activeStep = null;
 			if (activeTest == null) {
@@ -417,6 +544,7 @@ public final class RegressionCoordinator {
 				finishedNanos = System.nanoTime();
 				return;
 			}
+			cleanupStartedNanos = System.nanoTime();
 			cleanupFuture = executionContext.onServer(player -> {
 				player.setShiftKeyDown(false);
 				if (forcedCleanupFailure) {
@@ -434,6 +562,7 @@ public final class RegressionCoordinator {
 				cleanupFuture.join();
 				completeAfterCleanup(true, "World mutations restored");
 			} catch (RuntimeException e) {
+				cleanupError = RegressionResultModel.Failure.exception("cleanup", e);
 				completeAfterCleanup(false, rootCause(e));
 			}
 		}
@@ -450,7 +579,10 @@ public final class RegressionCoordinator {
 			}
 			return new RunStatus(outcome == Outcome.PASSED, runId, suiteId, test.id(), outcome.serializedName(), message, List.copyOf(conformance),
 					List.copyOf(steps), List.copyOf(runtimeConformance), Map.copyOf(diagnostics), elapsedMillis(startedNanos, now), testNanos / 1_000_000.0,
-					List.copyOf(cleanup), cleanupFuture != null && !cleanupFuture.isDone() ? "cleanup" : "execution");
+					List.copyOf(cleanup),
+					cleanupError != null || cleanupFuture != null && !cleanupFuture.isDone() ? "cleanup" : executionContext == null ? "preflight" : "execution",
+					category, test.requires(), missingRequirements, primaryOutcome, primaryCategory, failure, cleanupError, reportContext.rerunCommand(),
+					List.of(), 0, primaryFailure, reportContext.runtimeIdentity(), reportContext.artifacts());
 		}
 	}
 
@@ -459,30 +591,10 @@ public final class RegressionCoordinator {
 	}
 
 	private enum Outcome {
-		RUNNING, PASSED, FAILED, SKIPPED, CANCELLED;
+		RUNNING, PASSED, FAILED, ERROR, SKIPPED, BLOCKED, CANCELLED;
 		String serializedName() {
 			return name().toLowerCase(Locale.ROOT);
 		}
 	}
 
-	public record ConformanceResult(String id, String dependency, boolean passed, String detail) {
-	}
-
-	public record StepResult(String id, String action, String outcome, String message, double durationMillis) {
-	}
-
-	public record RuntimeConformanceResult(String testId, String outcome, String message, List<StepResult> steps, double durationMillis) {
-	}
-
-	public record CleanupResult(String testId, String outcome, String message) {
-	}
-
-	public record RunStatus(boolean ok, String runId, String suiteId, String testId, String outcome, String message, List<ConformanceResult> conformance,
-			List<StepResult> steps, List<RuntimeConformanceResult> runtimeConformance, Map<String, Object> diagnostics, double durationMillis,
-			double testDurationMillis, List<CleanupResult> cleanup, String phase) {
-		static RunStatus idle() {
-			return new RunStatus(true, "", "", "", "idle", "No regression run has been requested", List.of(), List.of(), List.of(), Map.of(), 0, 0, List.of(),
-					"idle");
-		}
-	}
 }

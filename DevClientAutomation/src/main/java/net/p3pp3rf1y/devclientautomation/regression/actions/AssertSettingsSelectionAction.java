@@ -49,7 +49,7 @@ public final class AssertSettingsSelectionAction extends TypedRegressionAction<A
 			@Override
 			public RegressionActionProgress tick() {
 				if (ticks++ > 100) {
-					return fail("Memory/display settings did not persist on server and client; server=" + serverState + "; client=" + clientState);
+					return failAssertion("Memory/display settings did not persist on server and client; server=" + serverState + "; client=" + clientState);
 				}
 				if (future == null) {
 					future = context.onServer(player -> {

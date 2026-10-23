@@ -23,6 +23,11 @@ public final class SetMovingStoragePresentationAction extends TypedRegressionAct
 	}
 
 	@Override
+	protected RegressionValueContract values(String ref) {
+		return RegressionValueContract.consuming(ref, RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, String ref) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable

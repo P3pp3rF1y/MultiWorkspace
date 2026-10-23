@@ -69,6 +69,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 

@@ -175,6 +175,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     Assert-True (Invoke-BridgeJson -Method Get -Path "/state").playerLoaded "Dev client world is not loaded."
     New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
     $cropDirectory = Join-Path $ScreenshotDirectory "preview-crops"

@@ -7,5 +7,9 @@ public interface RegressionActionInvocation {
 
 	Set<String> dependencies();
 
+	default RegressionValueContract values() {
+		return RegressionValueContract.EMPTY;
+	}
+
 	RegressionActionExecution start(RegressionExecutionContext context);
 }

@@ -6,7 +6,6 @@ param(
     [string]$Suite = "sophisticatedbackpacks",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime
 )
 
@@ -59,9 +58,6 @@ function Stop-AutomationClient {
 
 function Start-AutomationClient {
     $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-    if ($MaximizeClient) {
-        $readyArgs.Maximize = $true
-    }
     if ($MinimalRuntime) {
         $readyArgs.MinimalRuntime = $true
     }
@@ -170,6 +166,7 @@ try {
         Start-AutomationClient
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $suitePath = Get-SuitePath -SuiteName $Suite
     Assert-True (Test-Path $suitePath) "Backpack regression suite not found: $suitePath"
     $suiteData = Get-Content $suitePath -Raw | ConvertFrom-Json

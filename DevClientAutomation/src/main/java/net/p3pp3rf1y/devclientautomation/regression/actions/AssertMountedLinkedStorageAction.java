@@ -40,6 +40,11 @@ public final class AssertMountedLinkedStorageAction extends TypedRegressionActio
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -67,17 +72,17 @@ public final class AssertMountedLinkedStorageAction extends TypedRegressionActio
 							|| !Objects.equals(handle.endpoint(), storage.getStorageStack().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT))
 							|| storage.getStorageStack().has(ModCoreDataComponents.STORAGE_UUID) || !LinkedStorageGroupsSavedData.get(player.serverLevel())
 									.manager().isEndpointMember(handle.endpoint().groupId(), handle.endpoint().endpointId())) {
-						throw new IllegalStateException("Create mount lost its registered linked block endpoint or allocated an ordinary sidecar");
+						throw RegressionActionFailure.assertion("Create mount lost its registered linked block endpoint or allocated an ordinary sidecar");
 					}
 					ItemStack stack = storage.getStorageWrapper().getInventoryHandler().getStackInSlot(0);
 					if (!stack.is(Items.DIAMOND) || stack.getCount() != arguments.count()) {
-						throw new IllegalStateException("Mounted storage does not resolve canonical group inventory");
+						throw RegressionActionFailure.assertion("Mounted storage does not resolve canonical group inventory");
 					}
 					groupTitle = storage.getStorageWrapper().getDisplayName().getString();
 					if (!entity.handlePlayerInteraction(player, handle.localPos(), Direction.UP, InteractionHand.MAIN_HAND)
 							|| !(player.containerMenu instanceof MountedStorageContainerMenu menu)
 							|| menu.getContraptionEntity().filter(entity::equals).isEmpty() || !menu.getLocalPos().equals(handle.localPos())) {
-						throw new IllegalStateException("Create mounted storage interaction did not open its own menu");
+						throw RegressionActionFailure.infrastructure("Create mounted storage interaction did not open its own menu");
 					}
 				});
 				deadline = context.minecraft().player.tickCount + 100;
@@ -91,16 +96,18 @@ public final class AssertMountedLinkedStorageAction extends TypedRegressionActio
 					&& menu.getLocalPos().equals(handle.localPos())) {
 				ItemStack stack = menu.getStorageWrapper().getInventoryHandler().getStackInSlot(0);
 				if (!stack.is(Items.DIAMOND) || stack.getCount() != arguments.count()) {
-					return fail("Create mounted client menu did not receive canonical group snapshot");
+					return failAssertion("Create mounted client menu did not receive canonical group snapshot");
 				}
 				if (context.minecraft().screen instanceof MountedStorageScreen screen) {
 					return (!arguments.checkPresentation() || groupTitle.equals(screen.getTitle().getString())
 							&& screen.getLinkedStorageEndpointRole().filter(LinkedStorageEndpointRole.PRIMARY::equals).isPresent())
 									? RegressionActionProgress.PASSED
-									: fail("Create mounted screen title or linked-primary icon does not match the group");
+									: failAssertion("Create mounted screen title or linked-primary icon does not match the group");
 				}
 			}
-			return context.minecraft().player.tickCount >= deadline ? fail("Create mounted client menu did not synchronize") : RegressionActionProgress.WAITING;
+			return context.minecraft().player.tickCount >= deadline
+					? failAssertion("Create mounted client menu did not synchronize")
+					: RegressionActionProgress.WAITING;
 		}
 	}
 }

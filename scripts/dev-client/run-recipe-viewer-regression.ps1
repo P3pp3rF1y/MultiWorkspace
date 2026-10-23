@@ -8,8 +8,7 @@ param(
     [string]$Suite = "sophisticatedbackpacks",
     [int]$Limit = 200,
     [int]$TimeoutSeconds = 360,
-    [switch]$NoStartClient,
-    [switch]$MaximizeClient
+    [switch]$NoStartClient
 )
 
 $ErrorActionPreference = "Stop"
@@ -477,9 +476,6 @@ try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if (-not [string]::IsNullOrWhiteSpace($Viewer)) {
             $readyArgs.RecipeViewer = $Viewer
         }
@@ -489,6 +485,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $suitePath = Get-SuitePath -SuiteName $Suite
     Assert-True (Test-Path $suitePath) "Recipe viewer regression suite not found: $suitePath"
     $suiteData = Get-Content $suitePath -Raw | ConvertFrom-Json

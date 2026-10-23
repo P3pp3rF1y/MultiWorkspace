@@ -43,11 +43,11 @@ public final class AssertMovingStorageCompatibilityProfileAction extends TypedRe
 								.createWithStorage(new ItemStack(ModItems.STORAGE_BOAT.get()), new ItemStack(ModBlocks.LIMITED_COPPER_BARREL_2_ITEM.get()))));
 						String item = StorageLinkedStorageHostWrapper.getCompatibilityKey(new ItemStack(ModBlocks.LIMITED_IRON_BARREL_2_ITEM.get()));
 						if (!placed.equals(moving) || !placed.equals(item)) {
-							throw new IllegalStateException("Equivalent two-slot limited barrel compatibility profiles differ");
+							throw RegressionActionFailure.assertion("Equivalent two-slot limited barrel compatibility profiles differ");
 						}
 						if (placed.equals(StorageLinkedStorageHostWrapper.getCompatibilityKey(new ItemStack(ModBlocks.LIMITED_BARREL_1_ITEM.get())))
 								|| placed.equals(StorageLinkedStorageHostWrapper.getCompatibilityKey(new ItemStack(ModBlocks.BARREL_ITEM.get())))) {
-							throw new IllegalStateException("Limited barrel compatibility profile matches an incompatible storage type");
+							throw RegressionActionFailure.assertion("Limited barrel compatibility profile matches an incompatible storage type");
 						}
 					});
 				}

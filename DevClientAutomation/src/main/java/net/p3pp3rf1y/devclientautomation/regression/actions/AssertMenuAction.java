@@ -40,6 +40,13 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.kind() == MenuKind.MOVING
+				? RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				: RegressionValueContract.EMPTY;
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -76,7 +83,9 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 			if (!serverMatched) {
 				serverAssertion = null;
 				stableSince = -1;
-				return minecraft.player.tickCount >= deadline ? fail("Server menu did not receive the expected item stack") : RegressionActionProgress.WAITING;
+				return minecraft.player.tickCount >= deadline
+						? failAssertion("Server menu did not receive the expected item stack")
+						: RegressionActionProgress.WAITING;
 			}
 			if (!context.isExpectedMenu(arguments.kind(), arguments.ref())) {
 				stableSince = -1;
@@ -89,7 +98,7 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 				stableSince = -1;
 				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
-						? fail("Client menu did not synchronize the expected item stack")
+						? failAssertion("Client menu did not synchronize the expected item stack")
 						: RegressionActionProgress.WAITING;
 			}
 			if (stableSince < 0) {
@@ -104,13 +113,13 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 
 		private boolean matchesStack(StorageContainerMenuBase<?> menu) {
 			if (!arguments.playerInventory() && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
-				throw new IllegalStateException(
-						"Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
+				throw RegressionActionFailure
+						.infrastructure("Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
 			}
 			ItemStack stack;
 			if (arguments.playerInventory()) {
 				stack = menu.slots.stream().filter(slot -> slot.container instanceof Inventory && slot.getContainerSlot() == arguments.slot()).findFirst()
-						.map(Slot::getItem).orElseThrow(() -> new IllegalStateException("Menu has no player inventory slot " + arguments.slot()));
+						.map(Slot::getItem).orElseThrow(() -> RegressionActionFailure.infrastructure("Menu has no player inventory slot " + arguments.slot()));
 			} else {
 				stack = menu.getSlot(arguments.slot()).getItem();
 			}

@@ -6,7 +6,6 @@ param(
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "decoration-table-render-screenshots"),
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime
 )
 
@@ -198,9 +197,6 @@ try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if ($MinimalRuntime) {
             $readyArgs.MinimalRuntime = $true
         }
@@ -210,6 +206,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
     New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
@@ -225,7 +222,7 @@ try {
         Assert-True $open.ok "Failed to set up decoration table preview for ${item}: $($open.error)"
         Assert-True ($null -ne $open.preview) "Decoration table preview bounds were not returned for $item."
         Assert-True ($null -ne $open.resultSlot) "Decoration table result slot bounds were not returned for $item."
-        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+        Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
         Start-Sleep -Milliseconds 1250
 
         $screenshotPath = Join-Path $ScreenshotDirectory "$item.png"
@@ -257,7 +254,7 @@ try {
     $rotationDirectory = Join-Path $ScreenshotDirectory "barrel-directional"
     New-Item -ItemType Directory -Path $rotationDirectory -Force | Out-Null
     $rotationResults = @()
-    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     Start-Sleep -Milliseconds 2500
     $firstOpenScreenshotPath = Join-Path $rotationDirectory "first-open.png"
     Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $firstOpenScreenshotPath | Out-Null
@@ -286,7 +283,7 @@ try {
         Write-Host "PASS barrel-directional-$rotation $($bounds | ConvertTo-Json -Compress)"
     }
 
-    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     Start-Sleep -Milliseconds 2500
     $returnScreenshotPath = Join-Path $rotationDirectory "return.png"
     Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $returnScreenshotPath | Out-Null

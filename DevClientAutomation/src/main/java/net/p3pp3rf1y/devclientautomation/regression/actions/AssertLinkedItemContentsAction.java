@@ -43,8 +43,8 @@ public final class AssertLinkedItemContentsAction extends TypedRegressionAction<
 						ItemStack stack = player.getInventory().getItem(arguments.slot());
 						LinkedStorageEndpointData endpoint = stack.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 						if (endpoint == null || stack.has(ModCoreDataComponents.STORAGE_UUID) || stack.has(ModCoreDataComponents.ENDER_LINK_PENDING_CRAFT)) {
-							throw new IllegalStateException("Expected a finalized linked item without an ordinary backend at " + arguments.slot() + ": " + stack
-									+ ", endpoint=" + endpoint + ", ordinary=" + stack.get(ModCoreDataComponents.STORAGE_UUID) + ", pending="
+							throw RegressionActionFailure.assertion("Expected a finalized linked item without an ordinary backend at " + arguments.slot() + ": "
+									+ stack + ", endpoint=" + endpoint + ", ordinary=" + stack.get(ModCoreDataComponents.STORAGE_UUID) + ", pending="
 									+ stack.get(ModCoreDataComponents.ENDER_LINK_PENDING_CRAFT));
 						}
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.serverLevel()).manager()
@@ -54,7 +54,7 @@ public final class AssertLinkedItemContentsAction extends TypedRegressionAction<
 							count += host.getInventoryHandler().getStackInSlot(slot).getCount();
 						}
 						if (count != arguments.count()) {
-							throw new IllegalStateException("Expected canonical item count " + arguments.count() + ", got " + count);
+							throw RegressionActionFailure.assertion("Expected canonical item count " + arguments.count() + ", got " + count);
 						}
 					});
 				}

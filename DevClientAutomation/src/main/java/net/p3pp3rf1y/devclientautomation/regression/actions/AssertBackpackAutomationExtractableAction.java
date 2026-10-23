@@ -39,13 +39,13 @@ public final class AssertBackpackAutomationExtractableAction extends TypedRegres
 				if (future == null) {
 					future = context.onServer(player -> {
 						if (!(player.serverLevel().getBlockEntity(context.target()) instanceof BackpackBlockEntity backpack)) {
-							throw new IllegalStateException("Expected a placed backpack for sided automation");
+							throw RegressionActionFailure.infrastructure("Expected a placed backpack for sided automation");
 						}
 						Item expected = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(arguments.item()))
 								.orElseThrow(() -> new IllegalArgumentException("Unknown item " + arguments.item()));
 						IItemHandler handler = player.serverLevel().getCapability(Capabilities.ItemHandler.BLOCK, context.target(), Direction.UP);
 						if (handler == null || !handler.extractItem(0, 1, true).is(expected)) {
-							throw new IllegalStateException("Sided item handler could not extract the stored " + arguments.item());
+							throw RegressionActionFailure.assertion("Sided item handler could not extract the stored " + arguments.item());
 						}
 					});
 				}

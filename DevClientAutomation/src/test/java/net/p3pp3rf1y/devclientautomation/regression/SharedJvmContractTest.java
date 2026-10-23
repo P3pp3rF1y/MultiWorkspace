@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SharedJvmContractTest {
 	private static final String CANONICAL_ACTION_METADATA = """
 			assert.backpackAutomationExtractable|1|minecraft:client,sophisticatedbackpacks
+			assert.backpackPickupConfiguration|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalBackpackTemplate|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalCapturedMobs|1|minecraft:client,sophisticatedbackpacks
 			assert.controllerLinkGroups|1|minecraft:client,sophisticatedstorage
@@ -28,7 +29,7 @@ class SharedJvmContractTest {
 			assert.doubleChest|2|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
-			assert.inventoryCount|1|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
+			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
@@ -54,6 +55,7 @@ class SharedJvmContractTest {
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
+			await.itemEntity|1|minecraft:client
 			await.menu|2|minecraft:client
 			await.menuClosed|1|minecraft:client
 			await.playerCraftingResult|1|minecraft:client
@@ -61,8 +63,10 @@ class SharedJvmContractTest {
 			backpack.breakAndAssertDrop|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureDeposit|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureFilter|1|minecraft:client,sophisticatedbackpacks
+			backpack.configurePickup|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureRestock|1|minecraft:client,sophisticatedbackpacks
 			backpack.createInMainHand|1|minecraft:client,sophisticatedbackpacks
+			backpack.fillStorage|1|minecraft:client,sophisticatedbackpacks
 			backpack.linkHeld|1|minecraft:client,sophisticatedbackpacks
 			backpack.pickupPlaced|1|minecraft:client,sophisticatedbackpacks
 			backpack.placeHeld|2|minecraft:client,sophisticatedbackpacks
@@ -85,6 +89,7 @@ class SharedJvmContractTest {
 			fixture.create.setMountedBackpackSlot|1|minecraft:client,sophisticatedbackpackscreateintegration
 			fixture.create.setMountedSlot|1|minecraft:client,sophisticatedstoragecreateintegration
 			fixture.entity.spawnPig|1|minecraft:client
+			fixture.itemEntity.spawn|1|minecraft:client
 			fixture.linked.replaceRoot|1|minecraft:client,sophisticatedcore
 			fixture.moving.captureNestedLinkedCarrier|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.moving.holdRecoveredInner|1|minecraft:client,sophisticatedstorageinmotion
@@ -169,6 +174,11 @@ class SharedJvmContractTest {
 			backpack.configureDeposit
 			backpack.useOnStorage
 			assert.inventoryCount
+			backpack.configurePickup
+			backpack.fillStorage
+			fixture.itemEntity.spawn
+			await.itemEntity
+			assert.backpackPickupConfiguration
 			assert.restockBackpack
 			assert.restockBarrel
 			player.setInventorySlot
@@ -253,6 +263,8 @@ class SharedJvmContractTest {
 			backpack-menu:backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
+			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
+			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -280,7 +292,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(114, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(119, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -320,25 +332,25 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(21, suites.size());
-		assertEquals(102, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(23, suites.size());
+		assertEquals(109, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(114, actions.size());
+		assertEquals(119, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 
 	@Test
 	void statusEndpointSerializationExposesDtoTimingsAndFailedCleanup() {
 		// RunState transitions require the Minecraft client/server lifecycle and remain integration-only.
-		RegressionCoordinator.StepResult passed = new RegressionCoordinator.StepResult("first", "menu.close", "passed", "", 1.25);
-		RegressionCoordinator.StepResult failed = new RegressionCoordinator.StepResult("second", "menu.close", "failed", "failure", 2.5);
-		RegressionCoordinator.RuntimeConformanceResult conformance = new RegressionCoordinator.RuntimeConformanceResult("probe", "passed", "", List.of(passed),
+		RegressionResultModel.StepResult passed = new RegressionResultModel.StepResult("first", "menu.close", "passed", "", 1.25);
+		RegressionResultModel.StepResult failed = new RegressionResultModel.StepResult("second", "menu.close", "failed", "failure", 2.5);
+		RegressionResultModel.RuntimeConformanceResult conformance = new RegressionResultModel.RuntimeConformanceResult("probe", "passed", "", List.of(passed),
 				3.75);
-		RegressionCoordinator.CleanupResult cleanup = new RegressionCoordinator.CleanupResult("case", "failed", "Cleanup failed");
-		RegressionCoordinator.RunStatus status = new RegressionCoordinator.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed",
+		RegressionResultModel.CleanupResult cleanup = new RegressionResultModel.CleanupResult("case", "failed", "Cleanup failed");
+		RegressionResultModel.RunStatus status = new RegressionResultModel.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed",
 				List.of(), List.of(failed), List.of(conformance), Map.of(), 10.5, 4.25, List.of(cleanup), "execution");
 
 		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(status)).getAsJsonObject();
@@ -353,8 +365,26 @@ class SharedJvmContractTest {
 	}
 
 	@Test
+	void rerunCommandPreservesDirectHttpRequestOptionsWithoutFrontendContext() {
+		JsonObject request = json("""
+				{"suiteId":"backpack-pickup","testId":"basic-pickup-allows-diamond",
+				"conformanceFailureAction":"backpack.configurePickup","actionFailureAfter":"fixture.itemEntity.spawn",
+				"preparationToken":"token'quoted","cleanupFailure":true}
+				""");
+
+		String command = RegressionEndpoints.rerunCommand(request, 49184);
+
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run"
+				+ " -Suite 'backpack-pickup' -Test 'basic-pickup-allows-diamond' -BaseUrl 'http://127.0.0.1:49184'"
+				+ " -ConformanceFailureAction 'backpack.configurePickup' -ActionFailureAfter 'fixture.itemEntity.spawn'"
+				+ " -PreparationToken 'token''quoted' -CleanupFailure", command);
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run -Suite 'test' -Test 'case' -BaseUrl 'http://127.0.0.1:1234'",
+				RegressionEndpoints.rerunCommand(json("{\"suiteId\":\"test\",\"testId\":\"case\"}"), 1234));
+	}
+
+	@Test
 	void idleStatusEndpointSerializationHasRunnerTimingFields() {
-		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionCoordinator.RunStatus.idle())).getAsJsonObject();
+		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionResultModel.RunStatus.idle())).getAsJsonObject();
 
 		assertEquals(0, json.get("durationMillis").getAsDouble());
 		assertEquals(0, json.get("testDurationMillis").getAsDouble());
@@ -369,15 +399,15 @@ class SharedJvmContractTest {
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"mounted\",\"ref\":\"mounted\",\"saveAs\":\"baseline\"}"), "mounted"));
 		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client"), "testCell", List.of(moving, mounted));
 
-		List<RegressionCoordinator.ConformanceResult> movingResults = RegressionCoordinator.qualify(suite, List.of(), moving, "",
+		List<RegressionResultModel.ConformanceResult> movingResults = RegressionCoordinator.qualify(suite, List.of(), moving, "",
 				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
-		List<RegressionCoordinator.ConformanceResult> mountedResults = RegressionCoordinator.qualify(suite, List.of(), mounted, "",
+		List<RegressionResultModel.ConformanceResult> mountedResults = RegressionCoordinator.qualify(suite, List.of(), mounted, "",
 				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
 
-		assertTrue(movingResults.stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
-		assertFalse(mountedResults.stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
+		assertTrue(movingResults.stream().allMatch(RegressionResultModel.ConformanceResult::passed));
+		assertFalse(mountedResults.stream().allMatch(RegressionResultModel.ConformanceResult::passed));
 		assertEquals(List.of("sophisticatedstoragecreateintegration"),
-				mountedResults.stream().filter(result -> !result.passed()).map(RegressionCoordinator.ConformanceResult::dependency).toList());
+				mountedResults.stream().filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
 	@Test
@@ -387,11 +417,11 @@ class SharedJvmContractTest {
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"storageBlock\",\"saveAs\":\"baseline\"}"), "storage"));
 		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client", "sophisticatedbackpacks"), "testCell", List.of(storage));
 
-		List<RegressionCoordinator.ConformanceResult> results = RegressionCoordinator.qualify(suite, List.of(), storage, "",
+		List<RegressionResultModel.ConformanceResult> results = RegressionCoordinator.qualify(suite, List.of(), storage, "",
 				dependency -> dependency.equals("minecraft:client"));
 
 		assertEquals(List.of("sophisticatedbackpacks", "sophisticatedstorage"),
-				results.stream().filter(result -> !result.passed()).map(RegressionCoordinator.ConformanceResult::dependency).toList());
+				results.stream().filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
 	private static JsonObject linkedMenuArguments(String kind, String actionId) {

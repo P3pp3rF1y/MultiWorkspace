@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "item-entity-action-conformance",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "exact-item-identity-survives-same-item-neighbor",
+      "tags": ["runtimeConformance", "item-entity"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "neighbor", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "neighbor", "item": "minecraft:diamond", "offsetX": 2, "pickupDelay": 32767}},
+        {"id": "observe-neighbor", "action": "await.itemEntity", "args": {"ref": "neighbor", "state": "present"}},
+        {"id": "drop", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:diamond"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent"}},
+        {"id": "neighbor-still-present", "action": "await.itemEntity", "args": {"ref": "neighbor", "state": "present"}},
+        {"id": "neighbor-cannot-satisfy-absence", "action": "await.itemEntity", "args": {"ref": "neighbor", "state": "absent", "timeoutTicks": 2}, "expectFailure": "Exact item entity neighbor did not become absent"},
+        {"id": "player-received-only-drop", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 1, "client": true}}
+      ]
+    }
+  ]
+}

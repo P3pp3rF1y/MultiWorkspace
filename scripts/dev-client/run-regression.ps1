@@ -7,7 +7,6 @@ param(
     [ValidateSet("fast", "full")]
     [string]$Tier = "fast",
     [int]$TimeoutSeconds = 360,
-    [switch]$MaximizeClient,
     [switch]$ContinueOnFailure,
     [switch]$List,
     [string]$CandidateIdentity,
@@ -288,9 +287,6 @@ for ($suiteIndex = 0; $suiteIndex -lt $matchingSuites.Count; $suiteIndex++) {
         foreach ($argument in $selectedSuite.arguments.PSObject.Properties) {
             $scriptArguments[$argument.Name] = $argument.Value
         }
-    }
-    if ($MaximizeClient -and $selectedSuite.acceptsMaximizeClient) {
-        $scriptArguments.MaximizeClient = $true
     }
     Add-SensitiveValues $scriptArguments
     $diagnostics = @()

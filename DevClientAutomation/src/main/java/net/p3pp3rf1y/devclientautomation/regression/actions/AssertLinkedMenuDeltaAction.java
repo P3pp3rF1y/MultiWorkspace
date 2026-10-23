@@ -43,6 +43,16 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		RegressionValueContract inputs = switch (arguments.kind()) {
+			case MOVING -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+			case MOUNTED -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
+			default -> RegressionValueContract.EMPTY;
+		};
+		return inputs.and(RegressionValueContract.consuming(arguments.baseline(), RegressionValueTypes.MENU_BASELINE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -87,7 +97,7 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 						MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 						if (!(player.containerMenu instanceof MovingStorageContainerMenu<?> movingMenu)
 								|| movingMenu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
-							throw new IllegalStateException("Expected moving menu closed on server");
+							throw RegressionActionFailure.infrastructure("Expected moving menu closed on server");
 						}
 						menu = movingMenu;
 					} else if (arguments.kind() == MenuKind.MOUNTED) {
@@ -95,19 +105,19 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 						if (!(player.containerMenu instanceof MountedStorageContainerMenu mountedMenu)
 								|| mountedMenu.getContraptionEntity().filter(entity -> entity.getUUID().equals(handle.entityId())).isEmpty()
 								|| !mountedMenu.getLocalPos().equals(handle.localPos())) {
-							throw new IllegalStateException("Expected mounted menu closed on server");
+							throw RegressionActionFailure.infrastructure("Expected mounted menu closed on server");
 						}
 						menu = mountedMenu;
 					} else if (arguments.kind() == MenuKind.STORAGE_BLOCK) {
 						if (!(player.containerMenu instanceof StorageContainerMenu storageMenu)
 								|| !storageMenu.getStorageBlockEntity().getBlockPos().equals(context.target())) {
-							throw new IllegalStateException("Expected storage block menu closed on server");
+							throw RegressionActionFailure.infrastructure("Expected storage block menu closed on server");
 						}
 						menu = storageMenu;
 					} else {
 						if (!(player.containerMenu instanceof BackpackContainer backpackMenu)
 								|| backpackMenu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
-							throw new IllegalStateException("Expected held backpack menu closed on server");
+							throw RegressionActionFailure.infrastructure("Expected held backpack menu closed on server");
 						}
 						menu = backpackMenu;
 					}
@@ -123,11 +133,11 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 			if (!serverMatched) {
 				serverAssertion = null;
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Server linked group revision or menu slot did not change")
+						? failAssertion("Server linked group revision or menu slot did not change")
 						: RegressionActionProgress.WAITING;
 			}
 			if (ClientLinkedStorageContents.getRevision(baseline.groupId()).orElse(-1L) != baseline.revision()) {
-				return fail("Client linked group received a full snapshot instead of only a menu slot update");
+				return failAssertion("Client linked group received a full snapshot instead of only a menu slot update");
 			}
 			StorageContainerMenuBase<?> menu;
 			if (arguments.kind() == MenuKind.MOVING) {
@@ -161,7 +171,7 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 			return matches(menu)
 					? RegressionActionProgress.PASSED
 					: context.minecraft().player.tickCount >= deadline
-							? fail("Client menu slot did not receive the changed stack")
+							? failAssertion("Client menu slot did not receive the changed stack")
 							: RegressionActionProgress.WAITING;
 		}
 

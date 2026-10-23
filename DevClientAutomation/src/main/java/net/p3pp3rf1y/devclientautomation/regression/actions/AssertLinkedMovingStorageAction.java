@@ -35,6 +35,11 @@ public final class AssertLinkedMovingStorageAction extends TypedRegressionAction
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -60,24 +65,25 @@ public final class AssertLinkedMovingStorageAction extends TypedRegressionAction
 					LinkedStorageGroupManager manager = LinkedStorageGroupsSavedData.get(player.serverLevel()).manager();
 					if (endpoint == null || inner.has(ModCoreDataComponents.STORAGE_UUID)
 							|| !manager.isEndpointMember(endpoint.groupId(), endpoint.endpointId())) {
-						throw new IllegalStateException("Moving carrier does not have exactly one registered linked identity without ordinary storage UUID");
+						throw RegressionActionFailure
+								.assertion("Moving carrier does not have exactly one registered linked identity without ordinary storage UUID");
 					}
 					if (arguments.primary() != manager.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId())) {
-						throw new IllegalStateException("Moving endpoint has unexpected primary role");
+						throw RegressionActionFailure.assertion("Moving endpoint has unexpected primary role");
 					}
 					if (!arguments.hostItem().isEmpty() && arguments.primary()
 							&& !BuiltInRegistries.ITEM.getKey(inner.getItem()).equals(ResourceLocation.parse(arguments.hostItem()))) {
-						throw new IllegalStateException("Primary carrier has unexpected tier");
+						throw RegressionActionFailure.assertion("Primary carrier has unexpected tier");
 					}
 					if (arguments.handCount() >= 0 && player.getMainHandItem().getCount() != arguments.handCount()) {
-						throw new IllegalStateException("Upgrade consumed an unexpected number of items");
+						throw RegressionActionFailure.assertion("Upgrade consumed an unexpected number of items");
 					}
 					if (context.getDiagnostic("linkedGroup") instanceof String groupId && !groupId.equals(endpoint.groupId().toString())) {
-						throw new IllegalStateException("Moving endpoints do not share a group");
+						throw RegressionActionFailure.assertion("Moving endpoints do not share a group");
 					}
 					int count = moving.getStorageHolder().getStorageWrapper().getInventoryHandler().getStackInSlot(0).getCount();
 					if (count != arguments.count()) {
-						throw new IllegalStateException("Canonical moving slot 0 has " + count + " items, expected " + arguments.count());
+						throw RegressionActionFailure.assertion("Canonical moving slot 0 has " + count + " items, expected " + arguments.count());
 					}
 					context.putDiagnostic("linkedGroup", endpoint.groupId().toString());
 					context.putDiagnostic("linkedEndpoint", endpoint.endpointId().toString());

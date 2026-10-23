@@ -70,13 +70,13 @@ public final class RegressionMutationJournal {
 
 	public static RegressionMutationJournal open(ServerPlayer player, String runId, PlayerStatePolicy policy, String checkpointId,
 			Map<String, Object> diagnostics) {
-		if (player.containerMenu != player.inventoryMenu) {
-			throw new IllegalStateException("Close the active container before starting a regression; its transient inputs are not journal-owned");
-		}
 		Path path = player.getServer().getWorldPath(LevelResource.ROOT).resolve(FILE_NAME);
 		if (Files.exists(path)) {
 			RegressionMutationJournal pending = read(path);
 			pending.finish(player, null, false);
+		}
+		if (player.containerMenu != player.inventoryMenu) {
+			throw new IllegalStateException("Close the active container before starting a regression; its transient inputs are not journal-owned");
 		}
 		RegressionMutationJournal journal = new RegressionMutationJournal(path, runId);
 		journal.playerState = policy;
