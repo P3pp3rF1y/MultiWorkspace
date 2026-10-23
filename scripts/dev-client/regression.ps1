@@ -72,11 +72,19 @@ function ConvertTo-SanitizedText {
 
     if ($null -eq $Value) { return $null }
     $text = [string]$Value
-    foreach ($secret in @($secretValues | Sort-Object Length -Descending)) { $text = $text.Replace($secret, "[REDACTED]") }
+    if ($secretValues.Count -gt 0) {
+        foreach ($secret in @($secretValues | Sort-Object Length -Descending)) { $text = $text.Replace($secret, "[REDACTED]") }
+    }
+    if (-not $text.Contains(":") -and -not $text.Contains("=")) { return $text }
     $sensitiveName = "(?:api[-_]?key|access[-_]?token|token|secret|password|key)"
-    $text = [regex]::Replace($text, "(?i)([a-z][a-z0-9+.-]*://)[^/@\s]+@", '${1}[REDACTED]@')
-    $text = [regex]::Replace($text, "(?i)([`"']?$sensitiveName[`"']?\s*:\s*[`"'])[^`"']*([`"'])", '${1}[REDACTED]${2}')
-    $text = [regex]::Replace($text, "(?i)((?<![\w-])$sensitiveName(?![\w-])\s*(?:=|:)\s*)(?:`"[^`"]*`"|'[^']*'|[^\s,;\)\}\]\&]+)", '${1}[REDACTED]')
+    if ($text.Contains("://") -and $text.Contains("@")) {
+        $text = [regex]::Replace($text, "(?i)([a-z][a-z0-9+.-]*://)[^/@\s]+@", '${1}[REDACTED]@')
+    }
+    if ($text -match "(?i)(token|secret|password|key)") {
+        $text = [regex]::Replace($text, "(?i)([`"']?$sensitiveName[`"']?\s*:\s*[`"'])[^`"']*([`"'])", '${1}[REDACTED]${2}')
+        $text = [regex]::Replace($text, "(?i)((?<![\w-])$sensitiveName(?![\w-])\s*(?:=|:)\s*)(?:`"[^`"]*`"|'[^']*'|[^\s,;\)\}\]\&]+)", '${1}[REDACTED]')
+    }
+    if (-not $text.Contains("=")) { return $text }
     return [regex]::Replace($text, "([?&])([^?&=]+)=([^&]*)", [System.Text.RegularExpressions.MatchEvaluator]{
             param($match)
             $name = [uri]::UnescapeDataString($match.Groups[2].Value)
@@ -128,27 +136,30 @@ function Write-SanitizedDiagnostic {
 }
 
 function Copy-SanitizedTelemetry {
-    param([object]$Value)
+    param([object]$Value, [switch]$Nested)
 
     if ($null -eq $Value) { return $null }
-    Add-SensitiveValues $Value
+    # Discover secrets across the entire root before copying, including later siblings.
+    if (-not $Nested) { Add-SensitiveValues $Value }
     if ($Value -is [string]) { return ConvertTo-SanitizedText $Value }
     if ($Value.GetType().IsValueType) { return $Value }
     if ($Value -is [System.Collections.IDictionary]) {
         $copy = [ordered]@{}
         foreach ($entry in $Value.GetEnumerator()) {
-            if ([string]$entry.Key -notmatch "(?i)(token|secret|password|key)") { $copy[$entry.Key] = Copy-SanitizedTelemetry $entry.Value }
+            if ([string]$entry.Key -notmatch "(?i)(token|secret|password|key)") { $copy[$entry.Key] = Copy-SanitizedTelemetry $entry.Value -Nested }
         }
         return $copy
     }
     if ($Value -is [pscustomobject]) {
         $copy = [ordered]@{}
         foreach ($property in $Value.PSObject.Properties) {
-            if ($property.Name -notmatch "(?i)(token|secret|password|key)") { $copy[$property.Name] = Copy-SanitizedTelemetry $property.Value }
+            if ($property.Name -notmatch "(?i)(token|secret|password|key)") { $copy[$property.Name] = Copy-SanitizedTelemetry $property.Value -Nested }
         }
         return [pscustomobject]$copy
     }
-    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) { return ,@($Value | ForEach-Object { Copy-SanitizedTelemetry $_ }) }
+    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
+        return ,@(foreach ($item in $Value) { Copy-SanitizedTelemetry $item -Nested })
+    }
     return $Value
 }
 

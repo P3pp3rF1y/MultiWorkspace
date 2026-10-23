@@ -10,7 +10,6 @@ import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.Cleanu
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ConformanceResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ReportContext;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.RunStatus;
-import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.RuntimeConformanceResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.StepResult;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionExecution;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionFailure;
@@ -94,24 +93,19 @@ public final class RegressionCoordinator {
 		RegressionTest test = suite.tests().stream().filter(candidate -> candidate.id().equals(testId)).findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("No regression test " + suiteId + "/" + testId));
 		String runId = suiteId + "/" + testId;
+		// Conformance tags describe selectable tests; they do not schedule sibling tests.
 		List<String> missing = RegressionPreflight.missing(test.requires(), available);
 		if (!missing.isEmpty()) {
 			run = RunState.stopped(runId, suiteId, test, List.of(), Outcome.SKIPPED, "expectedUnavailable", "Missing external mods " + missing, missing);
 			return run.status();
 		}
-		List<RegressionTest> runtimeConformanceTests = test.tags().contains("runtimeConformance")
-				? List.of()
-				: suite.tests().stream().filter(candidate -> candidate.tags().contains("runtimeConformance")).toList();
 		try {
 			RegressionPreflight.validateValues(test);
-			for (RegressionTest conformanceTest : runtimeConformanceTests) {
-				RegressionPreflight.validateValues(conformanceTest);
-			}
 		} catch (IllegalArgumentException e) {
 			run = RunState.stopped(runId, suiteId, test, List.of(), Outcome.ERROR, "preflight", e.getMessage(), List.of());
 			return run.status();
 		}
-		List<ConformanceResult> conformance = qualify(suite, runtimeConformanceTests, test, conformanceFailureAction, available);
+		List<ConformanceResult> conformance = qualify(suite, test, conformanceFailureAction, available);
 		if (conformance.stream().anyMatch(result -> !result.passed())) {
 			String dependency = conformance.stream().filter(result -> !result.passed()).findFirst().orElseThrow().dependency();
 			boolean unavailable = conformance.stream().anyMatch(result -> !result.passed() && !available.test(result.dependency()));
@@ -120,7 +114,7 @@ public final class RegressionCoordinator {
 					List.of());
 			return run.status();
 		}
-		run = RunState.running(runId, suiteId, test, runtimeConformanceTests, conformance, actionFailureAfter, cleanupFailure);
+		run = RunState.running(runId, suiteId, test, conformance, actionFailureAfter, cleanupFailure);
 		run.preparationToken = preparationToken;
 		return run.status();
 	}
@@ -201,14 +195,10 @@ public final class RegressionCoordinator {
 		}
 	}
 
-	static List<ConformanceResult> qualify(RegressionSuite suite, List<RegressionTest> runtimeConformanceTests, RegressionTest test, String forcedFailure,
-			Predicate<String> capabilityAvailable) {
+	static List<ConformanceResult> qualify(RegressionSuite suite, RegressionTest test, String forcedFailure, Predicate<String> capabilityAvailable) {
 		List<ConformanceResult> results = new ArrayList<>();
 		for (String requirement : suite.requires()) {
 			results.add(new ConformanceResult("suite-requirement-" + requirement, requirement, capabilityAvailable.test(requirement), "suite capability"));
-		}
-		for (RegressionTest qualifiedTest : runtimeConformanceTests) {
-			qualifyActions(results, qualifiedTest, forcedFailure, capabilityAvailable);
 		}
 		qualifyActions(results, test, forcedFailure, capabilityAvailable);
 		return results;
@@ -243,10 +233,8 @@ public final class RegressionCoordinator {
 		private final String runId;
 		private final String suiteId;
 		private final RegressionTest test;
-		private final List<RegressionTest> runtimeConformanceTests;
 		private final List<ConformanceResult> conformance;
 		private final List<StepResult> steps = new ArrayList<>();
-		private final List<RuntimeConformanceResult> runtimeConformance = new ArrayList<>();
 		private final Map<String, Object> diagnostics = new ConcurrentHashMap<>();
 		private final List<CleanupResult> cleanup = new ArrayList<>();
 		private final String actionFailureAfter;
@@ -259,8 +247,6 @@ public final class RegressionCoordinator {
 		private RegressionTest activeTest;
 		private List<RegressionStep> activeExecutionSteps = List.of();
 		private final List<StepResult> activeSteps = new ArrayList<>();
-		private boolean runningConformance;
-		private int conformanceTestIndex;
 		private int stepIndex;
 		@Nullable
 		private RegressionStep activeStep;
@@ -291,12 +277,11 @@ public final class RegressionCoordinator {
 		private long selectedTestDurationNanos;
 		private long finishedNanos;
 
-		private RunState(String runId, String suiteId, RegressionTest test, List<RegressionTest> runtimeConformanceTests, List<ConformanceResult> conformance,
-				Outcome outcome, String message, String actionFailureAfter, boolean forcedCleanupFailure) {
+		private RunState(String runId, String suiteId, RegressionTest test, List<ConformanceResult> conformance, Outcome outcome, String message,
+				String actionFailureAfter, boolean forcedCleanupFailure) {
 			this.runId = runId;
 			this.suiteId = suiteId;
 			this.test = test;
-			this.runtimeConformanceTests = List.copyOf(runtimeConformanceTests);
 			this.conformance = List.copyOf(conformance);
 			this.outcome = outcome;
 			this.message = message;
@@ -307,14 +292,14 @@ public final class RegressionCoordinator {
 			}
 		}
 
-		static RunState running(String runId, String suiteId, RegressionTest test, List<RegressionTest> runtimeConformanceTests,
-				List<ConformanceResult> conformance, String actionFailureAfter, boolean forcedCleanupFailure) {
-			return new RunState(runId, suiteId, test, runtimeConformanceTests, conformance, Outcome.RUNNING, "", actionFailureAfter, forcedCleanupFailure);
+		static RunState running(String runId, String suiteId, RegressionTest test, List<ConformanceResult> conformance, String actionFailureAfter,
+				boolean forcedCleanupFailure) {
+			return new RunState(runId, suiteId, test, conformance, Outcome.RUNNING, "", actionFailureAfter, forcedCleanupFailure);
 		}
 
 		static RunState stopped(String runId, String suiteId, RegressionTest test, List<ConformanceResult> conformance, Outcome outcome, String category,
 				String message, List<String> missing) {
-			RunState state = new RunState(runId, suiteId, test, List.of(), conformance, outcome, message, "", false);
+			RunState state = new RunState(runId, suiteId, test, conformance, outcome, message, "", false);
 			state.category = category;
 			state.primaryOutcome = outcome.serializedName();
 			state.primaryCategory = category;
@@ -344,11 +329,7 @@ public final class RegressionCoordinator {
 				return;
 			}
 			if (activeTest == null) {
-				if (conformanceTestIndex < runtimeConformanceTests.size()) {
-					beginTest(runtimeConformanceTests.get(conformanceTestIndex), true);
-				} else {
-					beginTest(test, false);
-				}
+				beginTest(test);
 				if (finished()) {
 					return;
 				}
@@ -428,12 +409,12 @@ public final class RegressionCoordinator {
 			}
 		}
 
-		private void beginTest(RegressionTest nextTest, boolean conformanceTest) {
+		private void beginTest(RegressionTest nextTest) {
 			List<String> missing = RegressionPreflight.missing(nextTest.requires(), RegressionCoordinator::isAvailable);
 			if (!missing.isEmpty()) {
 				missingRequirements = missing;
-				category = conformanceTest ? "dependencyBlocked" : "expectedUnavailable";
-				outcome = conformanceTest ? Outcome.BLOCKED : Outcome.SKIPPED;
+				category = "expectedUnavailable";
+				outcome = Outcome.SKIPPED;
 				primaryOutcome = outcome.serializedName();
 				primaryCategory = category;
 				message = "Missing external mods for " + nextTest.id() + ": " + missing;
@@ -455,7 +436,6 @@ public final class RegressionCoordinator {
 			activeTest = nextTest;
 			activeExecutionSteps = executionSteps(nextTest);
 			activeTestStartedNanos = System.nanoTime();
-			runningConformance = conformanceTest;
 			activeSteps.clear();
 			stepIndex = 0;
 			deadlineTick = -1;
@@ -477,28 +457,8 @@ public final class RegressionCoordinator {
 					new CleanupResult(activeTest.id(), cleaned ? "passed" : "error", cleanupMessage, elapsedMillis(cleanupStartedNanos, now), cleanupError));
 			Outcome result = cleaned ? terminalOutcome : Outcome.ERROR;
 			String detail = cleaned ? primaryFailure : primaryFailure + (primaryFailure.isBlank() ? "" : "; ") + "Cleanup failed: " + cleanupMessage;
-			if (runningConformance) {
-				runtimeConformance.add(new RuntimeConformanceResult(activeTest.id(), result.serializedName(), detail, List.copyOf(activeSteps),
-						elapsedMillis(activeTestStartedNanos, now), terminalOutcome.serializedName(), category, failure));
-				if (result == Outcome.PASSED) {
-					conformanceTestIndex++;
-					activeTest = null;
-					cleanupFuture = null;
-					failure = null;
-					primaryOutcome = "running";
-					primaryCategory = "";
-					return;
-				}
-				detail = "Runtime conformance " + activeTest.id() + " failed: " + detail;
-				primaryOutcome = "blocked";
-				primaryCategory = "dependencyBlocked";
-				primaryFailure = detail;
-				failure = RegressionResultModel.Failure.message(primaryCategory, detail);
-				result = cleaned ? Outcome.BLOCKED : Outcome.ERROR;
-			} else {
-				steps.addAll(activeSteps);
-				selectedTestDurationNanos = now - activeTestStartedNanos;
-			}
+			steps.addAll(activeSteps);
+			selectedTestDurationNanos = now - activeTestStartedNanos;
 			finishedNanos = now;
 			outcome = result;
 			category = cleaned ? primaryCategory : "cleanup";
@@ -574,12 +534,11 @@ public final class RegressionCoordinator {
 		RunStatus status() {
 			long now = finishedNanos == 0 ? System.nanoTime() : finishedNanos;
 			long testNanos = selectedTestDurationNanos;
-			if (!runningConformance && activeTestStartedNanos != 0 && !finished()) {
+			if (activeTestStartedNanos != 0 && !finished()) {
 				testNanos = now - activeTestStartedNanos;
 			}
 			return new RunStatus(outcome == Outcome.PASSED, runId, suiteId, test.id(), outcome.serializedName(), message, List.copyOf(conformance),
-					List.copyOf(steps), List.copyOf(runtimeConformance), Map.copyOf(diagnostics), elapsedMillis(startedNanos, now), testNanos / 1_000_000.0,
-					List.copyOf(cleanup),
+					List.copyOf(steps), List.of(), Map.copyOf(diagnostics), elapsedMillis(startedNanos, now), testNanos / 1_000_000.0, List.copyOf(cleanup),
 					cleanupError != null || cleanupFuture != null && !cleanupFuture.isDone() ? "cleanup" : executionContext == null ? "preflight" : "execution",
 					category, test.requires(), missingRequirements, primaryOutcome, primaryCategory, failure, cleanupError, reportContext.rerunCommand(),
 					List.of(), 0, primaryFailure, reportContext.runtimeIdentity(), reportContext.artifacts());

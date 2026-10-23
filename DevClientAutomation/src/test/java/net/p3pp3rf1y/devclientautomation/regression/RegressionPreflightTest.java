@@ -45,6 +45,34 @@ class RegressionPreflightTest {
 		assertTrue(status.diagnostics().isEmpty());
 	}
 	@Test
+	void startQualifiesOnlySelectedTestAndLeavesConformanceSiblingExplicitlySelectable() {
+		RegressionSuite suite = RegressionSuiteParser.parse("""
+				{"schemaVersion":2,"suiteId":"test","requires":[],"isolation":"testCell","tests":[
+				{"id":"negative","tags":["runtimeConformance"],"timeoutTicks":20,"steps":[
+				{"id":"use","action":"player.sneakUseFixtureEntity","args":{"ref":"missing"}}]},
+				{"id":"product","tags":[],"timeoutTicks":20,"steps":[
+				{"id":"baseline","action":"assert.playerInventoryBaseline"}]}]}
+				""", new RegressionActionRegistry());
+		RegressionCoordinator product = new RegressionCoordinator(id -> true, () -> java.util.Map.of("test", suite));
+		RegressionCoordinator conformance = new RegressionCoordinator(id -> true, () -> java.util.Map.of("test", suite));
+		RegressionCoordinator unqualified = new RegressionCoordinator(id -> true, () -> java.util.Map.of("test", suite));
+
+		var selected = product.start("test", "product", "");
+		var negative = conformance.start("test", "negative", "");
+		var blocked = unqualified.start("test", "product", "assert.playerInventoryBaseline");
+
+		assertEquals("running", selected.outcome());
+		assertTrue(selected.runtimeConformance().isEmpty());
+		assertTrue(selected.conformance().stream().noneMatch(result -> result.id().contains("negative")));
+		assertEquals("error", negative.outcome());
+		assertEquals("preflight", negative.category());
+		assertTrue(negative.message().contains("missing"));
+		assertEquals("blocked", blocked.outcome());
+		assertEquals("dependencyBlocked", blocked.category());
+		assertTrue(blocked.reportCases().stream().anyMatch(result -> result.role().equals("conformance") && result.outcome().equals("error")));
+	}
+
+	@Test
 	void requiresUnionsSuiteAndTestRequirementsAndCatalogExposesThem() {
 		RegressionSuite suite = parse("[\"jei\"]", "[\"create\",\"jei\"]", "{\"id\":\"close\",\"action\":\"menu.close\"}");
 

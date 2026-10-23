@@ -51,7 +51,7 @@ class SharedJvmContractTest {
 			assert.playerInventoryBaseline|1|minecraft:client
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
-			assert.settingsSelection|1|minecraft:client,sophisticatedcore
+			assert.settingsSelection|2|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
@@ -399,9 +399,9 @@ class SharedJvmContractTest {
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"mounted\",\"ref\":\"mounted\",\"saveAs\":\"baseline\"}"), "mounted"));
 		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client"), "testCell", List.of(moving, mounted));
 
-		List<RegressionResultModel.ConformanceResult> movingResults = RegressionCoordinator.qualify(suite, List.of(), moving, "",
+		List<RegressionResultModel.ConformanceResult> movingResults = RegressionCoordinator.qualify(suite, moving, "",
 				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
-		List<RegressionResultModel.ConformanceResult> mountedResults = RegressionCoordinator.qualify(suite, List.of(), mounted, "",
+		List<RegressionResultModel.ConformanceResult> mountedResults = RegressionCoordinator.qualify(suite, mounted, "",
 				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
 
 		assertTrue(movingResults.stream().allMatch(RegressionResultModel.ConformanceResult::passed));
@@ -417,7 +417,7 @@ class SharedJvmContractTest {
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"storageBlock\",\"saveAs\":\"baseline\"}"), "storage"));
 		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client", "sophisticatedbackpacks"), "testCell", List.of(storage));
 
-		List<RegressionResultModel.ConformanceResult> results = RegressionCoordinator.qualify(suite, List.of(), storage, "",
+		List<RegressionResultModel.ConformanceResult> results = RegressionCoordinator.qualify(suite, storage, "",
 				dependency -> dependency.equals("minecraft:client"));
 
 		assertEquals(List.of("sophisticatedbackpacks", "sophisticatedstorage"),
