@@ -264,7 +264,7 @@ class RegressionSuiteParserTest {
 							assertTrue(
 									Set.of("player.createMainHandItem", "player.clearMainHand", "fixture.moving.holdRecoveredInner", "player.placeHeldBlock",
 											"player.useTargetBlock", "await.storageBlock", "assert.linkedStorageBlock", "menu.close", "await.menuClosed",
-											"assert.movingStorageCompatibilityProfile").contains(bound.action().metadata().id()),
+											"assert.movingStorageCompatibilityProfile", "fixture.player.setGameMode").contains(bound.action().metadata().id()),
 									"Unexpected moving-suite arguments " + arguments.getClass().getName() + " on " + test.id() + "/" + step.id());
 							yield null;
 						}
@@ -289,13 +289,13 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredFourExpandedSteps() throws IOException {
+	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredSevenExpandedSteps() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 
 			assertEquals(25, suite.tests().size());
-			assertEquals(304, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(307, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
 		}
 	}
 
