@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "moving-linked-storage",
-  "requires": ["minecraft:client", "sophisticatedstorageinmotion"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {
@@ -267,6 +267,7 @@
     },
     {
       "id": "create-cart-mount-opens-original-linked-group",
+      "requires": ["create"],
       "tags": ["moving", "create", "conversion", "menu"],
       "timeoutTicks": 500,
       "steps": [
@@ -287,6 +288,7 @@
     },
     {
       "id": "limited-barrel-mount-opens-linked-group",
+      "requires": ["create"],
       "tags": ["moving", "limited", "create", "conversion", "menu"],
       "timeoutTicks": 500,
       "steps": [
@@ -431,6 +433,7 @@
     },
     {
       "id": "mounted-open-menu-receives-live-slot-delta",
+      "requires": ["create"],
       "tags": ["moving", "create", "menu", "sync"],
       "timeoutTicks": 550,
       "steps": [

@@ -33,6 +33,12 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.primaryRef(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.secondaryRef(), RegressionValueTypes.MOVING_STORAGE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
@@ -54,7 +60,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 						verify(secondary.getStorageHolder().getStorageWrapper());
 						CustomData projected = secondary.getStorageItem().get(ModCoreDataComponents.RENDER_INFO_TAG);
 						if (projected == null || !projected.copyTag().equals(primary.getStorageHolder().getStorageWrapper().getRenderInfo().getNbt())) {
-							throw new IllegalStateException("Secondary moving carrier did not project canonical display state");
+							throw RegressionActionFailure.assertion("Secondary moving carrier did not project canonical display state");
 						}
 					});
 					return RegressionActionProgress.WAITING;
@@ -72,7 +78,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 					}
 				}
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Client secondary did not synchronize upgrades, settings and display")
+						? failAssertion("Client secondary did not synchronize upgrades, settings and display")
 						: RegressionActionProgress.WAITING;
 			}
 		};
@@ -80,7 +86,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 
 	private static void verify(IStorageWrapper wrapper) {
 		if (!hasPresentation(wrapper)) {
-			throw new IllegalStateException("Moving endpoint does not see canonical upgrade, memory and display settings");
+			throw RegressionActionFailure.assertion("Moving endpoint does not see canonical upgrade, memory and display settings");
 		}
 	}
 

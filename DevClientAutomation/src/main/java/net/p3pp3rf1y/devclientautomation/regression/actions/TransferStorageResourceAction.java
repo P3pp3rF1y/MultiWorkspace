@@ -42,6 +42,13 @@ public final class TransferStorageResourceAction extends TypedRegressionAction<T
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.ref().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable

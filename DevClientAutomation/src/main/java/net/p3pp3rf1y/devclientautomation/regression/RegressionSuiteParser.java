@@ -15,7 +15,7 @@ import java.util.Set;
 
 public final class RegressionSuiteParser {
 	private static final Set<String> SUITE_KEYS = Set.of("schemaVersion", "suiteId", "requires", "isolation", "fixtures", "tests");
-	private static final Set<String> TEST_KEYS = Set.of("id", "tags", "timeoutTicks", "prepareTestCell", "playerState", "checkpoint", "steps");
+	private static final Set<String> TEST_KEYS = Set.of("id", "requires", "tags", "timeoutTicks", "prepareTestCell", "playerState", "checkpoint", "steps");
 	private static final Set<String> STEP_KEYS = Set.of("id", "action", "args", "expectFailure");
 	private static final Set<String> FIXTURE_REFERENCE_KEYS = Set.of("id", "fixture");
 
@@ -37,7 +37,7 @@ public final class RegressionSuiteParser {
 			throw new IllegalArgumentException("Unsupported regression schemaVersion " + schemaVersion + "; expected 2");
 		}
 		String suiteId = suite.id("suiteId");
-		Set<String> requires = suite.stringSet("requires");
+		Set<String> requires = suite.modIds("requires", false);
 		String isolation = suite.string("isolation");
 		if (!"testCell".equals(isolation)) {
 			throw new IllegalArgumentException("Suite " + suiteId + " must use isolation testCell");
@@ -46,7 +46,7 @@ public final class RegressionSuiteParser {
 		if (tests.isEmpty()) {
 			throw new IllegalArgumentException("Suite " + suiteId + " must define at least one test");
 		}
-		return new RegressionSuite(schemaVersion, suiteId, requires, isolation, parseTests(tests, suiteId, parseFixtures(suite, registry), registry));
+		return new RegressionSuite(schemaVersion, suiteId, requires, isolation, parseTests(tests, suiteId, requires, parseFixtures(suite, registry), registry));
 	}
 
 	private static Map<String, List<JsonObject>> parseFixtures(RegressionJsonObject suite, RegressionActionRegistry registry) {
@@ -81,7 +81,7 @@ public final class RegressionSuiteParser {
 		}
 	}
 
-	private static List<RegressionTest> parseTests(List<JsonObject> tests, String suiteId, Map<String, List<JsonObject>> fixtures,
+	private static List<RegressionTest> parseTests(List<JsonObject> tests, String suiteId, Set<String> suiteRequires, Map<String, List<JsonObject>> fixtures,
 			RegressionActionRegistry registry) {
 		List<RegressionTest> parsedTests = new ArrayList<>();
 		Set<String> testIds = new LinkedHashSet<>();
@@ -93,6 +93,8 @@ public final class RegressionSuiteParser {
 			}
 			test = test.withDescription("test " + testId);
 			Set<String> tags = test.stringSet("tags");
+			Set<String> requires = new LinkedHashSet<>(suiteRequires);
+			requires.addAll(test.modIds("requires", true));
 			int timeoutTicks = test.integer("timeoutTicks");
 			boolean prepareTestCell = test.optionalBoolean("prepareTestCell", true);
 			PlayerStatePolicy playerState = testObject.has("playerState") ? PlayerStatePolicy.parse(test.string("playerState")) : PlayerStatePolicy.ISOLATED;
@@ -107,8 +109,8 @@ public final class RegressionSuiteParser {
 			if (steps.isEmpty()) {
 				throw new IllegalArgumentException("Test " + testId + " must define at least one step");
 			}
-			parsedTests.add(
-					new RegressionTest(testId, tags, timeoutTicks, prepareTestCell, playerState, checkpoint, parseSteps(steps, testId, fixtures, registry)));
+			parsedTests.add(new RegressionTest(testId, tags, timeoutTicks, prepareTestCell, playerState, checkpoint,
+					parseSteps(steps, testId, fixtures, registry), Set.copyOf(requires)));
 		}
 		return parsedTests;
 	}
@@ -117,12 +119,16 @@ public final class RegressionSuiteParser {
 			RegressionActionRegistry registry) {
 		List<RegressionStep> parsedSteps = new ArrayList<>();
 		Set<String> stepIds = new LinkedHashSet<>();
+		Set<String> sourceIds = new LinkedHashSet<>();
 		for (JsonObject stepObject : steps) {
 			boolean fixtureReference = stepObject.has("fixture");
 			RegressionJsonObject step = new RegressionJsonObject(stepObject, "step", fixtureReference ? FIXTURE_REFERENCE_KEYS : STEP_KEYS);
 			String stepId = step.id("id");
+			if (!sourceIds.add(stepId)) {
+				throw new IllegalArgumentException("Test " + testId + " contains duplicate source step id " + stepId);
+			}
 			if (fixtureReference) {
-				String fixtureName = step.string("fixture");
+				String fixtureName = step.id("fixture");
 				List<JsonObject> fixtureSteps = fixtures.get(fixtureName);
 				if (fixtureSteps == null) {
 					throw new IllegalArgumentException("Test " + testId + " references unknown fixture " + fixtureName);
@@ -130,6 +136,10 @@ public final class RegressionSuiteParser {
 				for (JsonObject fixtureStep : fixtureSteps) {
 					RegressionJsonObject definition = new RegressionJsonObject(fixtureStep, "fixture " + fixtureName + " step", STEP_KEYS);
 					addActionStep(parsedSteps, stepIds, testId, stepId + "-" + definition.id("id"), definition, registry);
+					int index = parsedSteps.size() - 1;
+					RegressionStep expanded = parsedSteps.get(index);
+					parsedSteps.set(index, new RegressionStep(expanded.id(), expanded.action(), expanded.expectFailure(),
+							new RegressionStepProvenance("fixture", fixtureName, stepId, definition.id("id"), expanded.id())));
 				}
 			} else {
 				addActionStep(parsedSteps, stepIds, testId, stepId, step, registry);
@@ -140,6 +150,9 @@ public final class RegressionSuiteParser {
 
 	private static void addActionStep(List<RegressionStep> steps, Set<String> stepIds, String testId, String stepId, RegressionJsonObject definition,
 			RegressionActionRegistry registry) {
+		if (!stepId.matches("[a-z0-9][a-z0-9-]{0,128}")) {
+			throw new IllegalArgumentException("Invalid expanded step id " + stepId + " in " + testId);
+		}
 		if (!stepIds.add(stepId)) {
 			throw new IllegalArgumentException("Test " + testId + " contains duplicate step id " + stepId);
 		}
@@ -156,13 +169,20 @@ record RegressionSuite(int schemaVersion, String suiteId, Set<String> requires, 
 }
 
 record RegressionTest(String id, Set<String> tags, int timeoutTicks, boolean prepareTestCell, PlayerStatePolicy playerState, String checkpoint,
-		List<RegressionStep> steps) {
+		List<RegressionStep> steps, Set<String> requires) {
+	RegressionTest(String id, Set<String> tags, int timeoutTicks, boolean prepareTestCell, PlayerStatePolicy playerState, String checkpoint,
+			List<RegressionStep> steps) {
+		this(id, tags, timeoutTicks, prepareTestCell, playerState, checkpoint, steps, Set.of());
+	}
 	RegressionTest(String id, Set<String> tags, int timeoutTicks, boolean prepareTestCell, List<RegressionStep> steps) {
-		this(id, tags, timeoutTicks, prepareTestCell, PlayerStatePolicy.ISOLATED, "", steps);
+		this(id, tags, timeoutTicks, prepareTestCell, PlayerStatePolicy.ISOLATED, "", steps, Set.of());
 	}
 }
 
-record RegressionStep(String id, RegressionActionInvocation action, String expectFailure) {
+record RegressionStep(String id, RegressionActionInvocation action, String expectFailure, RegressionStepProvenance provenance) {
+	RegressionStep(String id, RegressionActionInvocation action, String expectFailure) {
+		this(id, action, expectFailure, RegressionStepProvenance.direct(id));
+	}
 	RegressionStep(String id, RegressionActionInvocation action) {
 		this(id, action, "");
 	}

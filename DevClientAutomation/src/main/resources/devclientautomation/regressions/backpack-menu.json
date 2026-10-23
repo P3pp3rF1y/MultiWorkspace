@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "backpack-menu",
-  "requires": ["minecraft:client", "sophisticatedbackpacks"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {

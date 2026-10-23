@@ -77,13 +77,13 @@ public final class AssertHeldBackpackFilterAction extends TypedRegressionAction<
 				return checked;
 			}
 			if (!serverMatched) {
-				return fail("Server held backpack filter configuration or storage slot did not match the suite expectation");
+				return failAssertion("Server held backpack filter configuration or storage slot did not match the suite expectation");
 			}
 			if (matches(((BackpackContainer) context.minecraft().player.containerMenu).getStorageWrapper(), arguments)) {
 				return RegressionActionProgress.PASSED;
 			}
 			return context.minecraft().player.tickCount >= deadline
-					? fail("Client held backpack filter configuration or storage slot did not synchronize")
+					? failAssertion("Client held backpack filter configuration or storage slot did not synchronize")
 					: RegressionActionProgress.WAITING;
 		}
 	}

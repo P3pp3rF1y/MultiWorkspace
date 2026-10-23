@@ -16,10 +16,11 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInputState;
 import net.p3pp3rf1y.devclientautomation.platform.neoforge.NeoForgeInventoryInteractionHooks;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
@@ -31,7 +32,6 @@ import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import org.lwjgl.glfw.GLFW;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -249,7 +249,8 @@ public final class InventoryInteractionsKeybindRegression {
 			}
 			InventoryScreen screen = new InventoryScreen(minecraft.player);
 			minecraft.setScreen(screen);
-			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(screen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+			return VirtualInputState.withModifiers(0,
+					() -> NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(screen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE));
 		});
 		requireHandled(handled, "Player inventory sort keybind was not handled");
 		waitForPlayerInventorySort("player inventory sort");
@@ -329,7 +330,7 @@ public final class InventoryInteractionsKeybindRegression {
 			if (screen == null) {
 				throw new IllegalStateException("No screen is open for the transfer keybind");
 			}
-			return NeoForgeInventoryInteractionHooks.onScreenKeyPressedPre(screen, keyCode, 0, modifiers);
+			return VirtualInputState.withModifiers(modifiers, () -> NeoForgeInventoryInteractionHooks.onScreenKeyPressedPre(screen, keyCode, 0, modifiers));
 		});
 	}
 
@@ -339,10 +340,10 @@ public final class InventoryInteractionsKeybindRegression {
 				throw new IllegalStateException("No container screen is open for the sort keybind");
 			}
 			if (menuSlot >= 0) {
-				moveToSlot(menuSlot);
-				setHoveredSlot(containerScreen, menuSlot);
+				VirtualInput.moveToSlot(containerScreen, menuSlot);
 			}
-			return NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(containerScreen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+			return VirtualInputState.withModifiers(0,
+					() -> NeoForgeInventoryInteractionHooks.onScreenMouseClickedPre(containerScreen, 0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE));
 		});
 	}
 
@@ -371,27 +372,6 @@ public final class InventoryInteractionsKeybindRegression {
 	private static void requireHandled(boolean handled, String message) {
 		if (!handled) {
 			throw new IllegalStateException(message);
-		}
-	}
-
-	private static void moveToSlot(int menuSlot) {
-		Minecraft minecraft = Minecraft.getInstance();
-		AbstractContainerScreen<?> containerScreen = (AbstractContainerScreen<?>) minecraft.screen;
-		Slot slot = containerScreen.getMenu().slots.get(menuSlot);
-		int x = containerScreen.getGuiLeft() + slot.x + 8;
-		int y = containerScreen.getGuiTop() + slot.y + 8;
-		double scale = minecraft.getWindow().getGuiScale();
-		GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), x * scale, y * scale);
-		containerScreen.mouseMoved(x, y);
-	}
-
-	private static void setHoveredSlot(AbstractContainerScreen<?> screen, int menuSlot) {
-		try {
-			Field hoveredSlotField = AbstractContainerScreen.class.getDeclaredField("hoveredSlot");
-			hoveredSlotField.setAccessible(true);
-			hoveredSlotField.set(screen, screen.getMenu().slots.get(menuSlot));
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Failed to set the hovered container slot", e);
 		}
 	}
 

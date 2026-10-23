@@ -58,13 +58,14 @@ class RegressionSuiteParserTest {
 			assertTrue(stream != null);
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
-			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-create-disassembly.json",
-					"storage-menu.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json",
-					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
-					"linked-storage-menu.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
+					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "vanilla-double-chest-upgrade.json",
+					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
+					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
+					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
 					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(21, indexedPaths.size());
+			assertEquals(23, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
@@ -73,7 +74,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(22, physicalJson.size());
+				assertEquals(24, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 
@@ -100,8 +101,8 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(102, testCount);
-			assertEquals(18, fixtureCount);
+			assertEquals(109, testCount);
+			assertEquals(19, fixtureCount);
 		}
 	}
 
@@ -175,7 +176,7 @@ class RegressionSuiteParserTest {
 				{
 				  "schemaVersion": 2,
 				  "suiteId": "fixture-test",
-				  "requires": ["minecraft:client"],
+				  "requires": [],
 				  "isolation": "testCell",
 				  "fixtures": {"base": [{"id": "block", "action": "fixture.block.set", "args": {"block": "minecraft:stone", "offset": [0, 0, 0]}}]},
 				  "tests": [{"id": "test", "tags": [], "timeoutTicks": 20, "steps": [{"id": "setup", "fixture": "base"}]}]
@@ -361,7 +362,7 @@ class RegressionSuiteParserTest {
 			{
 			  "schemaVersion": 2,
 			  "suiteId": "test-suite",
-			  "requires": ["minecraft:client"],
+			  "requires": [],
 			  "isolation": "testCell",
 			  "tests": [{
 			    "id": "test-case",
@@ -487,7 +488,7 @@ class RegressionSuiteParserTest {
 				{
 				  "schemaVersion": 2,
 				  "suiteId": "test-suite",
-				  "requires": ["minecraft:client"],
+				  "requires": [],
 				  "isolation": "testCell",
 				  "tests": [
 				    {"id": "test-case", "tags": [], "timeoutTicks": 1, "steps": [{"id": "reset", "action": "fixture.region.reset"}]},

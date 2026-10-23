@@ -39,18 +39,19 @@ public final class AssertControllerSharedGroupAction extends TypedRegressionActi
 					future = context.onServer(player -> {
 						BlockPos pos = context.target().east();
 						if (!(player.serverLevel().getBlockEntity(pos) instanceof ControllerBlockEntityBase controller)) {
-							throw new IllegalStateException("Fixture controller is missing");
+							throw RegressionActionFailure.infrastructure("Fixture controller is missing");
 						}
 						CompoundTag saved = controller.getUpdateTag(player.registryAccess());
 						if (saved.getList("storageKeys", Tag.TAG_COMPOUND).size() != 1
 								|| saved.getList("storageMemberKeys", Tag.TAG_COMPOUND).size() != arguments.members()
 								|| controller.getSlots() != arguments.slots()) {
-							throw new IllegalStateException("Expected one canonical controller range and " + arguments.members() + " visual members: " + saved);
+							throw RegressionActionFailure
+									.assertion("Expected one canonical controller range and " + arguments.members() + " visual members: " + saved);
 						}
 						for (int z = 0; z < arguments.members(); z++) {
 							if (!(player.serverLevel().getBlockEntity(context.target().south(z + arguments.offsetZ())) instanceof StorageBlockEntity storage)
 									|| storage.getControllerPos().filter(pos::equals).isEmpty()) {
-								throw new IllegalStateException("Loaded visual member lost controller membership");
+								throw RegressionActionFailure.assertion("Loaded visual member lost controller membership");
 							}
 						}
 					});

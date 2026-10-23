@@ -3,7 +3,7 @@ param(
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "item-display-preview-screenshots"),
     [string]$PreviewCropDirectory = "",
     [switch]$StartClient,
-    [switch]$MoveMouseToCorner = $true,
+    [switch]$ClearVirtualHover = $true,
     [int]$PreviewSettleMilliseconds = 1250
 )
 
@@ -192,10 +192,11 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     if (-not $StartClient) {
         throw "Pass -BaseUrl for an already running dev client, or pass -StartClient to launch one via start-and-ready.ps1."
     }
-    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -Maximize -SkipRecipeViewerReady -MinimalRuntime
+    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -SkipRecipeViewerReady -MinimalRuntime
     $BaseUrl = $ready.baseUrl
 }
 
+& "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
 New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
 if ([string]::IsNullOrWhiteSpace($PreviewCropDirectory)) {
     $PreviewCropDirectory = Join-Path $ScreenshotDirectory "preview-crops"
@@ -244,8 +245,8 @@ foreach ($case in $cases) {
     if (-not $open.ok) {
         throw "Failed to open item display preview for $name"
     }
-    if ($MoveMouseToCorner) {
-        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    if ($ClearVirtualHover) {
+        Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     }
     Start-Sleep -Milliseconds $PreviewSettleMilliseconds
 

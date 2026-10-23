@@ -4,10 +4,11 @@ param(
     [string]$Loader = "neoforge",
     [string]$WorldName = "Dev Client Automation Void Platform",
     [int]$TimeoutSeconds = 300,
-    [switch]$Maximize,
     [switch]$ShowLauncherWindow,
     [bool]$LoadWorld = $true,
+    # Controls the launcher console, not the client lifetime.
     [switch]$CloseOnExit,
+    [switch]$KeepClientOpen,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
     [ValidateSet("", "emi", "jei", "rei", "none")]
@@ -15,6 +16,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\client-lifecycle.ps1"
 
 $discoveryPath = Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -24,7 +26,7 @@ if (Test-Path $discoveryPath) {
 }
 
 $gradleCommand = switch ($Loader) {
-    "neoforge" { "gradlew.bat :workspace:runClient" }
+    "neoforge" { "gradlew.bat :workspace:runRegressionClient --no-daemon" }
     "fabric" { throw "Fabric dev-client launching is not configured in this workspace yet." }
 }
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
@@ -35,7 +37,8 @@ if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
 
 $cmdMode = if ($CloseOnExit) { '/c' } else { '/k' }
 $launcherWindowStyle = if ($ShowLauncherWindow) { 'Normal' } else { 'Minimized' }
-Start-Process cmd.exe -ArgumentList $cmdMode, "cd /d $WorkspaceRoot && $gradleCommand" -WorkingDirectory $WorkspaceRoot -WindowStyle $launcherWindowStyle | Out-Null
+$launcher = Start-Process cmd.exe -ArgumentList $cmdMode, "cd /d `"$WorkspaceRoot`" && $gradleCommand" -WorkingDirectory $WorkspaceRoot -WindowStyle $launcherWindowStyle -PassThru
+$ownership = New-ClientOwnership $launcher
 
 function Get-BridgeDiscovery {
     if (-not (Test-Path $discoveryPath)) {
@@ -55,20 +58,21 @@ function Invoke-BridgeJson {
         [object]$Body = $null
     )
 
-    $discovery = Get-BridgeDiscovery
-    if ($null -eq $discovery) {
-        throw "Bridge discovery file is not available yet."
-    }
-    $uri = "http://$($discovery.host):$($discovery.port)$Path"
+    if (-not $ownership.baseUrl) { throw 'Owned bridge discovery is not available yet.' }
+    $uri = "$($ownership.baseUrl)$Path"
     if ($null -eq $Body) {
         return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec 10
     }
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress) -TimeoutSec $TimeoutSeconds
 }
 
+try {
 do {
     Start-Sleep -Seconds 2
     try {
+        $discovery = Get-BridgeDiscovery
+        if ($null -eq $discovery) { continue }
+        Set-OwnedClientDiscovery -Ownership $ownership -Discovery $discovery
         $state = Invoke-BridgeJson -Method Get -Path "/state"
         break
     } catch {
@@ -87,9 +91,8 @@ if (-not $capabilities.ok -or $capabilities.protocolVersion -ne 1) {
 if ($capabilities.loader -ne $Loader) {
     throw "Expected loader '$Loader' but automation bridge reports '$($capabilities.loader)'."
 }
-
-if ($Maximize) {
-    Invoke-BridgeJson -Method Post -Path "/window/maximize" | Out-Null
+if (-not $capabilities.backgroundInput) {
+    throw "Regression client was not launched with background-safe input enabled."
 }
 
 if ($LoadWorld -and -not $state.playerLoaded) {
@@ -123,13 +126,22 @@ do {
     }
 } while ((Get-Date) -lt $deadline)
 
-$discovery = Get-BridgeDiscovery
+$bridgeUri = [uri]$ownership.baseUrl
 [pscustomobject]@{
-    host = $discovery.host
-    port = $discovery.port
-    processId = $discovery.processId
-    baseUrl = "http://$($discovery.host):$($discovery.port)"
+    host = $bridgeUri.Host
+    port = $bridgeUri.Port
+    processId = $ownership.processId
+    ownership = $ownership
+    baseUrl = $ownership.baseUrl
     capabilities = $capabilities
     state = Invoke-BridgeJson -Method Get -Path "/state"
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
+}
+} catch {
+    $cleanup = Stop-OwnedClient -Ownership $ownership -KeepClientOpen:$KeepClientOpen -WaitForRegression:$false
+    $_.Exception.Data['ClientOwnership'] = $ownership
+    $_.Exception.Data['ClientLifecycle'] = $cleanup
+    if (-not $cleanup.ok) { Write-Warning "Startup cleanup failed: $($cleanup.errors -join '; ')" }
+    if ($KeepClientOpen) { Write-Warning "Keeping failed startup open for inspection (launcher PID $($ownership.launcherProcessId))." }
+    throw
 }

@@ -65,7 +65,7 @@ public final class AssertRestockBarrelAction extends TypedRegressionAction<Asser
 			if (!serverMatched) {
 				serverCheck = null;
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Server barrel contents did not match restock expectation")
+						? failAssertion("Server barrel contents did not match restock expectation")
 						: RegressionActionProgress.WAITING;
 			}
 			if (context.isExpectedMenu(MenuKind.STORAGE_BLOCK, null)
@@ -73,7 +73,7 @@ public final class AssertRestockBarrelAction extends TypedRegressionAction<Asser
 				return RegressionActionProgress.PASSED;
 			}
 			return context.minecraft().player.tickCount >= deadline
-					? fail("Client barrel menu did not synchronize restock contents")
+					? failAssertion("Client barrel menu did not synchronize restock contents")
 					: RegressionActionProgress.WAITING;
 		}
 	}

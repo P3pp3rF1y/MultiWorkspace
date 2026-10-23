@@ -59,31 +59,31 @@ public final class AssertControllerLinkLineAction extends TypedRegressionAction<
 					boolean afterBreak = arguments.phase().equals("afterBreak");
 					if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntity controller)
 							|| !(level.getBlockEntity(linkPos) instanceof StorageLinkBlockEntity link)) {
-						throw new IllegalStateException("Controller or storage link is missing");
+						throw RegressionActionFailure.infrastructure("Controller or storage link is missing");
 					}
 					if (!level.getBlockState(center).is(Blocks.AIR)
 							|| (afterBreak ? !level.getBlockState(first).isAir() : !level.getBlockState(first).is(ModBlocks.BARREL.get()))) {
-						throw new IllegalStateException("Controller link line does not match " + arguments.phase());
+						throw RegressionActionFailure.assertion("Controller link line does not match " + arguments.phase());
 					}
 					context.putDiagnostic("linkedBlocks." + arguments.phase(), controller.getLinkedBlocks().toString());
 					context.putDiagnostic("linkRegistered." + arguments.phase(), controller.getLinkedBlocks().contains(linkPos));
 					context.putDiagnostic("connectedStorages." + arguments.phase(), controller.getStoragePositions().toString());
 					context.putDiagnostic("linkController." + arguments.phase(), link.getControllerPos().toString());
 					if (!link.getControllerPos().filter(controllerPos::equals).isPresent()) {
-						throw new IllegalStateException("Storage link lost its controller connection " + arguments.phase());
+						throw RegressionActionFailure.assertion("Storage link lost its controller connection " + arguments.phase());
 					}
 					for (int x : afterBreak ? new int[]{-1, 2, 3} : new int[]{-3, -1, 2, 3}) {
 						BlockPos pos = center.east(x);
 						if (!(level.getBlockEntity(pos) instanceof StorageBlockEntity storage)
 								|| !storage.getControllerPos().filter(controllerPos::equals).isPresent() || !controller.isStorageConnected(pos)) {
-							throw new IllegalStateException("Barrel at line offset " + x + " is disconnected " + arguments.phase());
+							throw RegressionActionFailure.assertion("Barrel at line offset " + x + " is disconnected " + arguments.phase());
 						}
 					}
 					if (afterBreak && controller.isStorageConnected(first)) {
-						throw new IllegalStateException("Removed barrel is still registered with the controller");
+						throw RegressionActionFailure.assertion("Removed barrel is still registered with the controller");
 					}
 					if (!controller.getLinkedBlocks().contains(linkPos)) {
-						throw new IllegalStateException("Storage link is missing from the controller's linked blocks " + arguments.phase());
+						throw RegressionActionFailure.assertion("Storage link is missing from the controller's linked blocks " + arguments.phase());
 					}
 				});
 			}

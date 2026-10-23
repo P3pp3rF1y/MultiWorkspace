@@ -21,6 +21,11 @@ public final class ClickStorageSettingsAction extends TypedRegressionAction<Clic
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing("settings-group", RegressionValueTypes.UUID);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private boolean clicked;

@@ -6,7 +6,6 @@ param(
     [string]$Suite = "sophisticatedstorage-linked-storage",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime
 )
 
@@ -58,9 +57,6 @@ function Stop-AutomationClient {
 
 function Start-AutomationClient {
     $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-    if ($MaximizeClient) {
-        $readyArgs.Maximize = $true
-    }
     if ($MinimalRuntime) {
         $readyArgs.MinimalRuntime = $true
     }
@@ -112,6 +108,7 @@ try {
     Assert-True (Test-Path $suitePath) "Storage regression suite not found: $suitePath"
     $suiteData = Get-Content $suitePath -Raw | ConvertFrom-Json
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 
