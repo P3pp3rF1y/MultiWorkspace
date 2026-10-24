@@ -12,6 +12,7 @@ import net.minecraft.world.entity.vehicle.Minecart;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.RailShape;
 import net.p3pp3rf1y.sophisticatedcore.compat.create.ContraptionHelper;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstoragecreateintegration.storage.MountedSophisticatedStorage;
 
@@ -30,6 +31,10 @@ public final class MountLinkedStorageAction extends TypedRegressionAction<MountL
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("saveAs"), description);
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "saveAs", description)));
+	}
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MOUNTED_STORAGE);
 	}
 
 	@Override
@@ -56,6 +61,8 @@ public final class MountLinkedStorageAction extends TypedRegressionAction<MountL
 						throw new IllegalStateException("Create fixture requires a placed linked storage block");
 					}
 					var endpoint = block.getLinkedStorageEndpointData();
+					var groups = LinkedStorageGroupsSavedData.get(level).manager();
+					boolean primaryBeforeAssembly = groups.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId());
 					BlockPos assemblerPos = storagePos.below();
 					context.journal().recordBlock(level, storagePos);
 					context.journal().recordBlock(level, assemblerPos.below());
@@ -77,6 +84,7 @@ public final class MountLinkedStorageAction extends TypedRegressionAction<MountL
 						throw new IllegalStateException("Create cart assembler block entity missing");
 					}
 					assembler.tryAssemble(cart);
+					boolean primaryAfterAssembly = groups.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId());
 					AbstractContraptionEntity entity = cart.getPassengers().stream().filter(AbstractContraptionEntity.class::isInstance)
 							.map(AbstractContraptionEntity.class::cast).findFirst()
 							.orElseThrow(() -> new IllegalStateException("Create cart did not assemble a storage contraption"));
@@ -84,8 +92,8 @@ public final class MountLinkedStorageAction extends TypedRegressionAction<MountL
 					BlockPos localPos = ContraptionHelper.getMountedItemStorages(entity).keySet().stream()
 							.filter(pos -> ContraptionHelper.getMountedStorage(entity, pos) instanceof MountedSophisticatedStorage).findFirst()
 							.orElseThrow(() -> new IllegalStateException("Create contraption has no mounted sophisticated storage"));
-					context.values().put(arguments.saveAs(), MountedLinkedStorageHandle.class,
-							new MountedLinkedStorageHandle(entity.getUUID(), level.dimension(), localPos, endpoint));
+					context.values().put(arguments.saveAs(), MountedLinkedStorageHandle.class, new MountedLinkedStorageHandle(entity.getUUID(),
+							level.dimension(), localPos, endpoint, primaryBeforeAssembly, primaryAfterAssembly));
 				});
 			}
 			return await(future);

@@ -54,7 +54,7 @@ public final class AssertControllerLinkGroupsAction extends TypedRegressionActio
 					BlockPos controllerPos = center.west(3);
 					var level = player.serverLevel();
 					if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntity controller)) {
-						throw new IllegalStateException("Controller is missing from link groups fixture");
+						throw RegressionActionFailure.infrastructure("Controller is missing from link groups fixture");
 					}
 					context.putDiagnostic("linkedBlocks." + arguments.layout() + "." + arguments.phase(), controller.getLinkedBlocks().toString());
 					context.putDiagnostic("connectedStorages." + arguments.layout() + "." + arguments.phase(), controller.getStoragePositions().toString());
@@ -62,14 +62,14 @@ public final class AssertControllerLinkGroupsAction extends TypedRegressionActio
 						BlockPos linkPos = center.east(x).north();
 						if (!(level.getBlockEntity(linkPos) instanceof StorageLinkBlockEntity link)
 								|| !link.getControllerPos().filter(controllerPos::equals).isPresent() || !controller.getLinkedBlocks().contains(linkPos)) {
-							throw new IllegalStateException("Storage link at offset " + x + " is disconnected " + arguments.phase());
+							throw RegressionActionFailure.assertion("Storage link at offset " + x + " is disconnected " + arguments.phase());
 						}
 					}
 					boolean afterBreak = arguments.phase().equals("afterBreak");
 					int removed = arguments.layout().equals("shared") ? 1 : 0;
 					if (!level.getBlockState(center.west(2)).isAir() || (arguments.layout().equals("separate") && !level.getBlockState(center.east()).isAir())
 							|| (afterBreak && !level.getBlockState(center.east(removed)).isAir())) {
-						throw new IllegalStateException("Barrel groups do not match " + arguments.layout() + " " + arguments.phase());
+						throw RegressionActionFailure.assertion("Barrel groups do not match " + arguments.layout() + " " + arguments.phase());
 					}
 					for (int x : new int[]{-1, 0, 1, 2, 3}) {
 						boolean expected = (arguments.layout().equals("shared") || x != 1) && (!afterBreak || x != removed);
@@ -77,10 +77,11 @@ public final class AssertControllerLinkGroupsAction extends TypedRegressionActio
 						if (expected) {
 							if (!level.getBlockState(pos).is(ModBlocks.BARREL.get()) || !(level.getBlockEntity(pos) instanceof StorageBlockEntity storage)
 									|| !storage.getControllerPos().filter(controllerPos::equals).isPresent() || !controller.isStorageConnected(pos)) {
-								throw new IllegalStateException("Barrel at offset " + x + " is disconnected " + arguments.layout() + " " + arguments.phase());
+								throw RegressionActionFailure
+										.assertion("Barrel at offset " + x + " is disconnected " + arguments.layout() + " " + arguments.phase());
 							}
 						} else if (!level.getBlockState(pos).isAir() || controller.isStorageConnected(pos)) {
-							throw new IllegalStateException("Unexpected barrel at offset " + x + " " + arguments.layout() + " " + arguments.phase());
+							throw RegressionActionFailure.assertion("Unexpected barrel at offset " + x + " " + arguments.layout() + " " + arguments.phase());
 						}
 					}
 				});

@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.world.item.ItemStack;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageStackData;
 import net.p3pp3rf1y.sophisticatedcore.util.NBTHelper;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageWrapper;
@@ -36,6 +37,10 @@ public final class HoldRecoveredMovingStorageInnerAction extends TypedRegression
 						if (inner.isEmpty() || LinkedStorageStackData.getEndpoint(inner) == null || NBTHelper.hasTag(inner, StorageWrapper.UUID_TAG)) {
 							throw new IllegalStateException("Recovered moving item must contain one linked inner carrier");
 						}
+						var endpoint = LinkedStorageStackData.getEndpoint(inner);
+						context.putDiagnostic("primaryBeforePlacement",
+								LinkedStorageGroupsSavedData.get(player.serverLevel()).manager().isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId()));
+						context.putDiagnostic("innerPrimaryBeforePlacement", LinkedStorageStackData.isPrimaryEndpoint(inner));
 						player.getInventory().setItem(player.getInventory().selected, inner.copy());
 						player.getInventory().setItem(1, ItemStack.EMPTY);
 					});

@@ -145,9 +145,13 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            args "--mixin", "sophisticatedstorageinmotion.mixins.json"
-            args "--mixin", "sophisticatedcore.mixins.json"
-            args "--mixin", "sophisticatedcore.create.mixins.json"
+            // The dedicated run inherits these arguments from the client run.
+            if (it.name != 'regressionClient') {
+                args "--mixin", "sophisticatedstorageinmotion.mixins.json"
+                args "--mixin", "sophisticatedcore.mixins.json"
+                args "--mixin", "sophisticatedcore.create.mixins.json"
+                args "--mixin", "devclientautomation.mixins.json"
+            }
 
             if (generatingIdeRuns) {
                 mods {
@@ -205,16 +209,47 @@ minecraft {
             }
         }
         client {
+            property 'devclientautomation.backgroundInput', 'false'
         }
 
         client2 {
+            property 'devclientautomation.backgroundInput', 'false'
             args '--username', 'Dev2'
+        }
+
+        regressionClient {
+            parent minecraft.runs.client
+            property 'devclientautomation.backgroundInput', 'true'
         }
 
         server {
         }
 
         data {
+        }
+    }
+}
+
+// ForgeGradle's prepareRun* tasks do not emit NeoForge moddev VM-argument files.
+// Inspect the effective Forge run configurations after all run configuration is applied.
+tasks.register('verifyBackgroundLaunchConfig') {
+    group = 'verification'
+    description = 'Checks that only the dedicated regression client opts into background input.'
+    dependsOn 'prepareRunClient', 'prepareRunClient2', 'prepareRunRegressionClient'
+    doLast {
+        [client: 'false', client2: 'false', regressionClient: 'true'].each { runName, expected ->
+            def run = minecraft.runs.getByName(runName)
+            def actual = run.properties.get('devclientautomation.backgroundInput')
+            if (actual != expected) {
+                throw new GradleException("Incorrect background input mode for ${runName}: ${actual} (expected ${expected})")
+            }
+            if (runName == 'regressionClient') {
+                def clientRun = minecraft.runs.getByName('client')
+                if (run.main != clientRun.main || run.args != clientRun.args || !run.isClient()) {
+                    throw new GradleException('Regression run must inherit exactly the executable client launch and arguments')
+                }
+            }
+            println "Background input ${runName}=${actual}"
         }
     }
 }

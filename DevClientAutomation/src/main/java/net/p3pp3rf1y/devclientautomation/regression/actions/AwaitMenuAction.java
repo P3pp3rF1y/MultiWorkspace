@@ -27,6 +27,13 @@ public final class AwaitMenuAction extends TypedRegressionAction<AwaitMenuAction
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.kind().equals("moving")
+				? RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				: RegressionValueContract.EMPTY;
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}

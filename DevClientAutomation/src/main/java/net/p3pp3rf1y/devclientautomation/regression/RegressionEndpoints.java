@@ -5,10 +5,18 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
+import net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime;
+import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -26,6 +34,7 @@ public final class RegressionEndpoints {
 		server.createContext("/regression/run", exchange -> run(exchange, logger));
 		server.createContext("/regression/status", exchange -> status(exchange, logger));
 		server.createContext("/regression/cancel", exchange -> cancel(exchange, logger));
+		server.createContext("/regression/probe-background-attack", exchange -> probeBackgroundAttack(exchange, logger));
 	}
 
 	private static void catalog(HttpExchange exchange, Logger logger) throws IOException {
@@ -48,6 +57,13 @@ public final class RegressionEndpoints {
 		catalog.put("actions", actions);
 		catalog.put("suites", suiteTests.keySet());
 		catalog.put("suiteTests", suiteTests);
+		Map<String, Object> requirements = new LinkedHashMap<>();
+		suites.forEach((id, suite) -> {
+			Map<String, Object> tests = new LinkedHashMap<>();
+			suite.tests().forEach(test -> tests.put(test.id(), Map.of("effectiveRequirements", test.requires().stream().sorted().toList())));
+			requirements.put(id, tests);
+		});
+		catalog.put("testMetadata", requirements);
 		return GSON.toJson(catalog);
 	}
 
@@ -62,8 +78,9 @@ public final class RegressionEndpoints {
 			if (suiteId.isBlank() || testId.isBlank()) {
 				throw new IllegalArgumentException("suiteId and testId are required");
 			}
-			return GSON.toJson(RegressionCoordinator.get().start(suiteId, testId, string(request, "conformanceFailureAction"),
-					string(request, "actionFailureAfter"), bool(request, "cleanupFailure"), string(request, "preparationToken")));
+			return GSON.toJson(
+					RegressionCoordinator.get().start(suiteId, testId, string(request, "conformanceFailureAction"), string(request, "actionFailureAfter"),
+							bool(request, "cleanupFailure"), string(request, "preparationToken"), reportContext(request, exchange)));
 		});
 	}
 
@@ -74,8 +91,39 @@ public final class RegressionEndpoints {
 		sendJsonHandling(exchange, logger, () -> statusJson(RegressionCoordinator.get().status()));
 	}
 
-	static String statusJson(RegressionCoordinator.RunStatus status) {
+	static String statusJson(RegressionResultModel.RunStatus status) {
 		return GSON.toJson(status);
+	}
+
+	private static RegressionResultModel.ReportContext reportContext(JsonObject request, HttpExchange exchange) {
+		RegressionResultModel.ReportContext supplied = request.has("reportContext")
+				? GSON.fromJson(request.get("reportContext"), RegressionResultModel.ReportContext.class)
+				: RegressionResultModel.ReportContext.unknown();
+		String rerun = supplied.rerunCommand().isEmpty() ? rerunCommand(request, exchange.getLocalAddress().getPort()) : supplied.rerunCommand();
+		return new RegressionResultModel.ReportContext(
+				new RegressionResultModel.RuntimeIdentity("forge", "1.20.1", ProcessHandle.current().pid(), supplied.runtimeIdentity().controller()), rerun,
+				supplied.artifacts());
+	}
+
+	static String rerunCommand(JsonObject request, int port) {
+		StringBuilder command = new StringBuilder("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run");
+		appendRerunOption(command, request, "suiteId", "Suite");
+		appendRerunOption(command, request, "testId", "Test");
+		command.append(" -BaseUrl 'http://127.0.0.1:").append(port).append("'");
+		appendRerunOption(command, request, "conformanceFailureAction", "ConformanceFailureAction");
+		appendRerunOption(command, request, "actionFailureAfter", "ActionFailureAfter");
+		appendRerunOption(command, request, "preparationToken", "PreparationToken");
+		if (bool(request, "cleanupFailure")) {
+			command.append(" -CleanupFailure");
+		}
+		return command.toString();
+	}
+
+	private static void appendRerunOption(StringBuilder command, JsonObject request, String field, String option) {
+		String value = string(request, field);
+		if (!value.isEmpty()) {
+			command.append(" -").append(option).append(" '").append(value.replace("'", "''")).append("'");
+		}
 	}
 
 	private static void cancel(HttpExchange exchange, Logger logger) throws IOException {
@@ -83,6 +131,78 @@ public final class RegressionEndpoints {
 			return;
 		}
 		sendJsonHandling(exchange, logger, () -> GSON.toJson(RegressionCoordinator.get().cancel()));
+	}
+
+	/** Explicit, loopback-only dev-client diagnostic; not a regression action or world mutation. */
+	private static void probeBackgroundAttack(HttpExchange exchange, Logger logger) throws IOException {
+		if (!requireMethod(exchange, "POST")) {
+			return;
+		}
+		sendJsonHandling(exchange, logger, () -> {
+			if (!BackgroundInputPolicy.enabled()) {
+				throw new IllegalStateException("Background attack probe requires a background regression client");
+			}
+			String mode = string(readObject(exchange), "mode");
+			if (mode.equals("stones")) {
+				Object cell = AutomationRuntime.runOnServer(player -> {
+					int stones = 0;
+					for (int x = 252; x <= 260; x++) {
+						for (int z = 252; z <= 260; z++) {
+							if (player.serverLevel().getBlockState(new BlockPos(x, 72, z)).is(Blocks.STONE)) {
+								stones++;
+							}
+						}
+					}
+					return Map.of("stones", stones, "creative", player.isCreative(), "x", player.getX(), "y", player.getY(), "z", player.getZ(), "yaw",
+							player.getYRot(), "pitch", player.getXRot());
+				});
+				return GSON.toJson(cell);
+			}
+			return GSON.toJson(AutomationRuntime.runOnClient(() -> {
+				Minecraft minecraft = Minecraft.getInstance();
+				if (minecraft.player == null || minecraft.screen == null && (mode.equals("native") || mode.equals("armStart"))) {
+					throw new IllegalStateException("Probe requires a loaded player and open screen to prevent vanilla consuming the seeded click");
+				}
+				if (mode.equals("native")) {
+					try {
+						Method press = minecraft.mouseHandler.getClass().getDeclaredMethod("onPress", long.class, int.class, int.class, int.class);
+						press.setAccessible(true);
+						press.invoke(minecraft.mouseHandler, minecraft.getWindow().getWindow(), 0, 1, 0);
+						press.invoke(minecraft.mouseHandler, minecraft.getWindow().getWindow(), 0, 0, 0);
+					} catch (ReflectiveOperationException e) {
+						throw new IllegalStateException("Unable to invoke native mouse callback", e);
+					}
+				} else if (mode.equals("armStart")) {
+					KeyMapping.click(minecraft.options.keyAttack.getKey());
+					minecraft.options.keyAttack.setDown(true);
+					boolean armed = rawAttackDown(minecraft);
+					RegressionCoordinator.get().start("linked-storage-action-conformance", "empty-crafting-times-out-with-slot-diagnostics", "");
+					return Map.of("mode", mode, "armed", armed);
+				} else if (mode.equals("armCancel")) {
+					return Map.of("mode", mode, "armed", RegressionCoordinator.get().requestCancellationWithQueuedAttackProbe());
+				} else if (!mode.equals("inspect")) {
+					throw new IllegalArgumentException("Unknown background attack probe mode " + mode);
+				}
+				int clicks = 0;
+				if (mode.equals("inspect") || mode.equals("native")) {
+					while (minecraft.options.keyAttack.consumeClick()) {
+						clicks++;
+					}
+				}
+				return Map.of("mode", mode, "attackDown", rawAttackDown(minecraft), "queuedClicks", clicks, "screen",
+						minecraft.screen == null ? "none" : minecraft.screen.getClass().getSimpleName());
+			}));
+		});
+	}
+
+	private static boolean rawAttackDown(Minecraft minecraft) {
+		try {
+			Field down = KeyMapping.class.getDeclaredField("isDown");
+			down.setAccessible(true);
+			return down.getBoolean(minecraft.options.keyAttack);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Unable to inspect raw attack key state", e);
+		}
 	}
 
 	private static JsonObject readObject(HttpExchange exchange) throws IOException {

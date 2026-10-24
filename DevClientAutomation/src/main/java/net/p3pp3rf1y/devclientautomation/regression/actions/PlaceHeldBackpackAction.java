@@ -75,7 +75,7 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				try {
 					enableSneaking = context.onServer(player -> player.setShiftKeyDown(true));
 				} catch (RuntimeException e) {
-					return latchFailure(e.getMessage());
+					return latchFailure(e);
 				}
 				return RegressionActionProgress.WAITING;
 			}
@@ -90,7 +90,7 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				try {
 					snapshot = context.onServer(player -> context.journal().recordBlock(player.serverLevel(), target));
 				} catch (RuntimeException e) {
-					return latchFailure(e.getMessage());
+					return latchFailure(e);
 				}
 				return RegressionActionProgress.WAITING;
 			}
@@ -107,7 +107,7 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 					minecraft.gameMode.useItemOn(minecraft.player, InteractionHand.MAIN_HAND,
 							new BlockHitResult(Vec3.atCenterOf(support), Direction.UP, support, false));
 				} catch (RuntimeException e) {
-					return latchFailure(e.getMessage());
+					return latchFailure(e);
 				} finally {
 					minecraft.player.setShiftKeyDown(false);
 				}
@@ -125,7 +125,7 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				try {
 					checkPlacement = context.onServer(player -> serverPlaced = player.serverLevel().getBlockEntity(target) instanceof BackpackBlockEntity);
 				} catch (RuntimeException e) {
-					return latchFailure(e.getMessage());
+					return latchFailure(e);
 				}
 				return RegressionActionProgress.WAITING;
 			}
@@ -158,6 +158,13 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				terminalFailureLatched = true;
 			}
 			return disableSneakingThenFail();
+		}
+
+		private RegressionActionProgress latchFailure(RuntimeException exception) {
+			java.io.StringWriter trace = new java.io.StringWriter();
+			exception.printStackTrace(new java.io.PrintWriter(trace));
+			context.putDiagnostic("backpackPlacementException", java.util.Map.of("type", exception.getClass().getName(), "stackTrace", trace.toString()));
+			return latchFailure(exception.getMessage() == null ? exception.toString() : exception.getMessage());
 		}
 
 		private RegressionActionProgress disableSneakingThenFail() {

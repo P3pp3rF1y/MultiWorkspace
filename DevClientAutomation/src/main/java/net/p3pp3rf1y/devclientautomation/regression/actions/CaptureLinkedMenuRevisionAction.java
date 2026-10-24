@@ -38,6 +38,16 @@ public final class CaptureLinkedMenuRevisionAction extends TypedRegressionAction
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		RegressionValueContract inputs = switch (arguments.kind()) {
+			case MOVING -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+			case MOUNTED -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
+			default -> RegressionValueContract.EMPTY;
+		};
+		return inputs.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MENU_BASELINE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Override

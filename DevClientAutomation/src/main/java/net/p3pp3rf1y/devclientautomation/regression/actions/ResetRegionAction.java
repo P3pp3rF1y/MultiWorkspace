@@ -36,10 +36,12 @@ public final class ResetRegionAction extends TypedRegressionAction<ResetRegionAc
 				future = context.onServer(player -> {
 					BlockPos support = new BlockPos(256, 72, 256);
 					player.serverLevel().getChunkAt(support);
-					if (!player.serverLevel()
-							.getEntities((Entity) null, new AABB(support.offset(-4, 0, -4)).expandTowards(9, 8, 9), entity -> !(entity instanceof Player))
-							.isEmpty()) {
-						throw new IllegalStateException("Reusable regression cell contains an unowned entity");
+					var unowned = player.serverLevel().getEntities((Entity) null, new AABB(support.offset(-4, 0, -4)).expandTowards(9, 8, 9),
+							entity -> !(entity instanceof Player));
+					if (!unowned.isEmpty()) {
+						Entity entity = unowned.get(0);
+						throw new IllegalStateException("Reusable regression cell contains an unowned entity " + entity.getType() + " at "
+								+ entity.blockPosition() + " (" + entity.getUUID() + ")");
 					}
 					for (int x = -4; x <= 4; x++) {
 						for (int z = -4; z <= 4; z++) {

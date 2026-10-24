@@ -20,6 +20,10 @@ public final class UseMovingStorageAction extends TypedRegressionAction<UseMovin
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "ref", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private int deadline = -1;

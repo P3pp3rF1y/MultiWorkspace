@@ -14,6 +14,7 @@ try {
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl; $clientProcessId = $ready.processId; $startedClient = $true
     }
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
     $result = Invoke-BridgeJson -Method Post -Path "/inventory-interactions/keybind-regression"

@@ -29,6 +29,10 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 		return new Arguments(args.get("backpackPrimary").getAsBoolean());
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming("settings-group", RegressionValueTypes.UUID);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
@@ -57,16 +61,16 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.serverLevel()).manager()
 								.resolveVirtualHost(context.values().require("settings-group", UUID.class)).orElseThrow();
 						if (wrapper.getSettingsHandler() != host.getSettingsHandler()) {
-							throw new IllegalStateException("Settings menu does not use canonical settings");
+							throw RegressionActionFailure.assertion("Settings menu does not use canonical settings");
 						}
 						categories = Set.copyOf(host.getSettingsHandler().getSettingsCategories().keySet());
 						String expectedMain = arguments.backpackPrimary() ? BackpackMainSettingsCategory.NAME : MainSettingsCategory.NAME;
 						if (!categories.contains(expectedMain)) {
-							throw new IllegalStateException("Settings categories do not match the primary family");
+							throw RegressionActionFailure.assertion("Settings categories do not match the primary family");
 						}
 						menu.forEachSettingsContainer((name, container) -> {
 							if (container == null) {
-								throw new IllegalStateException("Missing server settings container " + name);
+								throw RegressionActionFailure.assertion("Missing server settings container " + name);
 							}
 						});
 						serverReady = true;
@@ -87,7 +91,7 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 				}
 				screen.getMenu().forEachSettingsContainer((name, container) -> {
 					if (container == null) {
-						throw new IllegalStateException("Missing client settings container " + name);
+						throw RegressionActionFailure.assertion("Missing client settings container " + name);
 					}
 				});
 				return RegressionActionProgress.PASSED;

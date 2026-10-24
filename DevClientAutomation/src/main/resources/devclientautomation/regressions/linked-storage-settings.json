@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "linked-storage-settings",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion", "jei"],
+  "requires": ["jei"],
   "isolation": "testCell",
   "fixtures": {
     "storage-primary-backpack": [
@@ -94,7 +94,7 @@
       "steps":[
         {"id":"tab","action":"menu.clickSettingsControl","args":{"operation":"memory"},"expectFailure":"Settings screen is not open"},
         {"id":"ghost","action":"recipeviewer.dropSettingsGhost","expectFailure":"Settings screen is not open"},
-        {"id":"selection","action":"assert.settingsSelection","args":{"display":true},"expectFailure":"Memory/display settings did not persist on server and client; server=no menu; client=no menu"},
+        {"id":"selection","action":"assert.settingsSelection","args":{"display":true},"expectFailure":"Settings or storage menu is not open on server"},
         {"id":"baseline","action":"assert.playerInventoryBaseline"}
       ]
     },

@@ -38,6 +38,13 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.kind() == MenuKind.MOVING
+				? RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				: RegressionValueContract.EMPTY;
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -63,6 +70,10 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 			if (serverAssertion == null) {
 				serverAssertion = context.onServer(player -> {
 					context.putServerMenuDiagnostic(player);
+					if (arguments.playerInventory()) {
+						context.putDiagnostic("assertedPlayerInventoryItemSlots", java.util.stream.IntStream.range(0, player.getInventory().getContainerSize())
+								.filter(slot -> player.getInventory().getItem(slot).is(itemForId(arguments.item()))).boxed().toList());
+					}
 					serverMatched = (arguments.kind() == MenuKind.MOVING
 							? player.containerMenu instanceof net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu<?> menu
 									&& menu.getStorageEntity()
@@ -81,7 +92,9 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 			if (!serverMatched) {
 				serverAssertion = null;
 				stableSince = -1;
-				return minecraft.player.tickCount >= deadline ? fail("Server menu did not receive the expected item stack") : RegressionActionProgress.WAITING;
+				return minecraft.player.tickCount >= deadline
+						? failAssertion("Server menu did not receive the expected item stack")
+						: RegressionActionProgress.WAITING;
 			}
 			if (!context.isExpectedMenu(menuKindName(arguments.kind()), arguments.ref())) {
 				stableSince = -1;
@@ -95,7 +108,7 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 				stableSince = -1;
 				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
-						? fail("Client menu did not synchronize the expected item stack")
+						? failAssertion("Client menu did not synchronize the expected item stack")
 						: RegressionActionProgress.WAITING;
 			}
 			if (stableSince < 0) {
@@ -110,12 +123,13 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 
 		private boolean matchesStack(StorageContainerMenuBase<?> menu) {
 			if (!arguments.playerInventory() && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
-				throw new IllegalStateException(
-						"Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
+				throw RegressionActionFailure
+						.infrastructure("Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
 			}
 			ItemStack stack = arguments.playerInventory()
 					? menu.slots.stream().filter(slot -> slot.container instanceof Inventory && slot.getContainerSlot() == arguments.slot()).findFirst()
-							.map(Slot::getItem).orElseThrow(() -> new IllegalStateException("Menu has no player inventory slot " + arguments.slot()))
+							.map(Slot::getItem)
+							.orElseThrow(() -> RegressionActionFailure.infrastructure("Menu has no player inventory slot " + arguments.slot()))
 					: menu.getSlot(arguments.slot()).getItem();
 			return arguments.count() == 0 ? stack.isEmpty() : stack.is(itemForId(arguments.item())) && stack.getCount() == arguments.count();
 		}

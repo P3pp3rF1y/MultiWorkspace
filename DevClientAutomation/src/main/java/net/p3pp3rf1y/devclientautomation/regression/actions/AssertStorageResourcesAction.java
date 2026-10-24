@@ -37,6 +37,12 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 				optionalNonNegativeInt(args, "energy", 0, description), !args.has("present") || args.get("present").getAsBoolean());
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.ref().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
@@ -57,7 +63,7 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 								: entity.getCapability(ForgeCapabilities.ENERGY, Direction.UP).orElse(null);
 						if (!arguments.present()) {
 							if (fluid != null || energy != null) {
-								throw new IllegalStateException("Endpoint unexpectedly exposes fluid or energy");
+								throw RegressionActionFailure.assertion("Endpoint unexpectedly exposes fluid or energy");
 							}
 							return;
 						}
@@ -65,24 +71,24 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 								? ((StorageBlockEntity) player.serverLevel().getBlockEntity(context.target())).getLinkedStorageEndpointData()
 								: LinkedStorageStackData.getEndpoint(((IMovingStorageEntity) entity).getStorageItem());
 						if (endpoint == null) {
-							throw new IllegalStateException("Resource endpoint has no linked group");
+							throw RegressionActionFailure.infrastructure("Resource endpoint has no linked group");
 						}
 						context.putDiagnostic("linkedGroup", endpoint.groupId().toString());
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.serverLevel()).manager()
 								.resolveVirtualHost(endpoint, false).orElseThrow();
 						IFluidHandler canonicalFluid = fluid instanceof ContentsFilteredFluidHandler filtered ? filtered.fluidHandler() : fluid;
 						if (canonicalFluid != host.getFluidHandler().orElse(null) || energy != host.getEnergyStorage().orElse(null)) {
-							throw new IllegalStateException("Endpoint capabilities are not the canonical non-item handlers");
+							throw RegressionActionFailure.assertion("Endpoint capabilities are not the canonical non-item handlers");
 						}
 						if (fluid == null || energy == null || fluid.getFluidInTank(0).getAmount() != arguments.fluid()
 								|| energy.getEnergyStored() != arguments.energy()) {
-							throw new IllegalStateException("Unexpected canonical fluid/energy amounts");
+							throw RegressionActionFailure.assertion("Unexpected canonical fluid/energy amounts");
 						}
 						CompoundTag render = entity == null
 								? ((StorageBlockEntity) player.serverLevel().getBlockEntity(context.target())).getStorageWrapper().getRenderInfo().getNbt()
 								: ((IMovingStorageEntity) entity).getStorageItem().getOrCreateTag().getCompound(StorageWrapper.RENDER_INFO_TAG);
 						if (render.contains("tanks") || render.contains("battery")) {
-							throw new IllegalStateException("Storage endpoint contains tank or battery render projection");
+							throw RegressionActionFailure.assertion("Storage endpoint contains tank or battery render projection");
 						}
 					});
 				}

@@ -74,27 +74,28 @@ public final class AssertStorageTierUpgradeRecipeAction extends TypedRegressionA
 				ItemStack linker = new ItemStack(
 						net.minecraft.core.registries.BuiltInRegistries.ITEM.get(new ResourceLocation("sophisticatedcore:ender_linker")));
 				if (LinkedStorageService.linkWithResult(level, playerId, linker, storage) != LinkedStorageService.LinkResult.SUCCESS) {
-					throw new IllegalStateException("Could not create linked storage recipe fixture");
+					throw RegressionActionFailure.infrastructure("Could not create linked storage recipe fixture");
 				}
 				primary = LinkedStorageStackData.getEndpoint(storage);
 				if (arguments.linkage().equals("secondary")) {
 					storage = LinkedStorageService.createSecondaryEndpointCopy(level, storage)
-							.orElseThrow(() -> new IllegalStateException("Could not create secondary storage recipe fixture"));
+							.orElseThrow(() -> RegressionActionFailure.infrastructure("Could not create secondary storage recipe fixture"));
 				}
 			}
 			ResourceLocation id = recipeId(arguments);
-			Recipe<?> recipe = level.getRecipeManager().byKey(id).orElseThrow(() -> new IllegalStateException("Missing registered recipe " + id));
+			Recipe<?> recipe = level.getRecipeManager().byKey(id).orElseThrow(() -> RegressionActionFailure.infrastructure("Missing registered recipe " + id));
 			assertRecipeClass(recipe, arguments);
 			@SuppressWarnings("unchecked")
 			Recipe<CraftingContainer> craftingRecipe = (Recipe<CraftingContainer>) recipe;
 			CraftingContainer input = input(storage, arguments);
 			boolean expected = !arguments.linkage().equals("secondary");
+			boolean matches = craftingRecipe.matches(input, level);
 			ItemStack result = craftingRecipe.assemble(input, level.registryAccess());
-			if (craftingRecipe.matches(input, level) != expected || result.isEmpty() != !expected) {
-				throw new IllegalStateException("Storage tier upgrade " + arguments + " eligibility differed from contract");
+			if (matches != expected || result.isEmpty() != !expected) {
+				throw RegressionActionFailure.assertion("Storage tier upgrade " + arguments + " eligibility differed from contract");
 			}
 			if (craftingRecipe.matches(new TransientCraftingContainer(null, 1, 1, NonNullList.of(ItemStack.EMPTY, storage)), level)) {
-				throw new IllegalStateException("Storage tier upgrade accepted malformed input");
+				throw RegressionActionFailure.assertion("Storage tier upgrade accepted malformed input");
 			}
 			if (expected) {
 				assertOutput(result, storage, arguments);
@@ -131,7 +132,7 @@ public final class AssertStorageTierUpgradeRecipeAction extends TypedRegressionA
 				? (arguments.form().equals("double") ? DoubleChestTierUpgradeRecipe.class : StorageTierUpgradeRecipe.class)
 				: (arguments.form().equals("double") ? DoubleChestTierUpgradeShapelessRecipe.class : StorageTierUpgradeShapelessRecipe.class);
 		if (recipe.getClass() != expected) {
-			throw new IllegalStateException("Registered recipe has class " + recipe.getClass().getName() + ", expected " + expected.getName());
+			throw RegressionActionFailure.assertion("Registered recipe has class " + recipe.getClass().getName() + ", expected " + expected.getName());
 		}
 	}
 
@@ -166,7 +167,7 @@ public final class AssertStorageTierUpgradeRecipeAction extends TypedRegressionA
 				|| !StorageBlockItem.getContentsUuid(output).equals(StorageBlockItem.getContentsUuid(input))
 				|| !Objects.equals(LinkedStorageStackData.getEndpoint(output), LinkedStorageStackData.getEndpoint(input))
 				|| LinkedStorageStackData.isPrimaryEndpoint(output) != LinkedStorageStackData.isPrimaryEndpoint(input)) {
-			throw new IllegalStateException("Storage tier upgrade did not preserve the expected storage identity");
+			throw RegressionActionFailure.assertion("Storage tier upgrade did not preserve the expected storage identity");
 		}
 	}
 }

@@ -42,29 +42,29 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 						ServerLevel level = player.serverLevel();
 						BlockState first = level.getBlockState(context.target());
 						if (!(first.getBlock() instanceof ChestBlock chest) || first.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
-							throw new IllegalStateException("First ordinary chest did not join its neighbor");
+							throw RegressionActionFailure.assertion("First ordinary chest did not join its neighbor");
 						}
 						BlockPos otherPos = context.target().relative(ChestBlock.getConnectedDirection(first));
 						BlockState second = level.getBlockState(otherPos);
 						if (second.getBlock() != chest || second.getValue(ChestBlock.TYPE) != first.getValue(ChestBlock.TYPE).getOpposite()
 								|| second.getValue(ChestBlock.FACING) != first.getValue(ChestBlock.FACING)
 								|| !otherPos.relative(ChestBlock.getConnectedDirection(second)).equals(context.target())) {
-							throw new IllegalStateException("Ordinary chest blocks do not form a matching double chest");
+							throw RegressionActionFailure.assertion("Ordinary chest blocks do not form a matching double chest");
 						}
 						if (!(level.getBlockEntity(context.target()) instanceof ChestBlockEntity firstEntity)
 								|| !(level.getBlockEntity(otherPos) instanceof ChestBlockEntity secondEntity)
 								|| !firstEntity.getMainPos().equals(secondEntity.getMainPos())
 								|| !(level.getBlockEntity(firstEntity.getMainPos()) instanceof ChestBlockEntity main)
 								|| main.getStorageWrapper().getInventoryHandler().getSlots() != chest.getNumberOfInventorySlots() * 2) {
-							throw new IllegalStateException("Naturally joined chest did not acquire shared double capacity");
+							throw RegressionActionFailure.assertion("Naturally joined chest did not acquire shared double capacity");
 						}
 						if (arguments.controller()) {
 							BlockPos controllerPos = main.getControllerPos()
-									.orElseThrow(() -> new IllegalStateException("Double chest did not connect to its controller"));
+									.orElseThrow(() -> RegressionActionFailure.assertion("Double chest did not connect to its controller"));
 							if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntityBase controller)
 									|| !controller.getStoragePositions().equals(List.of(main.getBlockPos()))
 									|| controller.getSlots() != main.getStorageWrapper().getInventoryForInputOutput().getSlots()) {
-								throw new IllegalStateException("Controller did not expose exactly the shared double-chest inventory");
+								throw RegressionActionFailure.assertion("Controller did not expose exactly the shared double-chest inventory");
 							}
 						}
 					});

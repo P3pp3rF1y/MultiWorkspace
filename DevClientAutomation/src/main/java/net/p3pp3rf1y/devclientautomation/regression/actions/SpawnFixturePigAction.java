@@ -21,6 +21,10 @@ public final class SpawnFixturePigAction extends TypedRegressionAction<SpawnFixt
 		return new Arguments(requireString(args, "saveAs", description), optionalNonNegativeInt(args, "offsetX", 0, description));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.UUID);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

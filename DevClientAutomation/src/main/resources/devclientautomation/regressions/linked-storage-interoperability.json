@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "linked-storage-interoperability",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {

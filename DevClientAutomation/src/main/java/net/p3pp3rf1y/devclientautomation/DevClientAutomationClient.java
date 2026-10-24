@@ -23,7 +23,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -46,6 +45,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
@@ -95,6 +95,11 @@ import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.p3pp3rf1y.devclientautomation.demo.DemoCommand;
+import net.p3pp3rf1y.devclientautomation.demo.PresentationNativeInput;
+import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import net.p3pp3rf1y.devclientautomation.mixin.SoundEngineAccess;
+import net.p3pp3rf1y.devclientautomation.mixin.SoundManagerAccess;
 import net.p3pp3rf1y.devclientautomation.recipeviewer.RecipeViewerAutomationManager;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionCoordinator;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionEndpoints;
@@ -241,13 +246,15 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/click-widget", this::clickWidget);
 				httpServer.createContext("/key", this::key);
 				httpServer.createContext("/mouse/move", this::moveMouse);
+				httpServer.createContext("/mouse/clear-hover", this::clearMouseHover);
+				httpServer.createContext("/mouse/click", this::clickMouse);
 				httpServer.createContext("/command", this::command);
 				httpServer.createContext("/screen/move-to-slot", this::moveToSlot);
 				httpServer.createContext("/screen/throw-slot", this::throwSlot);
 				httpServer.createContext("/invtweaks/sort", this::inventoryTweaksSort);
 				httpServer.createContext("/inventory-interactions/keybind-regression", this::inventoryInteractionsKeybindRegression);
 				httpServer.createContext("/inventoryessentials/drop-by-type", this::inventoryEssentialsDropByType);
-				httpServer.createContext("/window/maximize", this::maximizeWindow);
+				httpServer.createContext("/presentation/window/maximize", this::maximizeWindow);
 				httpServer.createContext("/wait", this::waitFor);
 				httpServer.createContext("/client/shutdown-world", this::shutdownWorld);
 				httpServer.createContext("/client/stop", this::stopClient);
@@ -309,8 +316,9 @@ public class DevClientAutomationClient {
 
 		private void capabilities(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "GET");
-			sendJson(exchange,
-					"{\"ok\":true,\"protocolVersion\":1,\"loader\":\"forge\",\"minecraftVersion\":\"1.20.1\",\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"linked-storage\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}");
+			sendJson(exchange, "{\"ok\":true,\"protocolVersion\":1,\"loader\":\"forge\",\"minecraftVersion\":\"1.20.1\",\"backgroundInput\":"
+					+ BackgroundInputPolicy.enabled()
+					+ ",\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"linked-storage\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}");
 		}
 
 		private void state(HttpExchange exchange) throws IOException {
@@ -350,6 +358,24 @@ public class DevClientAutomationClient {
 			int x = extractInt(body, "x").orElse(-1);
 			int y = extractInt(body, "y").orElse(-1);
 			sendJson(exchange, runOnClient(() -> moveMouse(position, x, y)));
+		}
+
+		private void clearMouseHover(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			sendJson(exchange, runOnClient(() -> {
+				VirtualInput.clearHover();
+				return "{\"ok\":true,\"virtual\":true,\"hoverCleared\":true}";
+			}));
+		}
+
+		private void clickMouse(HttpExchange exchange) throws IOException {
+			requireMethod(exchange, "POST");
+			String body = readBody(exchange);
+			int x = extractInt(body, "x").orElse(-1);
+			int y = extractInt(body, "y").orElse(-1);
+			int button = extractInt(body, "button").orElse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+			boolean shift = extractBoolean(body, "shift").orElse(false);
+			sendJson(exchange, runOnClient(() -> clickMouse(x, y, button, shift)));
 		}
 
 		private void command(HttpExchange exchange) throws IOException {
@@ -396,7 +422,7 @@ public class DevClientAutomationClient {
 
 		private void maximizeWindow(HttpExchange exchange) throws IOException {
 			requireMethod(exchange, "POST");
-			sendJson(exchange, runOnClient(this::maximizeWindow));
+			sendJsonHandling(exchange, () -> runOnClient(this::maximizeWindow));
 		}
 
 		private void waitFor(HttpExchange exchange) throws IOException {
@@ -4185,13 +4211,19 @@ public class DevClientAutomationClient {
 		private String buildStateJson() {
 			Minecraft minecraft = Minecraft.getInstance();
 			Screen screen = minecraft.screen;
+			SoundEngineAccess soundEngine = (SoundEngineAccess) (Object) ((SoundManagerAccess) minecraft.getSoundManager()).getSoundEngine();
 			return "{" + jsonProperty("screenClass", screen == null ? null : screen.getClass().getName()) + ","
 					+ jsonProperty("screenSimpleName", screen == null ? null : screen.getClass().getSimpleName()) + ","
 					+ jsonProperty("screenTitle", screen == null ? null : screen.getTitle().getString()) + ","
 					+ jsonProperty("gameDirectory", minecraft.gameDirectory.getAbsolutePath()) + "," + "\"inWorld\":" + (minecraft.level != null) + ","
 					+ "\"playerLoaded\":" + (minecraft.player != null) + "," + "\"windowWidth\":" + minecraft.getWindow().getWidth() + "," + "\"windowHeight\":"
 					+ minecraft.getWindow().getHeight() + "," + "\"guiWidth\":" + minecraft.getWindow().getGuiScaledWidth() + "," + "\"guiHeight\":"
-					+ minecraft.getWindow().getGuiScaledHeight() + "}";
+					+ minecraft.getWindow().getGuiScaledHeight() + ",\"windowActive\":" + minecraft.isWindowActive() + ",\"mouseGrabbed\":"
+					+ minecraft.mouseHandler.isMouseGrabbed() + ",\"virtualMouseX\":" + minecraft.mouseHandler.xpos() + ",\"virtualMouseY\":"
+					+ minecraft.mouseHandler.ypos() + ",\"playerTick\":" + (minecraft.player == null ? 0 : minecraft.player.tickCount)
+					+ ",\"pauseOnLostFocus\":" + minecraft.options.pauseOnLostFocus + ",\"backgroundInput\":" + BackgroundInputPolicy.enabled()
+					+ ",\"configuredMasterVolume\":" + minecraft.options.getSoundSourceVolume(SoundSource.MASTER) + ",\"soundEngineLoaded\":"
+					+ soundEngine.isLoaded() + ",\"effectiveMasterGain\":" + soundEngine.getListener().getGain() + "}";
 		}
 
 		private String buildScreenJson() {
@@ -4254,8 +4286,7 @@ public class DevClientAutomationClient {
 						&& (targetIndex == index || targetIndex < 0 && textMatches(widget.getMessage().getString(), text, contains))) {
 					double x = widget.getX() + widget.getWidth() / 2.0;
 					double y = widget.getY() + widget.getHeight() / 2.0;
-					boolean clicked = screen.mouseClicked(x, y, button);
-					screen.mouseReleased(x, y, button);
+					boolean clicked = VirtualInput.click(screen, x, y, button, 0);
 					return "{\"ok\":" + clicked + ",\"index\":" + index + ",\"x\":" + x + ",\"y\":" + y + "}";
 				}
 				index++;
@@ -4273,8 +4304,7 @@ public class DevClientAutomationClient {
 						&& widget.getMessage().getString().equals("I know what I'm doing!")) {
 					double x = widget.getX() + widget.getWidth() / 2.0;
 					double y = widget.getY() + widget.getHeight() / 2.0;
-					boolean clicked = screen.mouseClicked(x, y, 0);
-					screen.mouseReleased(x, y, 0);
+					boolean clicked = VirtualInput.click(screen, x, y, 0, 0);
 					return clicked;
 				}
 			}
@@ -4314,9 +4344,7 @@ public class DevClientAutomationClient {
 			Slot slot = containerScreen.getMenu().slots.get(menuSlot);
 			int x = containerScreen.getGuiLeft() + slot.x + 8;
 			int y = containerScreen.getGuiTop() + slot.y + 8;
-			double scale = minecraft.getWindow().getGuiScale();
-			GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), x * scale, y * scale);
-			containerScreen.mouseMoved(x, y);
+			VirtualInput.moveToSlot(containerScreen, menuSlot);
 			return "{\"ok\":true,\"menuSlot\":" + menuSlot + ",\"x\":" + x + ",\"y\":" + y + "}";
 		}
 
@@ -4386,26 +4414,24 @@ public class DevClientAutomationClient {
 			if (targetX < 0 || targetY < 0) {
 				return "{\"ok\":false,\"error\":\"Missing mouse coordinates\"}";
 			}
-			double scaleX = (double) minecraft.getWindow().getScreenWidth() / minecraft.getWindow().getGuiScaledWidth();
-			double scaleY = (double) minecraft.getWindow().getScreenHeight() / minecraft.getWindow().getGuiScaledHeight();
-			GLFW.glfwSetCursorPos(minecraft.getWindow().getWindow(), targetX * scaleX, targetY * scaleY);
-			updateMouseHandlerPosition(minecraft, targetX * scaleX, targetY * scaleY);
+			VirtualInput.move(targetX, targetY);
 			return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
 		}
 
-		private void updateMouseHandlerPosition(Minecraft minecraft, double x, double y) {
-			try {
-				Method onMove = MouseHandler.class.getDeclaredMethod("onMove", long.class, double.class, double.class);
-				onMove.setAccessible(true);
-				onMove.invoke(minecraft.mouseHandler, minecraft.getWindow().getWindow(), x, y);
-			} catch (ReflectiveOperationException e) {
-				throw new IllegalStateException("Failed to update the client mouse position", e);
+		private String clickMouse(int x, int y, int button, boolean shift) {
+			Minecraft minecraft = Minecraft.getInstance();
+			if (minecraft.screen == null) {
+				return "{\"ok\":false,\"error\":\"No screen is open\"}";
 			}
+			if (x < 0 || y < 0 || x >= minecraft.getWindow().getGuiScaledWidth() || y >= minecraft.getWindow().getGuiScaledHeight()) {
+				return "{\"ok\":false,\"error\":\"Mouse coordinates are outside the screen\"}";
+			}
+			VirtualInput.click(minecraft.screen, x, y, button, shift ? GLFW.GLFW_MOD_SHIFT : 0);
+			return "{\"ok\":true,\"x\":" + x + ",\"y\":" + y + ",\"button\":" + button + ",\"shift\":" + shift + "}";
 		}
 
 		private String maximizeWindow() {
-			Minecraft minecraft = Minecraft.getInstance();
-			GLFW.glfwMaximizeWindow(minecraft.getWindow().getWindow());
+			PresentationNativeInput.maximize();
 			return "{\"ok\":true}";
 		}
 

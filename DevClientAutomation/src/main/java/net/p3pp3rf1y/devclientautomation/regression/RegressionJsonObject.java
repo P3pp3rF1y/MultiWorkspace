@@ -89,6 +89,16 @@ final class RegressionJsonObject {
 		}
 		return Set.copyOf(result);
 	}
+
+	Set<String> modIds(String name, boolean optional) {
+		Set<String> ids = optional && !has(name) ? Set.of() : stringSet(name);
+		for (String id : ids) {
+			if (!id.matches("[a-z][a-z0-9_]{1,63}") || id.startsWith("sophisticated") || id.equals("devclientautomation")) {
+				throw new IllegalArgumentException(description + " " + name + " must contain optional external mod IDs: " + id);
+			}
+		}
+		return ids;
+	}
 	private JsonArray array(String name) {
 		if (!object.has(name) || !object.get(name).isJsonArray()) {
 			throw new IllegalArgumentException("Missing array " + name + " on " + description);

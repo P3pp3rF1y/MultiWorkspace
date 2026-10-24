@@ -21,6 +21,11 @@ public final class SetMovingStorageUpgradeAction extends TypedRegressionAction<S
 		return new Arguments(requireString(args, "item", description), RegressionValueStore.requireName(requireString(args, "ref", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
