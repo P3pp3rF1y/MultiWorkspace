@@ -54,7 +54,7 @@ class ReviewFollowUpSuiteTest {
 	void parseConformanceCasesContainExpectedFailureDiagnosticsAndAnIndependentConsumer() throws IOException {
 		var tests = suite("linked-storage-action-conformance").tests();
 		assertEquals(5, tests.stream().filter(test -> test.tags().contains("runtimeConformance")).count());
-		assertEquals(10, tests.stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
+		assertEquals(9, tests.stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
 		assertFalse(tests.get(tests.size() - 1).tags().contains("runtimeConformance"));
 	}
 

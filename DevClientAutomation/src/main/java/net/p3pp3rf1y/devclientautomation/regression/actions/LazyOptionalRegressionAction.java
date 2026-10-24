@@ -6,18 +6,26 @@ import net.p3pp3rf1y.devclientautomation.regression.RegressionJsonNumbers;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /** Defers optional integration class loading until an already-qualified action executes. */
 public final class LazyOptionalRegressionAction implements RegressionAction {
 	private final RegressionActionMetadata metadata;
 	private final String implementationClass;
 	private final BiConsumer<JsonObject, String> schema;
+	private final Function<JsonObject, RegressionValueContract> valueContract;
 
 	public LazyOptionalRegressionAction(String id, String revision, Set<String> dependencies, String implementationClass,
 			BiConsumer<JsonObject, String> schema) {
+		this(id, revision, dependencies, implementationClass, schema, args -> RegressionValueContract.EMPTY);
+	}
+
+	public LazyOptionalRegressionAction(String id, String revision, Set<String> dependencies, String implementationClass, BiConsumer<JsonObject, String> schema,
+			Function<JsonObject, RegressionValueContract> valueContract) {
 		metadata = new RegressionActionMetadata(id, revision, dependencies);
 		this.implementationClass = implementationClass;
 		this.schema = schema;
+		this.valueContract = valueContract;
 	}
 
 	@Override
@@ -49,26 +57,28 @@ public final class LazyOptionalRegressionAction implements RegressionAction {
 		}
 
 		@Override
+		public RegressionValueContract values() {
+			return valueContract.apply(arguments);
+		}
+
+		@Override
 		public RegressionActionExecution start(RegressionExecutionContext context) {
 			try {
 				RegressionAction implementation = (RegressionAction) Class.forName(implementationClass).getConstructor().newInstance();
 				if (!metadata.equals(implementation.metadata())) {
-					throw new IllegalStateException("Optional implementation metadata does not match proxy for " + metadata.id());
+					throw RegressionActionFailure.infrastructure("Optional implementation metadata does not match proxy for " + metadata.id());
 				}
-				return implementation.bind(arguments, metadata.id()).start(context);
+				RegressionActionInvocation bound = implementation.bind(arguments, metadata.id());
+				if (!values().equals(bound.values())) {
+					throw RegressionActionFailure.infrastructure("Optional implementation value contract does not match proxy for " + metadata.id());
+				}
+				return bound.start(context);
 			} catch (InvocationTargetException e) {
-				if (e.getCause() instanceof LinkageError linkageError) {
-					throw new IllegalStateException("Optional implementation for " + metadata.id() + " is unavailable", linkageError);
-				}
-				if (e.getCause() instanceof RuntimeException runtimeException) {
-					throw runtimeException;
-				}
-				if (e.getCause() instanceof Error error) {
-					throw error;
-				}
-				throw new IllegalStateException("Optional implementation for " + metadata.id() + " is unavailable", e);
+				throw new RegressionActionFailure(RegressionActionFailure.Kind.INFRASTRUCTURE,
+						"Optional implementation for " + metadata.id() + " could not initialize", e.getCause());
 			} catch (ReflectiveOperationException | LinkageError e) {
-				throw new IllegalStateException("Optional implementation for " + metadata.id() + " is unavailable", e);
+				throw new RegressionActionFailure(RegressionActionFailure.Kind.INFRASTRUCTURE,
+						"Optional implementation for " + metadata.id() + " is unavailable", e);
 			}
 		}
 	}

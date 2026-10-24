@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-pickup",
+  "requires": [],
+  "isolation": "testCell",
+  "fixtures": {
+    "diamond-pickup-backpack": [
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "create", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "basic-pickup-allows-diamond",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "basic", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:diamond"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "basic", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 1, "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "basic-pickup-blocks-redstone",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "basic", "filterMode": "block", "filterItem": "minecraft:redstone"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:redstone"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "basic", "filterMode": "block", "filterItem": "minecraft:redstone"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:redstone", "count": 0, "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:redstone", "count": 1, "client": true}}
+      ]
+    },
+    {
+      "id": "basic-pickup-full-backpack-falls-back-to-player",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "basic", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "fill", "action": "backpack.fillStorage", "args": {"item": "minecraft:cobblestone"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:diamond"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "basic", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0, "fullItem": "minecraft:cobblestone", "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 1, "client": true}}
+      ]
+    },
+    {
+      "id": "advanced-pickup-allows-diamond",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "advanced", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:diamond"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "advanced", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 1, "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "advanced-pickup-blocks-redstone",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "advanced", "filterMode": "block", "filterItem": "minecraft:redstone"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:redstone"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "advanced", "filterMode": "block", "filterItem": "minecraft:redstone"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:redstone", "count": 0, "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:redstone", "count": 1, "client": true}}
+      ]
+    },
+    {
+      "id": "advanced-pickup-full-backpack-falls-back-to-player",
+      "tags": ["backpack", "pickup", "legacy-migration"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "prepare", "fixture": "diamond-pickup-backpack"},
+        {"id": "configure", "action": "backpack.configurePickup", "args": {"upgrade": "advanced", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "fill", "action": "backpack.fillStorage", "args": {"item": "minecraft:cobblestone"}},
+        {"id": "spawn", "action": "fixture.itemEntity.spawn", "args": {"saveAs": "dropped", "item": "minecraft:diamond"}},
+        {"id": "natural-pickup", "action": "await.itemEntity", "args": {"ref": "dropped", "state": "absent", "timeoutTicks": 100}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "synchronized-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "settings", "action": "assert.backpackPickupConfiguration", "args": {"upgrade": "advanced", "filterMode": "allow", "filterItem": "minecraft:diamond"}},
+        {"id": "backpack", "action": "assert.inventoryCount", "args": {"target": "backpack", "item": "minecraft:diamond", "count": 0, "fullItem": "minecraft:cobblestone", "client": true}},
+        {"id": "player", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 1, "client": true}}
+      ]
+    }
+  ]
+}

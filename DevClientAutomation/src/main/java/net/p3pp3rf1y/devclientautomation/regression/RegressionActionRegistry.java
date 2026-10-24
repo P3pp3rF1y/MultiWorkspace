@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression;
 
 import com.google.gson.JsonObject;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackAutomationExtractableAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalBackpackTemplateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalCapturedMobsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkGroupsAction;
@@ -33,6 +34,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSettingsSelect
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertStorageResourcesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUnlinkedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitBackpackBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuClosedAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitPlayerCraftingResultAction;
@@ -54,6 +56,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageSettings
 import net.p3pp3rf1y.devclientautomation.regression.actions.CloseMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackDepositAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackFilterAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackRestockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureStorageContentsFilterAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ControlJukeboxPlaybackAction;
@@ -62,6 +65,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMain
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateLockToolAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateMainHandItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.FillBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
@@ -78,7 +82,9 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMoveBackpackSto
 import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMovePlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionMetadata;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueContract;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueStore;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueTypes;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadChunkBlockEntitiesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadFixtureControllerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadMovingStorageAction;
@@ -100,6 +106,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerGameModeAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageBlockSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnFixturePigAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.StorageResourceCacheAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.TransferStorageResourceAction;
@@ -116,6 +123,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
@@ -147,6 +155,11 @@ public final class RegressionActionRegistry {
 		register(new ConfigureBackpackRestockAction());
 		register(new UseHeldBackpackOnStorageAction());
 		register(new AssertInventoryCountAction());
+		register(new ConfigureBackpackPickupAction());
+		register(new FillBackpackAction());
+		register(new SpawnItemEntityAction());
+		register(new AwaitItemEntityAction());
+		register(new AssertBackpackPickupAction());
 		register(new AssertRestockBackpackAction());
 		register(new AssertRestockBarrelAction());
 		register(new SetPlayerInventorySlotAction());
@@ -181,17 +194,20 @@ public final class RegressionActionRegistry {
 		register(new RestoreMovingStorageAction());
 		register(new ReloadMovingStorageAction());
 		register(lazyCreateAction("fixture.create.mountLinkedStorage", "sophisticatedstoragecreateintegration", "MountLinkedStorageAction", Set.of("saveAs"),
-				Set.of("saveAs"), Set.of(), Set.of()));
+				Set.of("saveAs"), Set.of(), Set.of(),
+				args -> RegressionValueContract.producing(args.get("saveAs").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
 		register(lazyCreateAction("fixture.create.mountBackpack", "sophisticatedbackpackscreateintegration", "MountBackpackOnCartAction", Set.of("saveAs"),
-				Set.of("saveAs"), Set.of(), Set.of()));
+				Set.of("saveAs"), Set.of(), Set.of(), args -> RegressionValueContract.producing(args.get("saveAs").getAsString(), RegressionValueTypes.UUID)));
 		register(lazyCreateAction("create.disassembleBackpack", "sophisticatedbackpackscreateintegration", "DisassembleCartBackpackAction", Set.of("ref"),
-				Set.of("ref"), Set.of(), Set.of()));
+				Set.of("ref"), Set.of(), Set.of(), args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.UUID)));
 		register(new AssertPlacedBackpackContentsAction());
 		register(new AssertBackpackAutomationExtractableAction());
 		register(lazyCreateAction("fixture.create.setMountedSlot", "sophisticatedstoragecreateintegration", "SetMountedStorageSlotAction",
-				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of()));
+				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of(),
+				args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
 		register(lazyCreateAction("fixture.create.setMountedBackpackSlot", "sophisticatedbackpackscreateintegration", "SetMountedBackpackSlotAction",
-				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of()));
+				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of(),
+				args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.UUID)));
 		register(new SetMovingStorageSlotAction());
 		register(new SetMovingJukeboxDiscAction());
 		register(new SetMovingStorageUpgradeAction());
@@ -209,7 +225,7 @@ public final class RegressionActionRegistry {
 					if (args.has("checkPresentation")
 							&& (!args.get("checkPresentation").isJsonPrimitive() || !args.getAsJsonPrimitive("checkPresentation").isBoolean()))
 						throw new IllegalArgumentException("Argument checkPresentation on " + description + " must be boolean");
-				}));
+				}, args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
 		register(new AssertUnlinkedMovingStorageAction());
 		register(new SetMovingStoragePackedAction());
 		register(new ProbePackedPrimaryAction());
@@ -300,6 +316,11 @@ public final class RegressionActionRegistry {
 			backpack.configureDeposit
 			backpack.useOnStorage
 			assert.inventoryCount
+			backpack.configurePickup
+			backpack.fillStorage
+			fixture.itemEntity.spawn
+			await.itemEntity
+			assert.backpackPickupConfiguration
 			assert.restockBackpack
 			assert.restockBarrel
 			player.setInventorySlot
@@ -409,7 +430,7 @@ public final class RegressionActionRegistry {
 				});
 	}
 	private static RegressionAction lazyCreateAction(String id, String capability, String implementation, Set<String> names, Set<String> strings,
-			Set<String> positiveInts, Set<String> nonNegativeInts) {
+			Set<String> positiveInts, Set<String> nonNegativeInts, Function<JsonObject, RegressionValueContract> values) {
 		return new LazyOptionalRegressionAction(id, "1", Set.of("minecraft:client", capability),
 				"net.p3pp3rf1y.devclientautomation.regression.actions." + implementation, (args, description) -> {
 					LazyOptionalRegressionAction.requireOnly(args, names, description);
@@ -421,7 +442,7 @@ public final class RegressionActionRegistry {
 					});
 					positiveInts.forEach(name -> LazyOptionalRegressionAction.requirePositiveInt(args, name, description));
 					nonNegativeInts.forEach(name -> LazyOptionalRegressionAction.optionalNonNegativeInt(args, name, description));
-				});
+				}, values);
 	}
 	private static RegressionAction lazyTierAction(String id, Set<String> dependencies, String implementation, String variant, Set<String> variants) {
 		return new LazyOptionalRegressionAction(id, "2", dependencies, "net.p3pp3rf1y.devclientautomation.regression.actions." + implementation,

@@ -3,28 +3,32 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraftforge.items.IItemHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.wrapper.BackpackWrapper;
+import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedcore.controller.IControllableStorage;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** Observes aggregate authoritative inventory contents, including an expected empty inventory. */
 public final class AssertInventoryCountAction extends TypedRegressionAction<AssertInventoryCountAction.Arguments> {
-	public record Arguments(String target, String item, int count, int x, int y, int z) {
+	public record Arguments(String target, String item, int count, int x, int y, int z, boolean client, String fullItem) {
 	}
 
 	public AssertInventoryCountAction() {
-		super("assert.inventoryCount", "1", Set.of("minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"));
+		super("assert.inventoryCount", "2", Set.of("minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("target", "item", "count", "offset"), description);
+		requireOnly(args, Set.of("target", "item", "count", "offset", "client", "fullItem"), description);
 		String target = requireString(args, "target", description);
-		if (!Set.of("backpack", "storage").contains(target)) {
+		if (!Set.of("backpack", "storage", "player").contains(target)) {
 			throw new IllegalArgumentException("Invalid inventory target on " + description);
 		}
 		String item = requireString(args, "item", description);
@@ -40,59 +44,116 @@ public final class AssertInventoryCountAction extends TypedRegressionAction<Asse
 		if (count < 0) {
 			throw new IllegalArgumentException("Expected nonnegative count on " + description);
 		}
-		if (target.equals("backpack")) {
+		boolean client = optionalBoolean(args, "client", false, description);
+		String fullItem = optionalString(args, "fullItem", "", description);
+		if (!fullItem.isEmpty() && !target.equals("backpack") || client && target.equals("storage")) {
+			throw new IllegalArgumentException("Full requires backpack; client requires backpack/player on " + description);
+		}
+		if (!target.equals("storage")) {
 			if (args.has("offset")) {
-				throw new IllegalArgumentException("Backpack inventory has no block offset on " + description);
+				throw new IllegalArgumentException("Player/Backpack inventory has no block offset on " + description);
 			}
-			return new Arguments(target, item, count, 0, 0, 0);
+			return new Arguments(target, item, count, 0, 0, 0, client, fullItem);
 		}
 		JsonObject positionArgs = new JsonObject();
 		positionArgs.addProperty("block", "minecraft:air");
 		positionArgs.add("offset", args.get("offset"));
 		var position = new SetFixtureBlockAction().parseArguments(positionArgs, description);
-		return new Arguments(target, item, count, position.x(), position.y(), position.z());
+		return new Arguments(target, item, count, position.x(), position.y(), position.z(), false, "");
 	}
 
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
+			private int deadline = -1;
 
 			@Override
 			public RegressionActionProgress tick() {
 				if (future == null) {
+					deadline = context.minecraft().player.tickCount + 100;
 					future = context.onServer(player -> {
-						IItemHandler inventory;
+						Item item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(arguments.item()))
+								.orElseThrow(() -> new IllegalArgumentException("Unknown inventory item " + arguments.item()));
+						long actual;
+						boolean full = true;
 						if (arguments.target().equals("backpack")) {
 							if (!(player.getMainHandItem().getItem() instanceof BackpackItem)) {
-								throw new IllegalStateException("Main hand does not contain a backpack");
+								throw RegressionActionFailure.infrastructure("Main hand does not contain a backpack");
 							}
-							inventory = new BackpackWrapper(player.getMainHandItem()).getInventoryHandler();
+							var inventory = new BackpackWrapper(player.getMainHandItem()).getInventoryHandler();
+							actual = count(inventory, item);
+							full = arguments.fullItem().isEmpty() || isFull(inventory, arguments.fullItem());
+						} else if (arguments.target().equals("player")) {
+							actual = countPlayer(player, item);
 						} else {
 							var position = context.standingPosition().south(2).offset(arguments.x(), arguments.y(), arguments.z());
 							if (!(player.level().getBlockEntity(position) instanceof IControllableStorage storage)) {
-								throw new IllegalStateException("No live storage at " + position);
+								throw RegressionActionFailure.infrastructure("No live storage at " + position);
 							}
-							inventory = storage.getStorageWrapper().getInventoryHandler();
+							actual = count(storage.getStorageWrapper().getInventoryHandler(), item);
 						}
-						var item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(arguments.item()))
-								.orElseThrow(() -> new IllegalArgumentException("Unknown inventory item " + arguments.item()));
-						long actual = 0;
-						for (int slot = 0; slot < inventory.getSlots(); slot++) {
-							var stack = inventory.getStackInSlot(slot);
-							if (stack.is(item)) {
-								actual += stack.getCount();
-							}
-						}
+						observe(Map.of("count", arguments.count(), "fullItem", arguments.fullItem()), Map.of("count", actual, "full", full));
 						context.putDiagnostic("inventoryCount", arguments.target() + ":" + arguments.item() + "=" + actual);
-						if (actual != arguments.count()) {
-							throw new IllegalStateException(
-									arguments.target() + " " + arguments.item() + ": expected " + arguments.count() + ", actual " + actual);
+						if (actual != arguments.count() || !full) {
+							throw RegressionActionFailure
+									.assertion(arguments.target() + " " + arguments.item() + ": expected " + arguments.count() + ", actual " + actual);
 						}
 					});
 				}
-				return await(future);
+				RegressionActionProgress result = await(future);
+				if (result != RegressionActionProgress.PASSED || !arguments.client()) {
+					return result;
+				}
+				Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(arguments.item()));
+				long actual;
+				boolean full = true;
+				if (arguments.target().equals("backpack")) {
+					if (!context.isExpectedMenu("backpackItem")) {
+						return fail("Client backpack count requires the synchronized held-backpack menu");
+					}
+					var inventory = ((BackpackContainer) context.minecraft().player.containerMenu).getStorageWrapper().getInventoryHandler();
+					actual = count(inventory, item);
+					full = arguments.fullItem().isEmpty() || isFull(inventory, arguments.fullItem());
+				} else {
+					actual = countPlayer(context.minecraft().player, item);
+				}
+				observe(Map.of("count", arguments.count(), "fullItem", arguments.fullItem()), Map.of("count", actual, "full", full));
+				context.putDiagnostic("clientInventoryCount-" + arguments.target(), Map.of("item", arguments.item(), "count", actual, "full", full));
+				if (actual == arguments.count() && full) {
+					return RegressionActionProgress.PASSED;
+				}
+				return context.minecraft().player.tickCount >= deadline
+						? failAssertion("Client inventory count/fullness did not synchronize: " + expectedActual())
+						: RegressionActionProgress.WAITING;
 			}
 		};
+	}
+
+	private static long count(IItemHandler inventory, Item item) {
+		long count = 0;
+		for (int slot = 0; slot < inventory.getSlots(); slot++) {
+			var stack = inventory.getStackInSlot(slot);
+			if (stack.is(item)) {
+				count += stack.getCount();
+			}
+		}
+		return count;
+	}
+
+	private static long countPlayer(Player player, Item item) {
+		return player.getInventory().items.stream().filter(stack -> stack.is(item)).mapToLong(stack -> stack.getCount()).sum();
+	}
+
+	private static boolean isFull(IItemHandler inventory, String itemId) {
+		Item item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(itemId))
+				.orElseThrow(() -> new IllegalArgumentException("Unknown full inventory item " + itemId));
+		for (int slot = 0; slot < inventory.getSlots(); slot++) {
+			var stack = inventory.getStackInSlot(slot);
+			if (!stack.is(item) || stack.getCount() != stack.getMaxStackSize()) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

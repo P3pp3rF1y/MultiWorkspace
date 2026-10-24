@@ -32,6 +32,10 @@ public final class SpawnMovingStorageAction extends TypedRegressionAction<SpawnM
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MOVING_STORAGE);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

@@ -74,34 +74,35 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 				ItemStack linker = new ItemStack(
 						net.minecraft.core.registries.BuiltInRegistries.ITEM.get(new ResourceLocation("sophisticatedcore:ender_linker")));
 				if (LinkedStorageService.linkWithResult(level, playerId, linker, storage) != LinkedStorageService.LinkResult.SUCCESS) {
-					throw new IllegalStateException("Could not create linked moving storage recipe fixture");
+					throw RegressionActionFailure.infrastructure("Could not create linked moving storage recipe fixture");
 				}
 				primary = LinkedStorageStackData.getEndpoint(storage);
 				if (arguments.linkage().equals("secondary")) {
 					storage = LinkedStorageService.createSecondaryEndpointCopy(level, storage)
-							.orElseThrow(() -> new IllegalStateException("Could not create secondary moving storage recipe fixture"));
+							.orElseThrow(() -> RegressionActionFailure.infrastructure("Could not create secondary moving storage recipe fixture"));
 				}
 			}
 			ItemStack moving = MovingStorageItem.createWithStorage(new ItemStack(carrier(arguments)), storage);
 			moving.setHoverName(net.minecraft.network.chat.Component.literal("moving recipe fixture"));
 			ResourceLocation id = recipeId(arguments);
-			Recipe<?> recipe = level.getRecipeManager().byKey(id).orElseThrow(() -> new IllegalStateException("Missing registered recipe " + id));
+			Recipe<?> recipe = level.getRecipeManager().byKey(id).orElseThrow(() -> RegressionActionFailure.infrastructure("Missing registered recipe " + id));
 			Class<?> expectedClass = arguments.recipe().equals("shaped")
 					? MovingStorageTierUpgradeShapedRecipe.class
 					: MovingStorageTierUpgradeShapelessRecipe.class;
 			if (recipe.getClass() != expectedClass) {
-				throw new IllegalStateException("Registered recipe has class " + recipe.getClass().getName() + ", expected " + expectedClass.getName());
+				throw RegressionActionFailure.assertion("Registered recipe has class " + recipe.getClass().getName() + ", expected " + expectedClass.getName());
 			}
 			@SuppressWarnings("unchecked")
 			Recipe<CraftingContainer> craftingRecipe = (Recipe<CraftingContainer>) recipe;
 			CraftingContainer input = input(moving, arguments);
 			boolean expected = !arguments.linkage().equals("secondary");
+			boolean matches = craftingRecipe.matches(input, level);
 			ItemStack result = craftingRecipe.assemble(input, level.registryAccess());
-			if (craftingRecipe.matches(input, level) != expected || result.isEmpty() != !expected) {
-				throw new IllegalStateException("Moving storage tier upgrade " + arguments + " eligibility differed from contract");
+			if (matches != expected || result.isEmpty() != !expected) {
+				throw RegressionActionFailure.assertion("Moving storage tier upgrade " + arguments + " eligibility differed from contract");
 			}
 			if (craftingRecipe.matches(new TransientCraftingContainer(null, 1, 1, NonNullList.of(ItemStack.EMPTY, moving)), level)) {
-				throw new IllegalStateException("Moving storage tier upgrade accepted malformed input");
+				throw RegressionActionFailure.assertion("Moving storage tier upgrade accepted malformed input");
 			}
 			if (expected) {
 				assertOutput(result, moving, storage, arguments);
@@ -155,7 +156,7 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 				|| !StorageBlockItem.getContentsUuid(nested).equals(StorageBlockItem.getContentsUuid(storage))
 				|| !Objects.equals(LinkedStorageStackData.getEndpoint(nested), LinkedStorageStackData.getEndpoint(storage))
 				|| LinkedStorageStackData.isPrimaryEndpoint(nested) != LinkedStorageStackData.isPrimaryEndpoint(storage)) {
-			throw new IllegalStateException("Moving storage tier upgrade did not preserve expected outer and nested storage identity");
+			throw RegressionActionFailure.assertion("Moving storage tier upgrade did not preserve expected outer and nested storage identity");
 		}
 	}
 }

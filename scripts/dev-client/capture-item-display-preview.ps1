@@ -192,10 +192,11 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     if (-not $StartClient) {
         throw "Pass -BaseUrl for an already running dev client, or pass -StartClient to launch one via start-and-ready.ps1."
     }
-    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -Maximize -SkipRecipeViewerReady -MinimalRuntime
+    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -SkipRecipeViewerReady -MinimalRuntime
     $BaseUrl = $ready.baseUrl
 }
 
+& "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
 New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
 if ([string]::IsNullOrWhiteSpace($PreviewCropDirectory)) {
     $PreviewCropDirectory = Join-Path $ScreenshotDirectory "preview-crops"

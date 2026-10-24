@@ -23,6 +23,13 @@ public final class LinkTargetStorageBlockAction extends TypedRegressionAction<Li
 		return new Arguments(optionalString(args, "saveAs", "", description));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.saveAs().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.ITEM_STACK);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

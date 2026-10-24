@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+& "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
 
 New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
 
@@ -32,7 +33,7 @@ $screenshots = @()
 foreach ($mode in $Modes) {
     $open = Invoke-BridgeJson -Method Post -Path "/recipe-viewer/open" -Body @{ item = $Item; mode = $mode }
     if ($MoveMouseForScreenshots) {
-        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+        Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     }
     $safeItem = $Item.Replace(":", "-").Replace("/", "-")
     $path = Join-Path $ScreenshotDirectory "$($state.viewer)-$safeItem-$mode.png"

@@ -31,9 +31,12 @@ class SelectedResourceBindingTest {
 		index.forEach(entry -> entries.add(entry.getAsString()));
 		assertEquals(index.size(), entries.size(), "Duplicate index entries");
 		Arrays.stream(SELECTED).forEach(id -> assertTrue(entries.contains(id + ".json"), id));
-		assertEquals(Set.of("backpack-filters.json", "backpack-restock.json", "controller-deposit.json", "tier-upgrade-recipes.json"), entries.stream()
-				.filter(entry -> Arrays.stream(SELECTED).noneMatch(id -> entry.equals(id + ".json"))).collect(java.util.stream.Collectors.toSet()));
-		assertEquals(20, entries.size());
+		assertEquals(
+				Set.of("backpack-filters.json", "backpack-restock.json", "backpack-pickup.json", "item-entity-action-conformance.json",
+						"controller-deposit.json", "tier-upgrade-recipes.json", "vanilla-double-chest-upgrade.json"),
+				entries.stream().filter(entry -> Arrays.stream(SELECTED).noneMatch(id -> entry.equals(id + ".json")))
+						.collect(java.util.stream.Collectors.toSet()));
+		assertEquals(23, entries.size());
 		assertEquals(9, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(2, JsonParser.parseString(resource("storage-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 	}

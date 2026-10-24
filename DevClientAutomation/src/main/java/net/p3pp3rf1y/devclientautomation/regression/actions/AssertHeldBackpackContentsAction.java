@@ -52,13 +52,13 @@ public final class AssertHeldBackpackContentsAction extends TypedRegressionActio
 					return checked;
 				}
 				if (!serverMatches) {
-					return fail("Picked-up backpack lost its iron tier or stored contents on the server");
+					return failAssertion("Picked-up backpack lost its iron tier or stored contents on the server");
 				}
 				if (matches(context.minecraft().player.getMainHandItem(), expected, arguments)) {
 					return RegressionActionProgress.PASSED;
 				}
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Picked-up backpack tier or contents did not synchronize to the client")
+						? failAssertion("Picked-up backpack tier or contents did not synchronize to the client")
 						: RegressionActionProgress.WAITING;
 			}
 		};

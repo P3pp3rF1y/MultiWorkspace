@@ -24,6 +24,13 @@ public final class LinkHeldBackpackAction extends TypedRegressionAction<LinkHeld
 		return new Arguments(optionalString(args, "linkerRef", "", description));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.linkerRef().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.linkerRef(), RegressionValueTypes.ITEM_STACK);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

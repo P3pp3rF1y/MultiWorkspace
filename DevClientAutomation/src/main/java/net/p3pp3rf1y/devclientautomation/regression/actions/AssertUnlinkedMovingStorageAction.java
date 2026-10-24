@@ -17,6 +17,10 @@ public final class AssertUnlinkedMovingStorageAction extends TypedRegressionActi
 		return RegressionValueStore.requireName(requireString(args, "ref", description));
 	}
 	@Override
+	protected RegressionValueContract values(String ref) {
+		return RegressionValueContract.consuming(ref, RegressionValueTypes.MOVING_STORAGE);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, String ref) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
@@ -27,7 +31,7 @@ public final class AssertUnlinkedMovingStorageAction extends TypedRegressionActi
 						IMovingStorageEntity moving = (IMovingStorageEntity) context.values().require(ref, MovingStorageEntityHandle.class)
 								.requireServer(player);
 						if (LinkedStorageStackData.getEndpoint(moving.getStorageItem()) != null) {
-							throw new IllegalStateException("Unsupported moving storage unexpectedly acquired a linked endpoint");
+							throw RegressionActionFailure.assertion("Unsupported moving storage unexpectedly acquired a linked endpoint");
 						}
 					});
 				}

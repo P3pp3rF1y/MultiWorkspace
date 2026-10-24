@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "linked-storage-fluid-lock",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {

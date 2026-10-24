@@ -2,6 +2,8 @@
   "backpack-menu.json",
   "backpack-filters.json",
   "backpack-restock.json",
+  "backpack-pickup.json",
+  "item-entity-action-conformance.json",
   "backpack-create-disassembly.json",
   "storage-menu.json",
   "vanilla-double-chest-upgrade.json",

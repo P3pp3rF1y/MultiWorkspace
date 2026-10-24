@@ -7,7 +7,6 @@ param(
     [ValidateSet("fast", "full")]
     [string]$Tier = "fast",
     [int]$TimeoutSeconds = 360,
-    [switch]$MaximizeClient,
     [switch]$ContinueOnFailure,
     [switch]$List
 )
@@ -63,7 +62,6 @@ foreach ($selectedSuite in $matchingSuites) {
     if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) { throw "Regression script for '$($selectedSuite.id)' was not found: $scriptPath" }
     $scriptArguments = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds }
     if ($selectedSuite.arguments) { foreach ($argument in $selectedSuite.arguments.PSObject.Properties) { $scriptArguments[$argument.Name] = $argument.Value } }
-    if ($MaximizeClient -and $selectedSuite.acceptsMaximizeClient) { $scriptArguments.MaximizeClient = $true }
     try {
         $result = & $scriptPath @scriptArguments
         $results += [pscustomobject]@{ id = $selectedSuite.id; passed = $true; result = $result; error = $null }

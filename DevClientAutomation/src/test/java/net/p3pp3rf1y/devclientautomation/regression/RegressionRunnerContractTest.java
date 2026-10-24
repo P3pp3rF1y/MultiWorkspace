@@ -37,11 +37,11 @@ class RegressionRunnerContractTest {
 
 	@Test
 	void statusSerializationExposesRunSelectedTestAndStepTimingsIncludingFailedCleanup() {
-		var passed = new RegressionCoordinator.StepResult("first", "menu.close", "passed", "", 1.25);
-		var failed = new RegressionCoordinator.StepResult("second", "menu.close", "failed", "failure", 2.5);
-		var conformance = new RegressionCoordinator.RuntimeConformanceResult("probe", "passed", "", List.of(passed), 3.75);
-		var cleanup = new RegressionCoordinator.CleanupResult("case", "failed", "Cleanup failed");
-		var status = new RegressionCoordinator.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed", List.of(), List.of(failed),
+		var passed = new RegressionResultModel.StepResult("first", "menu.close", "passed", "", 1.25);
+		var failed = new RegressionResultModel.StepResult("second", "menu.close", "failed", "failure", 2.5);
+		var conformance = new RegressionResultModel.RuntimeConformanceResult("probe", "passed", "", List.of(passed), 3.75);
+		var cleanup = new RegressionResultModel.CleanupResult("case", "failed", "Cleanup failed");
+		var status = new RegressionResultModel.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed", List.of(), List.of(failed),
 				List.of(conformance), Map.of(), 10.5, 4.25, List.of(cleanup), "execution");
 		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(status)).getAsJsonObject();
 		assertEquals(10.5, json.get("durationMillis").getAsDouble());
@@ -56,7 +56,7 @@ class RegressionRunnerContractTest {
 
 	@Test
 	void idleStatusHasRunnerTimingFields() {
-		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionCoordinator.RunStatus.idle())).getAsJsonObject();
+		JsonObject json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionResultModel.RunStatus.idle())).getAsJsonObject();
 		assertEquals(0, json.get("durationMillis").getAsDouble());
 		assertEquals(0, json.get("testDurationMillis").getAsDouble());
 	}

@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.p3pp3rf1y.devclientautomation.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "MouseHandlerAccess",
+    "ContainerScreenAccess",
+    "SoundManagerAccess",
+    "SoundEngineAccess",
+    "BackgroundMouseHandlerMixin",
+    "BackgroundGameRendererMixin",
+    "VirtualModifiersMixin",
+    "ContainerModifiersMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -43,7 +43,11 @@ public final class BreakTargetBlockAction extends TypedRegressionAction<BreakTar
 						}
 					});
 				}
-				return await(future);
+				RegressionActionProgress result = await(future);
+				if (result != RegressionActionProgress.WAITING && minecraft.gameMode != null) {
+					minecraft.gameMode.stopDestroyBlock();
+				}
+				return result;
 			}
 		};
 	}

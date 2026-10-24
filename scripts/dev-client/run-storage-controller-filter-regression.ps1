@@ -5,7 +5,6 @@ param(
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime,
     [switch]$Jfr,
     [int]$Runs = 0
@@ -71,9 +70,6 @@ try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
 		$readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if ($MinimalRuntime) {
             $readyArgs.MinimalRuntime = $true
         }
@@ -83,6 +79,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 

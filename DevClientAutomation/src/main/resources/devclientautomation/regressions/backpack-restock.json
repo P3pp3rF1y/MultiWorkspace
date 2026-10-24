@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "backpack-restock",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "barrel": [

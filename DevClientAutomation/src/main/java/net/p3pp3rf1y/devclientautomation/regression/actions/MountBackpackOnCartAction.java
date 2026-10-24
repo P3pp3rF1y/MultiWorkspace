@@ -32,6 +32,10 @@ public final class MountBackpackOnCartAction extends TypedRegressionAction<Mount
 		requireOnly(args, Set.of("saveAs"), description);
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "saveAs", description)));
 	}
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.UUID);
+	}
 
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {

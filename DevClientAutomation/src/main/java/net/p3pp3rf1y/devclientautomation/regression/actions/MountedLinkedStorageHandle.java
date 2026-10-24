@@ -9,7 +9,8 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
 
 import java.util.UUID;
 
-record MountedLinkedStorageHandle(UUID entityId, ResourceKey<Level> dimension, BlockPos localPos, LinkedStorageEndpointData endpoint) {
+record MountedLinkedStorageHandle(UUID entityId, ResourceKey<Level> dimension, BlockPos localPos, LinkedStorageEndpointData endpoint,
+		boolean primaryBeforeAssembly, boolean primaryAfterAssembly) {
 	AbstractContraptionEntity requireServer(ServerPlayer player) {
 		if (!player.level().dimension().equals(dimension) || !(player.serverLevel().getEntity(entityId) instanceof AbstractContraptionEntity entity)
 				|| !entity.isAlive()) {

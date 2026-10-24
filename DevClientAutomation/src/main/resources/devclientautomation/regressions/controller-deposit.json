@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "controller-deposit",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "cross-chunk-chest": [

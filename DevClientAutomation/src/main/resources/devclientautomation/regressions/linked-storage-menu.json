@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "linked-storage-menu",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "open-storage-primary-backpack": [

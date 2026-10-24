@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "linked-storage-action-conformance",
-  "requires": ["minecraft:client", "sophisticatedbackpacks", "sophisticatedstorage", "sophisticatedstorageinmotion"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {
@@ -18,7 +18,6 @@
       "id": "missing-and-out-of-range-entity-handles-fail-deterministically",
       "tags": ["runtimeConformance"], "timeoutTicks": 180,
       "steps": [
-        {"id":"unknown","action":"player.sneakUseFixtureEntity","args":{"ref":"missing"},"expectFailure":"Regression value missing has not been bound"},
         {"id":"spawn","action":"fixture.entity.spawnPig","args":{"saveAs":"distant","offsetX":12}},
         {"id":"range","action":"player.sneakUseFixtureEntity","args":{"ref":"distant"},"expectFailure":"outside player interaction range"},
         {"id":"baseline","action":"assert.playerInventoryBaseline"}

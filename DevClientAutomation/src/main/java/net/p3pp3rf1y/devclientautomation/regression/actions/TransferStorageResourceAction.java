@@ -39,6 +39,13 @@ public final class TransferStorageResourceAction extends TypedRegressionAction<T
 				fluid, args.has("simulate") && args.get("simulate").getAsBoolean());
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.ref().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable

@@ -36,6 +36,11 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -60,6 +65,8 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 					if (endpoint == null) {
 						throw new IllegalStateException("Moving storage has no linked endpoint");
 					}
+					var groupsBeforeDestroy = LinkedStorageGroupsSavedData.get(level).manager();
+					context.putDiagnostic("primaryBeforeCarrierDestroy", groupsBeforeDestroy.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId()));
 					boolean previousDrops = level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS);
 					AABB dropBounds = entity.getBoundingBox().inflate(3);
 					var beforeDrops = level.getEntitiesOfClass(ItemEntity.class, dropBounds).stream().map(Entity::getUUID).collect(Collectors.toSet());
@@ -92,6 +99,7 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 					});
 					var manager = LinkedStorageGroupsSavedData.get(level).manager();
 					boolean member = manager.isEndpointMember(endpoint.groupId(), endpoint.endpointId());
+					context.putDiagnostic("primaryAfterCarrierDestroy", manager.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId()));
 					if (member != arguments.drops()) {
 						throw new IllegalStateException("Recoverable/nonrecoverable endpoint membership mismatch");
 					}
