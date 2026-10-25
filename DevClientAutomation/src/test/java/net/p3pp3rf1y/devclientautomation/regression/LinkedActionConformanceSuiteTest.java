@@ -23,7 +23,7 @@ class LinkedActionConformanceSuiteTest {
 				"missing-mob-index-and-menu-fail-deterministically", "missing-controller-and-capabilities-fail-deterministically",
 				"inventory-mutation-is-journal-owned", "qualification-and-cleanup-consumer"), suite.tests().stream().map(RegressionTest::id).toList());
 		assertEquals(4, suite.tests().stream().filter(test -> test.steps().stream().anyMatch(step -> !step.expectFailure().isEmpty())).count());
-		assertEquals(10, suite.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
+		assertEquals(9, suite.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
 		assertTrue(suite.tests().stream().allMatch(RegressionTest::prepareTestCell));
 
 		RegressionTest consumer = suite.tests().getLast();

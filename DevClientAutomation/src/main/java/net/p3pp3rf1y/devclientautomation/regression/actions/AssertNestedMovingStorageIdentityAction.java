@@ -23,6 +23,11 @@ public final class AssertNestedMovingStorageIdentityAction extends TypedRegressi
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.NESTED_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

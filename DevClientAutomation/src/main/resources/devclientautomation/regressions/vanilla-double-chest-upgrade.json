@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "vanilla-double-chest-upgrade",
-  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "filled-vanilla-double-chest": [

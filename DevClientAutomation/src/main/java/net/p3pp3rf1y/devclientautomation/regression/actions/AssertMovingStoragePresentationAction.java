@@ -29,6 +29,12 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.primaryRef(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.secondaryRef(), RegressionValueTypes.MOVING_STORAGE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> serverAssertion;

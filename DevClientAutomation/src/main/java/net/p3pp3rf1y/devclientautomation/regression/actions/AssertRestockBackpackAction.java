@@ -69,7 +69,7 @@ public final class AssertRestockBackpackAction extends TypedRegressionAction<Ass
 			if (!serverMatched) {
 				serverCheck = null;
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Server restock backpack did not match expected settings and contents")
+						? failAssertion("Server restock backpack did not match expected settings and contents")
 						: RegressionActionProgress.WAITING;
 			}
 			if (context.isExpectedMenu("backpackItem")
@@ -77,7 +77,7 @@ public final class AssertRestockBackpackAction extends TypedRegressionAction<Ass
 				return RegressionActionProgress.PASSED;
 			}
 			return context.minecraft().player.tickCount >= deadline
-					? fail("Client restock backpack menu did not synchronize")
+					? failAssertion("Client restock backpack menu did not synchronize")
 					: RegressionActionProgress.WAITING;
 		}
 	}

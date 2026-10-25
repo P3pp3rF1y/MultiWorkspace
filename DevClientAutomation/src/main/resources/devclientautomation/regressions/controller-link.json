@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "controller-link",
-  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "line": [

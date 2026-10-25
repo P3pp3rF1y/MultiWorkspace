@@ -2,8 +2,8 @@ package net.p3pp3rf1y.devclientautomation.regression;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionInvocation;
-import net.p3pp3rf1y.devclientautomation.regression.actions.UnavailableCreateAction;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SharedJvmContractTest {
 	private static final String CANONICAL_ACTION_METADATA = """
 			assert.backpackAutomationExtractable|1|minecraft:client,sophisticatedbackpacks
+			assert.backpackPickupConfiguration|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalBackpackTemplate|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalCapturedMobs|1|minecraft:client,sophisticatedbackpacks
 			assert.controllerLinkGroups|1|minecraft:client,sophisticatedstorage
@@ -24,7 +25,7 @@ class SharedJvmContractTest {
 			assert.doubleChest|2|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
-			assert.inventoryCount|1|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
+			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
@@ -46,10 +47,11 @@ class SharedJvmContractTest {
 			assert.playerInventoryBaseline|1|minecraft:client
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
-			assert.settingsSelection|1|minecraft:client,sophisticatedcore
+			assert.settingsSelection|2|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
+			await.itemEntity|1|minecraft:client
 			await.menu|2|minecraft:client
 			await.menuClosed|1|minecraft:client
 			await.playerCraftingResult|1|minecraft:client
@@ -57,8 +59,10 @@ class SharedJvmContractTest {
 			backpack.breakAndAssertDrop|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureDeposit|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureFilter|1|minecraft:client,sophisticatedbackpacks
+			backpack.configurePickup|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureRestock|1|minecraft:client,sophisticatedbackpacks
 			backpack.createInMainHand|1|minecraft:client,sophisticatedbackpacks
+			backpack.fillStorage|1|minecraft:client,sophisticatedbackpacks
 			backpack.linkHeld|1|minecraft:client,sophisticatedbackpacks
 			backpack.pickupPlaced|1|minecraft:client,sophisticatedbackpacks
 			backpack.placeHeld|2|minecraft:client,sophisticatedbackpacks
@@ -81,6 +85,7 @@ class SharedJvmContractTest {
 			fixture.create.setMountedBackpackSlot|1|minecraft:client,sophisticatedbackpackscreateintegration
 			fixture.create.setMountedSlot|1|minecraft:client,sophisticatedstoragecreateintegration
 			fixture.entity.spawnPig|1|minecraft:client
+			fixture.itemEntity.spawn|1|minecraft:client
 			fixture.linked.replaceRoot|1|minecraft:client,sophisticatedcore
 			fixture.moving.captureNestedLinkedCarrier|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.moving.holdRecoveredInner|1|minecraft:client,sophisticatedstorageinmotion
@@ -133,6 +138,8 @@ class SharedJvmContractTest {
 			backpack-menu:backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
+			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
+			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -159,7 +166,8 @@ class SharedJvmContractTest {
 			assert.storageTierUpgradeRecipe assert.movingStorageTierUpgradeRecipe fixture.region.reset player.reset assert.playerInventoryBaseline
 			backpack.createInMainHand backpack.templateCommand player.createMainHandItem fixture.player.copyInventoryItem player.breakTargetBlock
 			backpack.setStorageSlot backpack.linkHeld storage.linkBlock backpack.configureFilter backpack.probeFilterIO assert.heldBackpackFilter
-			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount assert.restockBackpack assert.restockBarrel
+			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount backpack.configurePickup backpack.fillStorage
+			fixture.itemEntity.spawn await.itemEntity assert.backpackPickupConfiguration assert.restockBackpack assert.restockBarrel
 			player.setInventorySlot backpack.placeHeld assert.placedBackpackContents assert.backpackAutomationExtractable assert.heldBackpackContents
 			backpack.pickupPlaced backpack.breakAndAssertDrop player.placeHeldBlock await.backpackBlock await.storageBlock fixture.storage.contentsFilter
 			fixture.block.set fixture.controller.scanAdjacent fixture.controllerLinkLine.breakFirstBarrel fixture.controllerLinkGroups.breakBarrel
@@ -176,15 +184,15 @@ class SharedJvmContractTest {
 			fixture.player.setGameMode menu.clickPlayerInventorySlot menu.clickStorageSlot assert.movingMenuPresentation menu.clickSlot
 			menu.quickMovePlayerInventorySlot menu.quickMoveBackpackStorageSlot menu.close await.menuClosed
 			""";
-	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.menu", "assert.movingStorageTierUpgradeRecipe",
-			"assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
-			"player.setInventorySlot");
+	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.settingsSelection", "assert.menu",
+			"assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage",
+			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot");
 
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(114, all.size());
-		assertEquals(114, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(119, all.size());
+		assertEquals(119, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -218,7 +226,7 @@ class SharedJvmContractTest {
 		bindings.forEach((id, args) -> assertDoesNotThrow(() -> registry.require(id).bind(json(args), id)));
 		for (String id : List.of("fixture.create.mountLinkedStorage", "fixture.create.mountBackpack", "create.disassembleBackpack",
 				"fixture.create.setMountedBackpackSlot", "fixture.create.setMountedSlot", "assert.createMountedLinkedStorage")) {
-			assertInstanceOf(UnavailableCreateAction.class, registry.require(id));
+			assertInstanceOf(LazyOptionalRegressionAction.class, registry.require(id));
 		}
 	}
 
@@ -227,12 +235,12 @@ class SharedJvmContractTest {
 		var suites = RegressionCoordinator.loadSuites();
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
-		assertEquals(21, suites.size());
-		assertEquals(102, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(23, suites.size());
+		assertEquals(109, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(114, actions.size());
+		assertEquals(119, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(9, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog
@@ -244,11 +252,11 @@ class SharedJvmContractTest {
 
 	@Test
 	void statusEndpointSerializationExposesDtoTimingsAndFailedCleanup() {
-		var passed = new RegressionCoordinator.StepResult("first", "menu.close", "passed", "", 1.25);
-		var failed = new RegressionCoordinator.StepResult("second", "menu.close", "failed", "failure", 2.5);
-		var probe = new RegressionCoordinator.RuntimeConformanceResult("probe", "passed", "", List.of(passed), 3.75);
-		var cleanup = new RegressionCoordinator.CleanupResult("case", "failed", "Cleanup failed");
-		var status = new RegressionCoordinator.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed", List.of(), List.of(failed),
+		var passed = new RegressionResultModel.StepResult("first", "menu.close", "passed", "", 1.25);
+		var failed = new RegressionResultModel.StepResult("second", "menu.close", "failed", "failure", 2.5);
+		var probe = new RegressionResultModel.RuntimeConformanceResult("probe", "passed", "", List.of(passed), 3.75);
+		var cleanup = new RegressionResultModel.CleanupResult("case", "failed", "Cleanup failed");
+		var status = new RegressionResultModel.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed", List.of(), List.of(failed),
 				List.of(probe), Map.of(), 10.5, 4.25, List.of(cleanup), "execution");
 		var json = JsonParser.parseString(RegressionEndpoints.statusJson(status)).getAsJsonObject();
 		assertEquals(10.5, json.get("durationMillis").getAsDouble());
@@ -263,7 +271,7 @@ class SharedJvmContractTest {
 
 	@Test
 	void idleStatusEndpointSerializationHasRunnerTimingFields() {
-		var json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionCoordinator.RunStatus.idle())).getAsJsonObject();
+		var json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionResultModel.RunStatus.idle())).getAsJsonObject();
 		assertEquals(0, json.get("durationMillis").getAsDouble());
 		assertEquals(0, json.get("testDurationMillis").getAsDouble());
 	}
@@ -277,9 +285,9 @@ class SharedJvmContractTest {
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"mounted\",\"ref\":\"mounted\",\"saveAs\":\"baseline\"}"), "mounted"));
 		var suite = new RegressionSuite(2, "linked", Set.of("minecraft:client"), "testCell", List.of(moving, mounted));
 		var available = (java.util.function.Predicate<String>) dependency -> !dependency.equals("sophisticatedstoragecreateintegration");
-		assertTrue(RegressionCoordinator.qualify(suite, List.of(), moving, "", available).stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
-		assertEquals(List.of("sophisticatedstoragecreateintegration"), RegressionCoordinator.qualify(suite, List.of(), mounted, "", available).stream()
-				.filter(result -> !result.passed()).map(RegressionCoordinator.ConformanceResult::dependency).toList());
+		assertTrue(RegressionCoordinator.qualify(suite, moving, "", available).stream().allMatch(RegressionResultModel.ConformanceResult::passed));
+		assertEquals(List.of("sophisticatedstoragecreateintegration"), RegressionCoordinator.qualify(suite, mounted, "", available).stream()
+				.filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
 	private static RegressionTest test(String id, RegressionActionInvocation invocation) {

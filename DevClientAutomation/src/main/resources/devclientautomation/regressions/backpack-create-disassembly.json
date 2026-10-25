@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "backpack-create-disassembly",
-  "requires": ["minecraft:client", "sophisticatedbackpackscreateintegration"],
+  "requires": ["create"],
   "isolation": "testCell",
   "tests": [
     {

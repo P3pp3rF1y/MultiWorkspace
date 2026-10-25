@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "tier-upgrade-recipes",
-  "requires": ["minecraft:client", "sophisticatedstorage", "sophisticatedstorageinmotion"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {"id":"storage-tier-upgrade-recipe-linkage-matrix","tags":["storage","crafting","tier","linkage"],"timeoutTicks":200,"steps":[

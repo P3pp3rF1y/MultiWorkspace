@@ -56,7 +56,7 @@ class ReviewFollowUpSuiteTest {
 		RegressionSuite conformance = suite("linked-storage-action-conformance");
 
 		assertEquals(5, conformance.tests().stream().filter(test -> test.tags().contains("runtimeConformance")).count());
-		assertEquals(10, conformance.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
+		assertEquals(9, conformance.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
 		assertFalse(conformance.tests().getLast().tags().contains("runtimeConformance"));
 	}
 	@Test

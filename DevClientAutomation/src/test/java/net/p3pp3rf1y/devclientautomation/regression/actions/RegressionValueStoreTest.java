@@ -2,12 +2,36 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RegressionValueStoreTest {
+	@Test
+	void reserveAllRejectsTheWholeBatchWithoutReservingAnEarlierOutput() {
+		RegressionValueStore values = new RegressionValueStore();
+		values.reserve("existing", UUID.class);
+		assertThrows(IllegalStateException.class, () -> values.reserveAll(List.of(new RegressionValueContract.Value("new-output", String.class.getName()),
+				new RegressionValueContract.Value("existing", UUID.class.getName()))));
+		values.reserve("new-output", String.class);
+		values.put("new-output", String.class, "published");
+		assertEquals("published", values.require("new-output", String.class));
+	}
+
+	@Test
+	void reserveRejectsCollisionsBeforeProducerMutationAndChecksPublicationType() {
+		RegressionValueStore values = new RegressionValueStore();
+		values.reserve("target", UUID.class);
+		assertThrows(IllegalStateException.class, () -> values.require("target", UUID.class));
+		assertThrows(IllegalStateException.class, () -> values.reserve("target", UUID.class));
+		assertThrows(IllegalStateException.class, () -> values.put("target", String.class, "wrong"));
+		UUID id = UUID.randomUUID();
+		values.put("target", UUID.class, id);
+		assertEquals(id, values.require("target", UUID.class));
+		assertThrows(IllegalStateException.class, () -> values.put("target", UUID.class, id));
+	}
 	@Test
 	void putStoresDifferentTypesWithoutChangingTheFramework() {
 		RegressionValueStore values = new RegressionValueStore();

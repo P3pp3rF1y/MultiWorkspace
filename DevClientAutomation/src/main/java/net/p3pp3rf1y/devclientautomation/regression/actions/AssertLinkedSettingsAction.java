@@ -29,6 +29,11 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 		return new Arguments(args.get("backpackPrimary").getAsBoolean());
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming("settings-group", RegressionValueTypes.UUID);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable

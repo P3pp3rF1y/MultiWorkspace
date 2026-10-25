@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.p3pp3rf1y.devclientautomation.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MouseHandlerAccess",
+    "ContainerScreenAccess",
+    "BackgroundMouseHandlerMixin",
+    "BackgroundGameRendererMixin",
+    "BackgroundSoundVolumeMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -2,9 +2,8 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.world.inventory.Slot;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 
@@ -41,7 +40,7 @@ public final class ClickMenuSlotAction extends TypedRegressionAction<ClickMenuSl
 		public RegressionActionProgress tick() {
 			Minecraft minecraft = context.minecraft();
 			if (!(minecraft.screen instanceof BackpackScreen screen) || !(minecraft.player.containerMenu instanceof BackpackContainer menu)) {
-				return fail("Backpack menu is not active for physical slot click");
+				return fail("Backpack menu is not active for virtual slot click");
 			}
 			if (arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
 				return fail("Backpack menu has no storage slot " + arguments.slot());
@@ -49,9 +48,7 @@ public final class ClickMenuSlotAction extends TypedRegressionAction<ClickMenuSl
 			Slot slot = menu.getSlot(arguments.slot());
 			double x = screen.getGuiLeft() + slot.x + 8;
 			double y = screen.getGuiTop() + slot.y + 8;
-			MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(0, 0));
-			screen.mouseClicked(event, false);
-			screen.mouseReleased(event);
+			VirtualInput.click(screen, x, y, 0, 0);
 			return RegressionActionProgress.PASSED;
 		}
 	}

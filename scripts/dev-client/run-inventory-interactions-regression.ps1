@@ -42,7 +42,19 @@ function Stop-AutomationClient {
     }
 }
 
+function Wait-AutomationClientStopped {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
+}
+
 $startedClient = $false
+$clientProcessId = $null
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
@@ -53,9 +65,11 @@ try {
         }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
+        $clientProcessId = $ready.processId
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 
@@ -65,5 +79,6 @@ try {
 } finally {
     if ($startedClient) {
         Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }
