@@ -51,7 +51,7 @@ public final class RegressionSuiteParser {
 
 	private static Map<String, List<JsonObject>> parseFixtures(RegressionJsonObject suite, RegressionActionRegistry registry) {
 		Map<String, List<JsonObject>> fixtures = new LinkedHashMap<>();
-		for (var entry : suite.optionalObject("fixtures").entrySet()) {
+		for (Map.Entry<String, JsonElement> entry : suite.optionalObject("fixtures").entrySet()) {
 			String name = entry.getKey();
 			if (!name.matches("[a-z0-9][a-z0-9-]{0,63}")) {
 				throw new IllegalArgumentException("Invalid fixture name " + name);

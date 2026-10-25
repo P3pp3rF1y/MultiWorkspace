@@ -114,7 +114,7 @@ public final class AssertInventoryCountAction extends TypedRegressionAction<Asse
 				long actual;
 				boolean full = true;
 				if (arguments.target().equals("backpack")) {
-					if (!context.isExpectedMenu("backpackItem")) {
+					if (!context.isExpectedMenu(MenuKind.BACKPACK_ITEM, null)) {
 						return fail("Client backpack count requires the synchronized held-backpack menu");
 					}
 					var inventory = ((BackpackContainer) context.minecraft().player.containerMenu).getStorageWrapper().getInventoryHandler();

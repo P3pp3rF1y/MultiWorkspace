@@ -7,6 +7,7 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedDat
 import net.p3pp3rf1y.sophisticatedcore.upgrades.jukebox.JukeboxUpgradeContainer;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.jukebox.JukeboxUpgradeItem;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -43,6 +44,7 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private final CaptureLinkedMenuRevisionAction.Baseline baseline;
+		@Nullable
 		private CompletableFuture<Void> serverAssertion;
 		private boolean serverMatched;
 		private int deadline = -1;
@@ -65,7 +67,7 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 					MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 					if (!(player.containerMenu instanceof MovingStorageContainerMenu<?> menu)
 							|| menu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
-						throw new IllegalStateException("Expected moving jukebox menu closed on server");
+						throw RegressionActionFailure.infrastructure("Expected moving jukebox menu closed on server");
 					}
 					JukeboxUpgradeContainer jukebox = findJukebox(menu);
 					serverMatched = LinkedStorageGroupsSavedData.get(player.level()).manager().getRevision(baseline.groupId()) > baseline.revision()
@@ -81,11 +83,11 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 			if (!serverMatched) {
 				serverAssertion = null;
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Server jukebox playback state or linked revision did not update")
+						? failAssertion("Server jukebox playback state or linked revision did not update")
 						: RegressionActionProgress.WAITING;
 			}
 			if (ClientLinkedStorageContents.getRevision(baseline.groupId()).orElse(-1L) != baseline.revision()) {
-				return fail("Jukebox state arrived through a full linked group snapshot");
+				return failAssertion("Jukebox state arrived through a full linked group snapshot");
 			}
 			MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 			if (!(context.minecraft().player.containerMenu instanceof MovingStorageContainerMenu<?> menu)
@@ -99,8 +101,8 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 				boolean handlerPlaying = menu.getStorageWrapper().getUpgradeHandler().getTypeWrappers(JukeboxUpgradeItem.TYPE).stream().findFirst()
 						.orElseThrow().isPlaying();
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Jukebox client playback state mismatched: wrapper=" + playing + ", upgrade slot=" + stackPlaying + ", handler=" + handlerPlaying
-								+ ", expected=" + arguments.playing())
+						? failAssertion("Jukebox client playback state mismatched: wrapper=" + playing + ", upgrade slot=" + stackPlaying + ", handler="
+								+ handlerPlaying + ", expected=" + arguments.playing())
 						: RegressionActionProgress.WAITING;
 			}
 			if (!arguments.playing()) {
@@ -108,7 +110,7 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 			}
 			long remaining = jukebox.getDiscFinishTime() - context.minecraft().level.getGameTime();
 			if (remaining <= 0) {
-				return fail("Jukebox client upgrade has no positive disc finish time");
+				return failAssertion("Jukebox client upgrade has no positive disc finish time");
 			}
 			if (firstRemaining < 0) {
 				firstRemaining = remaining;
@@ -117,13 +119,13 @@ public final class AssertLinkedJukeboxPlaybackAction extends TypedRegressionActi
 			return context.minecraft().player.tickCount >= firstTick + 5 && remaining < firstRemaining
 					? RegressionActionProgress.PASSED
 					: context.minecraft().player.tickCount >= deadline
-							? fail("Jukebox client finish-time progress did not advance")
+							? failAssertion("Jukebox client finish-time progress did not advance")
 							: RegressionActionProgress.WAITING;
 		}
 
 		private static JukeboxUpgradeContainer findJukebox(MovingStorageContainerMenu<?> menu) {
 			return menu.getUpgradeContainers().values().stream().filter(JukeboxUpgradeContainer.class::isInstance).map(JukeboxUpgradeContainer.class::cast)
-					.findFirst().orElseThrow(() -> new IllegalStateException("Moving menu has no jukebox upgrade container"));
+					.findFirst().orElseThrow(() -> RegressionActionFailure.infrastructure("Moving menu has no jukebox upgrade container"));
 		}
 	}
 }

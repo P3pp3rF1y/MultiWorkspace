@@ -72,7 +72,7 @@ public final class AssertRestockBackpackAction extends TypedRegressionAction<Ass
 						? failAssertion("Server restock backpack did not match expected settings and contents")
 						: RegressionActionProgress.WAITING;
 			}
-			if (context.isExpectedMenu("backpackItem")
+			if (context.isExpectedMenu(MenuKind.BACKPACK_ITEM, null)
 					&& matches(((BackpackContainer) context.minecraft().player.containerMenu).getStorageWrapper(), arguments)) {
 				return RegressionActionProgress.PASSED;
 			}

@@ -7,6 +7,7 @@ import net.p3pp3rf1y.sophisticatedstorage.block.ControllerBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageLinkBlockEntity;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +37,7 @@ public final class AssertControllerLinkLineAction extends TypedRegressionAction<
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> future;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {

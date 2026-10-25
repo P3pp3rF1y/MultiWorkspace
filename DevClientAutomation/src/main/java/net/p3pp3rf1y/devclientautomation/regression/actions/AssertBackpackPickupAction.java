@@ -44,7 +44,7 @@ public final class AssertBackpackPickupAction extends TypedRegressionAction<Asse
 
 			@Override
 			public RegressionActionProgress tick() {
-				if (!context.isExpectedMenu("backpackItem")) {
+				if (!context.isExpectedMenu(MenuKind.BACKPACK_ITEM, null)) {
 					return fail("Expected synchronized held-backpack menu");
 				}
 				if (server == null) {

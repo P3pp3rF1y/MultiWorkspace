@@ -70,8 +70,8 @@ public final class DevClientAutomation {
 				}
 				throw new IllegalStateException("Method not allowed");
 			}
-			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"neoforge\",\"minecraftVersion\":\"26.1.2\"," + "\"backgroundInput\":"
-					+ BackgroundInputPolicy.enabled() + ","
+			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"" + LOADER + "\",\"minecraftVersion\":\"" + MINECRAFT_VERSION + "\","
+					+ "\"backgroundInput\":" + BackgroundInputPolicy.enabled() + ","
 					+ "\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}")
 					.getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");

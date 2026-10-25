@@ -1,8 +1,11 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
+import com.google.gson.JsonParser;
+import net.p3pp3rf1y.devclientautomation.regression.RegressionActionRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MovingStorageActionBindingTest {
@@ -40,7 +43,7 @@ class MovingStorageActionBindingTest {
 
 	@Test
 	void linkedMenuSyncActionsRequireValidTargetsAndPlaybackControls() {
-		RegressionAction mountedSlot = new net.p3pp3rf1y.devclientautomation.regression.RegressionActionRegistry().require("fixture.create.setMountedSlot");
+		RegressionAction mountedSlot = new RegressionActionRegistry().require("fixture.create.setMountedSlot");
 		assertEquals("opening", RegressionActionTestSupport.arguments(
 				RegressionActionTestSupport.bind(new CaptureLinkedMenuRevisionAction(), "{\"kind\":\"mounted\",\"ref\":\"mount\",\"saveAs\":\"opening\"}"),
 				CaptureLinkedMenuRevisionAction.Arguments.class).saveAs());
@@ -48,7 +51,7 @@ class MovingStorageActionBindingTest {
 				RegressionActionTestSupport.arguments(
 						RegressionActionTestSupport.bind(new CaptureLinkedMenuRevisionAction(), "{\"kind\":\"storageBlock\",\"saveAs\":\"opening\"}"),
 						CaptureLinkedMenuRevisionAction.Arguments.class).ref());
-		assertEquals("storageBlock",
+		assertEquals(MenuKind.STORAGE_BLOCK,
 				RegressionActionTestSupport.arguments(
 						RegressionActionTestSupport.bind(new AssertLinkedMenuDeltaAction(),
 								"{\"kind\":\"storageBlock\",\"baseline\":\"opening\",\"item\":\"minecraft:emerald\",\"count\":9}"),
@@ -58,9 +61,8 @@ class MovingStorageActionBindingTest {
 						RegressionActionTestSupport.bind(new AssertLinkedMenuDeltaAction(),
 								"{\"kind\":\"moving\",\"ref\":\"boat\",\"baseline\":\"opening\",\"item\":\"minecraft:emerald\",\"count\":9}"),
 						AssertLinkedMenuDeltaAction.Arguments.class).count());
-		assertEquals(mountedSlot, mountedSlot
-				.bind(com.google.gson.JsonParser.parseString("{\"ref\":\"mount\",\"item\":\"minecraft:emerald\",\"count\":9}").getAsJsonObject(), "test")
-				.action());
+		assertEquals(mountedSlot,
+				mountedSlot.bind(JsonParser.parseString("{\"ref\":\"mount\",\"item\":\"minecraft:emerald\",\"count\":9}").getAsJsonObject(), "test").action());
 		assertEquals("boat",
 				RegressionActionTestSupport
 						.arguments(RegressionActionTestSupport.bind(new AssertLinkedMenuSettingsAction(), "{\"ref\":\"boat\",\"baseline\":\"opening\"}"),
@@ -252,13 +254,13 @@ class MovingStorageActionBindingTest {
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(new AssertNestedMovingStorageIdentityAction(), "{\"ref\":\"nested\"}"),
 						AssertNestedMovingStorageIdentityAction.Arguments.class).ref());
 		RegressionActionTestSupport.bind(new AssertMovingStorageCompatibilityProfileAction(), "{}");
-		assertEquals("double", RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(new AssertStorageTierUpgradeRecipeAction(),
-				"{\"form\":\"double\",\"recipe\":\"shaped\",\"linkage\":\"primary\"}"), AssertStorageTierUpgradeRecipeAction.Arguments.class).form());
-		assertEquals("minecart",
-				RegressionActionTestSupport.arguments(
-						RegressionActionTestSupport.bind(new AssertMovingStorageTierUpgradeRecipeAction(),
-								"{\"carrier\":\"minecart\",\"recipe\":\"shapeless\",\"linkage\":\"secondary\"}"),
-						AssertMovingStorageTierUpgradeRecipeAction.Arguments.class).carrier());
+		RegressionAction storageRecipe = new RegressionActionRegistry().require("assert.storageTierUpgradeRecipe");
+		assertSame(storageRecipe, storageRecipe
+				.bind(JsonParser.parseString("{\"form\":\"double\",\"recipe\":\"shaped\",\"linkage\":\"primary\"}").getAsJsonObject(), "test action").action());
+		RegressionAction movingRecipe = new RegressionActionRegistry().require("assert.movingStorageTierUpgradeRecipe");
+		assertSame(movingRecipe, movingRecipe
+				.bind(JsonParser.parseString("{\"carrier\":\"minecart\",\"recipe\":\"shapeless\",\"linkage\":\"secondary\"}").getAsJsonObject(), "test action")
+				.action());
 	}
 
 	@Test
@@ -312,9 +314,9 @@ class MovingStorageActionBindingTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertNestedMovingStorageIdentityAction(), "{}"));
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(new AssertMovingStorageCompatibilityProfileAction(), "{\"ref\":\"primary\"}"));
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertStorageTierUpgradeRecipeAction(),
-				"{\"form\":\"single\",\"recipe\":\"shaped\",\"linkage\":\"primary\"}"));
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertMovingStorageTierUpgradeRecipeAction(),
-				"{\"carrier\":\"boat\",\"recipe\":\"shaped\",\"linkage\":\"other\"}"));
+		assertThrows(IllegalArgumentException.class, () -> new RegressionActionRegistry().require("assert.storageTierUpgradeRecipe")
+				.bind(JsonParser.parseString("{\"form\":\"single\",\"recipe\":\"shaped\",\"linkage\":\"primary\"}").getAsJsonObject(), "test action"));
+		assertThrows(IllegalArgumentException.class, () -> new RegressionActionRegistry().require("assert.movingStorageTierUpgradeRecipe")
+				.bind(JsonParser.parseString("{\"carrier\":\"boat\",\"recipe\":\"shaped\",\"linkage\":\"other\"}").getAsJsonObject(), "test action"));
 	}
 }

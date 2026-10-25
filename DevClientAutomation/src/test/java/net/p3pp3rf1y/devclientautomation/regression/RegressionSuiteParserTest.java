@@ -14,6 +14,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.BoundRegressionActio
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureNestedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMainHandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.MenuKind;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlayerStatePolicy;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeForgedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeMovingStoragePickupAction;
@@ -129,12 +130,21 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredFourExpandedSteps() throws IOException {
+	void parseIndexedMovingSuiteRetainsAuthoredTestsAndExpandedActionOrder() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
-			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
-			assertEquals(25, suite.tests().size());
-			assertEquals(307, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			JsonObject resource = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+			RegressionSuite suite = RegressionSuiteParser.parse(resource, new RegressionActionRegistry());
+			JsonArray authoredTests = resource.getAsJsonArray("tests");
+			assertEquals(authoredTests.asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList(),
+					suite.tests().stream().map(RegressionTest::id).toList());
+			for (int index = 0; index < authoredTests.size(); index++) {
+				JsonObject authoredTest = authoredTests.get(index).getAsJsonObject();
+				RegressionTest parsedTest = suite.tests().get(index);
+				List<String> expectedActions = expandRawSteps(resource, authoredTest.getAsJsonArray("steps")).stream()
+						.map(step -> step.get("action").getAsString()).toList();
+				assertEquals(expectedActions, parsedTest.steps().stream().map(step -> step.action().action().metadata().id()).toList(), parsedTest.id());
+			}
 		}
 	}
 
@@ -506,8 +516,8 @@ class RegressionSuiteParserTest {
 						case ProbeMovingStoragePickupAction.Arguments pickup -> pickup.ref();
 						case ProbePackedPrimaryAction.Arguments packed -> packed.primaryRef();
 						case ProbeForgedMovingStorageAction.Arguments forged -> forged.ref();
-						case AwaitMenuAction.Arguments menu when menu.kind().equals("moving") -> menu.ref();
-						case AssertMenuAction.Arguments menu when menu.kind().equals("moving") -> menu.ref();
+						case AwaitMenuAction.Arguments menu when menu.kind() == MenuKind.MOVING -> menu.ref();
+						case AssertMenuAction.Arguments menu when menu.kind() == MenuKind.MOVING -> menu.ref();
 						default -> null;
 					};
 					if (ref != null) {

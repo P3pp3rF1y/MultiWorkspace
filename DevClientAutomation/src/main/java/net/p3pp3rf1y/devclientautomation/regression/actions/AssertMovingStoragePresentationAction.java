@@ -9,6 +9,7 @@ import net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsC
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +38,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
+			@Nullable
 			private CompletableFuture<Void> serverAssertion;
 			private int deadline = -1;
 
@@ -55,7 +57,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 						verify(secondary.getStorageHolder().getStorageWrapper());
 						var projected = secondary.getStorageItem().get(ModCoreDataComponents.RENDER_DATA);
 						if (projected == null || !projected.equals(primary.getStorageHolder().getStorageWrapper().getRenderDataHandler().getData())) {
-							throw new IllegalStateException("Secondary moving carrier did not project canonical display state");
+							throw RegressionActionFailure.assertion("Secondary moving carrier did not project canonical display state");
 						}
 					});
 					return RegressionActionProgress.WAITING;
@@ -73,7 +75,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 					}
 				}
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Client secondary did not synchronize upgrades, settings and display")
+						? failAssertion("Client secondary did not synchronize upgrades, settings and display")
 						: RegressionActionProgress.WAITING;
 			}
 		};
@@ -81,7 +83,7 @@ public final class AssertMovingStoragePresentationAction extends TypedRegression
 
 	private static void verify(IStorageWrapper wrapper) {
 		if (!hasPresentation(wrapper)) {
-			throw new IllegalStateException("Moving endpoint does not see canonical upgrade, memory and display settings");
+			throw RegressionActionFailure.assertion("Moving endpoint does not see canonical upgrade, memory and display settings");
 		}
 	}
 
