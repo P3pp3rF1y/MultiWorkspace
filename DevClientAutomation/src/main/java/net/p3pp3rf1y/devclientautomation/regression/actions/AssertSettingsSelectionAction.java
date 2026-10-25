@@ -20,7 +20,7 @@ public final class AssertSettingsSelectionAction extends TypedRegressionAction<A
 	public record Arguments(int slot, boolean display) {
 	}
 	public AssertSettingsSelectionAction() {
-		super("assert.settingsSelection", "1", Set.of("minecraft:client", "sophisticatedcore"));
+		super("assert.settingsSelection", "2", Set.of("minecraft:client", "sophisticatedcore"));
 	}
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
@@ -49,15 +49,18 @@ public final class AssertSettingsSelectionAction extends TypedRegressionAction<A
 			@Override
 			public RegressionActionProgress tick() {
 				if (ticks++ > 100) {
-					return fail("Memory/display settings did not persist on server and client; server=" + serverState + "; client=" + clientState);
+					return failAssertion("Memory/display settings did not persist on server and client; server=" + serverState + "; client=" + clientState);
 				}
 				if (future == null) {
 					future = context.onServer(player -> {
 						IStorageWrapper wrapper = player.containerMenu instanceof SettingsContainerMenu<?> menu
 								? menu.getStorageWrapper()
 								: player.containerMenu instanceof StorageContainerMenuBase<?> menu ? menu.getStorageWrapper() : null;
-						serverMatched = wrapper != null && matches(wrapper, arguments);
-						serverState = wrapper == null ? "no menu" : wrapper.getSettingsHandler().getSettingsData().toString();
+						if (wrapper == null) {
+							throw RegressionActionFailure.infrastructure("Settings or storage menu is not open on server");
+						}
+						serverMatched = matches(wrapper, arguments);
+						serverState = wrapper.getSettingsHandler().getSettingsData().toString();
 					});
 					return RegressionActionProgress.WAITING;
 				}
@@ -68,20 +71,22 @@ public final class AssertSettingsSelectionAction extends TypedRegressionAction<A
 				IStorageWrapper wrapper = context.minecraft().player.containerMenu instanceof SettingsContainerMenu<?> menu
 						? menu.getStorageWrapper()
 						: context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> menu ? menu.getStorageWrapper() : null;
+				if (wrapper == null) {
+					return fail("Settings or storage menu is not open on client");
+				}
 				boolean overlay = true;
-				clientState = wrapper == null ? "no menu" : wrapper.getSettingsHandler().getSettingsData().toString();
+				clientState = wrapper.getSettingsHandler().getSettingsData().toString();
 				if (arguments.display() && context.minecraft().screen instanceof SettingsScreen screen) {
 					overlay = screen.getSettingsTabControl().children().stream().filter(ItemDisplaySettingsTab.class::isInstance)
 							.map(ItemDisplaySettingsTab.class::cast).anyMatch(tab -> tab.getSlotOverlayColor(arguments.slot(), false).isPresent());
 				}
 				if (context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> menu) {
 					boolean ghost = menu.getMemorizedStackInSlot(arguments.slot()).filter(stack -> stack.is(Items.DIAMOND)).isPresent();
-					boolean displayOverlay = !arguments.display()
-							|| wrapper != null && wrapper.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class).getSlotColor(arguments.slot())
-									.filter(color -> menu.getSlotOverlayColors(arguments.slot()).contains(color)).isPresent();
+					boolean displayOverlay = !arguments.display() || wrapper.getSettingsHandler().getTypeCategory(ItemDisplaySettingsCategory.class)
+							.getSlotColor(arguments.slot()).filter(color -> menu.getSlotOverlayColors(arguments.slot()).contains(color)).isPresent();
 					overlay = overlay && ghost && displayOverlay;
 				}
-				if (serverMatched && wrapper != null && matches(wrapper, arguments) && overlay) {
+				if (serverMatched && matches(wrapper, arguments) && overlay) {
 					return RegressionActionProgress.PASSED;
 				}
 				future = null;

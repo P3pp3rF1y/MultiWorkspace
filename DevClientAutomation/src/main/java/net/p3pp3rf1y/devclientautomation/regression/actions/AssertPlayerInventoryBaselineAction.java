@@ -28,11 +28,11 @@ public final class AssertPlayerInventoryBaselineAction extends TypedRegressionAc
 				if (future == null) {
 					future = context.onServer(player -> {
 						if (!player.getInventory().isEmpty() || player.getInventory().getSelectedSlot() != 0 || !player.inventoryMenu.getCarried().isEmpty()) {
-							throw new IllegalStateException("Player inventory baseline is not empty");
+							throw RegressionActionFailure.assertion("Player inventory baseline is not empty");
 						}
 						for (int slot = 1; slot <= 4; slot++) {
 							if (player.inventoryMenu.getSlot(slot).hasItem()) {
-								throw new IllegalStateException("Crafting baseline is not empty");
+								throw RegressionActionFailure.assertion("Crafting baseline is not empty");
 							}
 						}
 					});

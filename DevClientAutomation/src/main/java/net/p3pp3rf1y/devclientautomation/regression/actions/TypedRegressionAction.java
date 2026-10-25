@@ -26,6 +26,10 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 
 	protected abstract RegressionActionExecution start(RegressionExecutionContext context, A arguments);
 
+	protected RegressionValueContract values(A arguments) {
+		return RegressionValueContract.EMPTY;
+	}
+
 	protected Set<String> dependencies(A arguments) {
 		return metadata.dependencies();
 	}

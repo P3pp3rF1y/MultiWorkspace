@@ -21,7 +21,7 @@ class MountedLinkedStorageActionBindingTest {
 		RegressionAction storageSlot = registry.require("fixture.create.setMountedSlot");
 		RegressionAction assertion = registry.require("assert.createMountedLinkedStorage");
 		for (RegressionAction action : new RegressionAction[]{mountStorage, mountBackpack, disassemble, backpackSlot, storageSlot, assertion}) {
-			assertInstanceOf(UnavailableCreateAction.class, action);
+			assertInstanceOf(LazyOptionalRegressionAction.class, action);
 			assertEquals("1", action.metadata().revision());
 			String capability = Set.of(mountBackpack, disassemble, backpackSlot).contains(action)
 					? "sophisticatedbackpackscreateintegration"
@@ -63,7 +63,7 @@ class MountedLinkedStorageActionBindingTest {
 			assertInvalid(action, "{\"" + name + "\":\"" + invalid + "\"" + suffix + "}");
 	}
 	private static RegressionActionInvocation bind(RegressionAction action, String json) {
-		return RegressionActionTestSupport.bind(action, json);
+		return action.bind(com.google.gson.JsonParser.parseString(json).getAsJsonObject(), "test action");
 	}
 	private static void assertInvalid(RegressionAction action, String json) {
 		assertThrows(IllegalArgumentException.class, () -> bind(action, json), json);
@@ -71,21 +71,15 @@ class MountedLinkedStorageActionBindingTest {
 	@Test
 	void mountedLinkedStorageActionsBindExactReferences() {
 		RegressionActionRegistry registry = new RegressionActionRegistry();
-		assertEquals("mounted",
-				RegressionActionTestSupport
-						.arguments(RegressionActionTestSupport.bind(registry.require("fixture.create.mountLinkedStorage"), "{\"saveAs\":\"mounted\"}"),
-								com.google.gson.JsonObject.class)
-						.get("saveAs").getAsString());
-		var assertion = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(registry.require("assert.createMountedLinkedStorage"),
-				"{\"ref\":\"mounted\",\"count\":2,\"checkPresentation\":false}"), com.google.gson.JsonObject.class);
-		assertEquals("mounted", assertion.get("ref").getAsString());
-		assertEquals(2, assertion.get("count").getAsInt());
-		assertEquals(false, assertion.get("checkPresentation").getAsBoolean());
-		assertEquals("mounted",
-				RegressionActionTestSupport
-						.arguments(RegressionActionTestSupport.bind(registry.require("fixture.create.setMountedSlot"),
-								"{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}"), com.google.gson.JsonObject.class)
-						.get("ref").getAsString());
+		for (String id : new String[]{"fixture.create.mountLinkedStorage", "assert.createMountedLinkedStorage", "fixture.create.setMountedSlot"}) {
+			RegressionAction action = registry.require(id);
+			String args = id.equals("fixture.create.mountLinkedStorage")
+					? "{\"saveAs\":\"mounted\"}"
+					: id.equals("assert.createMountedLinkedStorage")
+							? "{\"ref\":\"mounted\",\"count\":2,\"checkPresentation\":false}"
+							: "{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}";
+			assertSame(action, bind(action, args).action());
+		}
 	}
 
 	@Test

@@ -138,7 +138,10 @@ tasks.withType(JavaCompile).configureEach {
     sourceSets.main.java.exclude "**/regression/actions/${it}.java"
 }
 
+configurations { regressionResultRuntime }
+
 dependencies {
+    regressionResultRuntime 'com.google.code.gson:gson:2.10.1'
     compileOnly project(':SophisticatedCore')
     compileOnly project(':SophisticatedBackpacks')
     compileOnly project(':SophisticatedStorage')
@@ -163,4 +166,17 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
     }
+}
+
+// Offline result serializer: excludes Minecraft and action implementations.
+tasks.register('regressionResultTool', Jar) {
+    dependsOn tasks.named('classes')
+    archiveFileName = 'regression-result-tool.jar'
+    destinationDirectory = layout.buildDirectory.dir('tools')
+    manifest { attributes 'Main-Class': 'net.p3pp3rf1y.devclientautomation.regression.RegressionResultTool' }
+    from(sourceSets.main.output.classesDirs) {
+        include '**/RegressionResultModel*.class', '**/RegressionResultTool*.class', '**/RegressionStepProvenance.class'
+    }
+    from { configurations.regressionResultRuntime.collect { zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
 }

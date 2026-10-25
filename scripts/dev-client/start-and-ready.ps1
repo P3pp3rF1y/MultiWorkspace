@@ -4,20 +4,26 @@ param(
     [string]$Loader = "neoforge",
     [string]$WorldName = "Dev Client Automation Void Platform",
     [int]$TimeoutSeconds = 300,
-    [switch]$Maximize,
     [switch]$ShowLauncherWindow,
     [bool]$LoadWorld = $true,
+    # Controls the launcher console, not the client lifetime.
     [switch]$CloseOnExit,
+    [switch]$KeepClientOpen,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
     [ValidateSet("", "emi", "jei", "rei", "none")]
-    [string]$RecipeViewer = "",
-    [switch]$LinkedStorageStarterKit
+    [string]$RecipeViewer = ""
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\client-lifecycle.ps1"
 
-$discoveryPath = Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"
+$validationDirectory = $env:DEV_CLIENT_VALIDATION_RUN_DIRECTORY
+$validationInit = $env:DEV_CLIENT_VALIDATION_INIT_SCRIPT
+if ([bool]$validationDirectory -ne [bool]$validationInit) { throw 'Validation runtime directory and init script must be supplied together.' }
+if ($validationDirectory -and (-not (Test-Path -LiteralPath $validationDirectory -PathType Container) -or
+        -not (Test-Path -LiteralPath $validationInit -PathType Leaf))) { throw 'Validation runtime directory or init script is unavailable.' }
+$discoveryPath = if ($validationDirectory) { Join-Path $validationDirectory 'dev-client-automation.json' } else { Join-Path $WorkspaceRoot 'workspace\run\dev-client-automation.json' }
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
 if (Test-Path $discoveryPath) {
@@ -25,7 +31,7 @@ if (Test-Path $discoveryPath) {
 }
 
 $gradleCommand = switch ($Loader) {
-    "neoforge" { "gradlew.bat :workspace:runClient" }
+    "neoforge" { "gradlew.bat :workspace:runRegressionClient --no-daemon" }
     "fabric" { throw "Fabric dev-client launching is not configured in this workspace yet." }
 }
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
@@ -33,10 +39,12 @@ if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
 } elseif ($MinimalRuntime) {
     $gradleCommand = "$gradleCommand -Pdev_client_minimal_runtime=true -Pdev_client_curios_runtime=true"
 }
+if ($validationDirectory) { $gradleCommand = "$gradleCommand -I `"$validationInit`"" }
 
 $cmdMode = if ($CloseOnExit) { '/c' } else { '/k' }
 $launcherWindowStyle = if ($ShowLauncherWindow) { 'Normal' } else { 'Minimized' }
-Start-Process cmd.exe -ArgumentList $cmdMode, "cd /d $WorkspaceRoot && $gradleCommand" -WorkingDirectory $WorkspaceRoot -WindowStyle $launcherWindowStyle | Out-Null
+$launcher = Start-Process cmd.exe -ArgumentList $cmdMode, "cd /d `"$WorkspaceRoot`" && $gradleCommand" -WorkingDirectory $WorkspaceRoot -WindowStyle $launcherWindowStyle -PassThru
+$ownership = New-ClientOwnership $launcher
 
 function Get-BridgeDiscovery {
     if (-not (Test-Path $discoveryPath)) {
@@ -56,20 +64,21 @@ function Invoke-BridgeJson {
         [object]$Body = $null
     )
 
-    $discovery = Get-BridgeDiscovery
-    if ($null -eq $discovery) {
-        throw "Bridge discovery file is not available yet."
-    }
-    $uri = "http://$($discovery.host):$($discovery.port)$Path"
+    if (-not $ownership.baseUrl) { throw 'Owned bridge discovery is not available yet.' }
+    $uri = "$($ownership.baseUrl)$Path"
     if ($null -eq $Body) {
         return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec 10
     }
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress) -TimeoutSec $TimeoutSeconds
 }
 
+try {
 do {
     Start-Sleep -Seconds 2
     try {
+        $discovery = Get-BridgeDiscovery
+        if ($null -eq $discovery) { continue }
+        Set-OwnedClientDiscovery -Ownership $ownership -Discovery $discovery
         $state = Invoke-BridgeJson -Method Get -Path "/state"
         break
     } catch {
@@ -88,12 +97,11 @@ if (-not $capabilities.ok -or $capabilities.protocolVersion -ne 1) {
 if ($capabilities.loader -ne $Loader) {
     throw "Expected loader '$Loader' but automation bridge reports '$($capabilities.loader)'."
 }
-
-if ($Maximize) {
-    Invoke-BridgeJson -Method Post -Path "/window/maximize" | Out-Null
+if (-not $capabilities.backgroundInput) {
+    throw "Regression client was not launched with background-safe input enabled."
 }
 
-if ($LoadWorld -and -not ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
+if ($LoadWorld -and -not $state.playerLoaded) {
     do {
         Start-Sleep -Seconds 1
         $state = Invoke-BridgeJson -Method Get -Path "/state"
@@ -106,38 +114,40 @@ if ($LoadWorld -and -not ($state.playerLoaded -and $state.singleplayerServerLoad
         throw "Timed out waiting for title screen before loading world."
     }
 
-    $worldLoad = Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 }
-    if ($LinkedStorageStarterKit -and $worldLoad.created) {
-        Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-starter-kit" | Out-Null
-    }
+    Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 } | Out-Null
 }
 
 do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
-        if (-not $LoadWorld -or ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
+        if (-not $LoadWorld -or ($state.playerLoaded -and $state.screenSimpleName -ne "ReceivingLevelScreen")) {
             break
         }
         continue
     }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
-    if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded -and $viewerState.indexStackCount -gt 0))) {
+    if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
         break
     }
 } while ((Get-Date) -lt $deadline)
 
-if ($LoadWorld -and -not ($state.playerLoaded -and $state.singleplayerServerLoaded -and $state.clientLevelLoaded)) {
-    throw "Timed out waiting for client level readiness."
-}
-
-$discovery = Get-BridgeDiscovery
+$bridgeUri = [uri]$ownership.baseUrl
 [pscustomobject]@{
-    host = $discovery.host
-    port = $discovery.port
-    processId = $discovery.processId
-    baseUrl = "http://$($discovery.host):$($discovery.port)"
+    host = $bridgeUri.Host
+    port = $bridgeUri.Port
+    processId = $ownership.processId
+    ownership = $ownership
+    baseUrl = $ownership.baseUrl
     capabilities = $capabilities
     state = Invoke-BridgeJson -Method Get -Path "/state"
     recipeViewer = if ($SkipRecipeViewerReady) { $null } else { $viewerState }
+}
+} catch {
+    $cleanup = Stop-OwnedClient -Ownership $ownership -KeepClientOpen:$KeepClientOpen -WaitForRegression:$false
+    $_.Exception.Data['ClientOwnership'] = $ownership
+    $_.Exception.Data['ClientLifecycle'] = $cleanup
+    if (-not $cleanup.ok) { Write-Warning "Startup cleanup failed: $($cleanup.errors -join '; ')" }
+    if ($KeepClientOpen) { Write-Warning "Keeping failed startup open for inspection (launcher PID $($ownership.launcherProcessId))." }
+    throw
 }

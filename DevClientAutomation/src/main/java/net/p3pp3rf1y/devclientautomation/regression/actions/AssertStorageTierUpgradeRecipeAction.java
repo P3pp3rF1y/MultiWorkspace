@@ -84,32 +84,32 @@ public final class AssertStorageTierUpgradeRecipeAction extends TypedRegressionA
 					ItemStack linker = new ItemStack(BuiltInRegistries.ITEM.getOptional(Identifier.parse("sophisticatedcore:ender_linker"))
 							.orElseThrow(() -> new IllegalStateException("Ender linker item is unavailable")));
 					if (LinkedStorageService.linkWithResult(level, playerId, linker, storage) != LinkedStorageService.LinkResult.SUCCESS) {
-						throw new IllegalStateException("Could not create linked storage recipe fixture");
+						throw RegressionActionFailure.infrastructure("Could not create linked storage recipe fixture");
 					}
 					primary = storage.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 					if (arguments.linkage().equals("secondary")) {
 						storage = LinkedStorageService.createSecondaryEndpointCopy(level, storage)
-								.orElseThrow(() -> new IllegalStateException("Could not create secondary storage recipe fixture"));
+								.orElseThrow(() -> RegressionActionFailure.infrastructure("Could not create secondary storage recipe fixture"));
 					}
 				}
 				Identifier id = recipeId(arguments);
 				RecipeHolder<?> holder = net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper.getRecipe(level, id)
-						.orElseThrow(() -> new IllegalStateException("Missing registered recipe " + id));
+						.orElseThrow(() -> RegressionActionFailure.infrastructure("Missing registered recipe " + id));
 				Class<?> expectedClass = arguments.recipe().equals("shaped")
 						? (arguments.form().equals("double") ? DoubleChestTierUpgradeRecipe.class : StorageTierUpgradeRecipe.class)
 						: (arguments.form().equals("double") ? DoubleChestTierUpgradeShapelessRecipe.class : StorageTierUpgradeShapelessRecipe.class);
 				if (holder.value().getClass() != expectedClass) {
-					throw new IllegalStateException(
-							"Registered recipe has class " + holder.value().getClass().getName() + ", expected " + expectedClass.getName());
+					throw RegressionActionFailure
+							.assertion("Registered recipe has class " + holder.value().getClass().getName() + ", expected " + expectedClass.getName());
 				}
 				CraftingRecipe recipe = (CraftingRecipe) holder.value();
 				CraftingInput input = input(storage, arguments);
 				boolean expected = !arguments.linkage().equals("secondary");
 				if (recipe.matches(input, level) != expected || recipe.assemble(input).isEmpty() != !expected) {
-					throw new IllegalStateException("Storage tier upgrade " + arguments + " eligibility differed from contract");
+					throw RegressionActionFailure.assertion("Storage tier upgrade " + arguments + " eligibility differed from contract");
 				}
 				if (recipe.matches(CraftingInput.of(1, 1, List.of(storage)), level)) {
-					throw new IllegalStateException("Storage tier upgrade accepted malformed input");
+					throw RegressionActionFailure.assertion("Storage tier upgrade accepted malformed input");
 				}
 				if (expected) {
 					assertOutput(recipe.assemble(input), storage, arguments);
@@ -165,7 +165,7 @@ public final class AssertStorageTierUpgradeRecipeAction extends TypedRegressionA
 					|| !Objects.equals(output.get(ModCoreDataComponents.STORAGE_UUID), input.get(ModCoreDataComponents.STORAGE_UUID))
 					|| !Objects.equals(output.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT), input.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT))
 					|| output.has(ModCoreDataComponents.LINKED_STORAGE_PRIMARY_ENDPOINT) != input.has(ModCoreDataComponents.LINKED_STORAGE_PRIMARY_ENDPOINT)) {
-				throw new IllegalStateException("Storage tier upgrade did not preserve the expected storage identity");
+				throw RegressionActionFailure.assertion("Storage tier upgrade did not preserve the expected storage identity");
 			}
 		}
 	}

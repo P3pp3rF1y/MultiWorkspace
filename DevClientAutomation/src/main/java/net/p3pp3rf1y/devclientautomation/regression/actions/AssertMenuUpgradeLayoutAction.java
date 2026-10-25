@@ -63,7 +63,7 @@ public final class AssertMenuUpgradeLayoutAction extends TypedRegressionAction<A
 				if (!serverMatched) {
 					future = null;
 					return context.minecraft().player.tickCount >= deadline
-							? fail("Server upgrade columns did not match " + arguments.columns() + ": " + serverState)
+							? failAssertion("Server upgrade columns did not match " + arguments.columns() + ": " + serverState)
 							: RegressionActionProgress.WAITING;
 				}
 				if (context.minecraft().screen instanceof StorageScreenBase<?> screen
@@ -82,7 +82,7 @@ public final class AssertMenuUpgradeLayoutAction extends TypedRegressionAction<A
 					clientState = "screen=" + context.minecraft().screen + ", menu=" + context.minecraft().player.containerMenu;
 				}
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Client upgrade columns or inventory controls did not synchronize: server=" + serverState + ", client=" + clientState
+						? failAssertion("Client upgrade columns or inventory controls did not synchronize: server=" + serverState + ", client=" + clientState
 								+ (mismatch.isEmpty() ? "" : ", contents=" + mismatch))
 						: RegressionActionProgress.WAITING;
 			}

@@ -36,9 +36,9 @@ class MovingStorageActionRegistryTest {
 		assertBound(registry, "moving.probePickup", "{\"phase\":\"spawn\",\"ref\":\"secondary\",\"primaryRef\":\"primary\"}");
 		assertBound(registry, "moving.probePackedPrimary", "{\"phase\":\"paused\",\"primaryRef\":\"primary\",\"secondaryRef\":\"secondary\"}");
 		assertBound(registry, "assert.linkedStorageBlock", "{\"count\":7,\"presentation\":true}");
-		assertBound(registry, "fixture.create.mountLinkedStorage", "{\"saveAs\":\"mounted\"}");
-		assertBound(registry, "fixture.create.setMountedSlot", "{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}");
-		assertBound(registry, "assert.createMountedLinkedStorage", "{\"ref\":\"mounted\",\"count\":1}");
+		assertProxyBound(registry, "fixture.create.mountLinkedStorage", "{\"saveAs\":\"mounted\"}");
+		assertProxyBound(registry, "fixture.create.setMountedSlot", "{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}");
+		assertProxyBound(registry, "assert.createMountedLinkedStorage", "{\"ref\":\"mounted\",\"count\":1}");
 		assertBound(registry, "fixture.moving.captureNestedLinkedCarrier", "{\"ref\":\"primary\",\"saveAs\":\"nested\"}");
 		assertBound(registry, "assert.movingNestedLinkedIdentity", "{\"ref\":\"nested\"}");
 		assertBound(registry, "assert.movingStorageCompatibilityProfile", "{}");

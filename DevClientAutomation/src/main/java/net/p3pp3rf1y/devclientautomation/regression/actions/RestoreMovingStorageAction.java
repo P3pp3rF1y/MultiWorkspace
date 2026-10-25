@@ -26,6 +26,12 @@ public final class RestoreMovingStorageAction extends TypedRegressionAction<Rest
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MOVING_STORAGE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}

@@ -73,7 +73,7 @@ class FinalAssertionActionBindingTest {
 		assertThrows(IllegalArgumentException.class, () -> bind("assert.settingsSelection", "{\"display\":true,\"slot\":-1}"));
 		RegressionActionTestSupport.assertMetadata(registry.require("assert.menuUpgradeLayout"), "assert.menuUpgradeLayout",
 				Set.of("minecraft:client", "sophisticatedcore"));
-		RegressionActionTestSupport.assertMetadata(registry.require("assert.settingsSelection"), "assert.settingsSelection",
-				Set.of("minecraft:client", "sophisticatedcore"));
+		assertEquals("2", registry.require("assert.settingsSelection").metadata().revision());
+		assertEquals(Set.of("minecraft:client", "sophisticatedcore"), registry.require("assert.settingsSelection").metadata().dependencies());
 	}
 }
