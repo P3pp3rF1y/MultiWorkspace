@@ -8,24 +8,29 @@ import net.p3pp3rf1y.sophisticatedstorage.block.StorageLinkedStorageHostWrapper;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.init.ModItems;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.item.MovingStorageItem;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public final class AssertMovingStorageCompatibilityProfileAction extends TypedRegressionAction<Void> {
+public final class AssertMovingStorageCompatibilityProfileAction extends TypedRegressionAction<AssertMovingStorageCompatibilityProfileAction.Arguments> {
+	public record Arguments() {
+	}
+
 	public AssertMovingStorageCompatibilityProfileAction() {
 		super("assert.movingStorageCompatibilityProfile", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
 
 	@Override
-	protected Void parseArguments(JsonObject args, String description) {
+	protected Arguments parseArguments(JsonObject args, String description) {
 		requireNoArguments(args, description);
-		return null;
+		return new Arguments();
 	}
 
 	@Override
-	protected RegressionActionExecution start(RegressionExecutionContext context, Void arguments) {
+	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
+			@Nullable
 			private CompletableFuture<Void> future;
 
 			@Override

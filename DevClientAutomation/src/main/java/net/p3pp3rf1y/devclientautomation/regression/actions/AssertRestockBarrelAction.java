@@ -64,7 +64,8 @@ public final class AssertRestockBarrelAction extends TypedRegressionAction<Asser
 						? failAssertion("Server barrel contents did not match restock expectation")
 						: RegressionActionProgress.WAITING;
 			}
-			if (context.isExpectedMenu("storageBlock") && matches((StorageContainerMenuBase<?>) context.minecraft().player.containerMenu, arguments)) {
+			if (context.isExpectedMenu(MenuKind.STORAGE_BLOCK, null)
+					&& matches((StorageContainerMenuBase<?>) context.minecraft().player.containerMenu, arguments)) {
 				return RegressionActionProgress.PASSED;
 			}
 			return context.minecraft().player.tickCount >= deadline

@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.equine.AbstractChestedHorse;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -8,12 +9,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.phys.AABB;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupManager;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageBoat;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.StorageMinecart;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.item.MovingStorageItem;
+import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +53,7 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> future;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
@@ -59,15 +65,16 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 		public RegressionActionProgress tick() {
 			if (future == null) {
 				future = context.onServer(player -> {
-					var level = player.level();
+					ServerLevel level = player.level();
 					Entity entity = context.values().require(arguments.ref(), MovingStorageEntityHandle.class).requireServer(player);
 					IMovingStorageEntity moving = (IMovingStorageEntity) entity;
-					var endpoint = moving.getStorageItem().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
+					LinkedStorageEndpointData endpoint = moving.getStorageItem().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 					if (endpoint == null) {
 						throw new IllegalStateException("Moving storage has no linked endpoint");
 					}
-					AABB bounds = entity.getBoundingBox().inflate(3);
-					Set<UUID> before = level.getEntitiesOfClass(ItemEntity.class, bounds).stream().map(Entity::getUUID).collect(Collectors.toSet());
+					AABB dropBounds = entity.getBoundingBox().inflate(2);
+					Set<UUID> existingItemEntityIds = level.getEntitiesOfClass(ItemEntity.class, dropBounds).stream().map(Entity::getUUID)
+							.collect(Collectors.toSet());
 					boolean previousDrops = level.getGameRules().get(GameRules.ENTITY_DROPS);
 					try {
 						level.getGameRules().set(GameRules.ENTITY_DROPS, arguments.drops(), level.getServer());
@@ -83,20 +90,20 @@ public final class DestroyMovingStorageAction extends TypedRegressionAction<Dest
 						}
 					} finally {
 						try {
-							context.journal().recordNewItemDrops(level, bounds, before);
-						} finally {
 							level.getGameRules().set(GameRules.ENTITY_DROPS, previousDrops, level.getServer());
+						} finally {
+							context.journal().recordNewItemDrops(level, dropBounds, existingItemEntityIds);
 						}
 					}
 					if (!entity.isRemoved() && !(entity instanceof AbstractChestedHorse horse && !horse.isAlive())) {
 						throw new IllegalStateException("Vehicle survived destruction");
 					}
-					var drops = level.getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(2));
+					List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(2));
 					drops.removeIf(item -> {
 						ItemStack carrier = moving instanceof AbstractChestedHorse ? item.getItem() : MovingStorageItem.getStorageItem(item.getItem());
 						return !endpoint.equals(carrier.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT));
 					});
-					var manager = LinkedStorageGroupsSavedData.get(level).manager();
+					LinkedStorageGroupManager manager = LinkedStorageGroupsSavedData.get(level).manager();
 					boolean member = manager.isEndpointMember(endpoint.groupId(), endpoint.endpointId());
 					if (member != arguments.drops()) {
 						throw new IllegalStateException("Recoverable/nonrecoverable endpoint membership mismatch");

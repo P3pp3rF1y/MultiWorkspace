@@ -16,7 +16,7 @@ class AssertMenuActionTest {
 				.arguments(RegressionActionTestSupport.bind(action, "{\"item\": \"minecraft:diamond\"}"), AssertMenuAction.Arguments.class);
 
 		assertEquals(0, arguments.slot());
-		assertEquals("backpackBlock", arguments.kind());
+		assertEquals(MenuKind.BACKPACK_BLOCK, arguments.kind());
 		assertEquals("minecraft:diamond", arguments.item());
 		assertEquals(1, arguments.count());
 		assertEquals(false, arguments.playerInventory());
@@ -40,7 +40,7 @@ class AssertMenuActionTest {
 		assertEquals(true, playerSlot.playerInventory());
 		assertEquals(3, playerSlot.stableTicks());
 		assertEquals(null, playerSlot.ref());
-		assertEquals("moving",
+		assertEquals(MenuKind.MOVING,
 				RegressionActionTestSupport.arguments(
 						RegressionActionTestSupport.bind(action, "{\"kind\":\"moving\",\"ref\":\"boat\",\"item\":\"minecraft:diamond\",\"count\":1}"),
 						AssertMenuAction.Arguments.class).kind());

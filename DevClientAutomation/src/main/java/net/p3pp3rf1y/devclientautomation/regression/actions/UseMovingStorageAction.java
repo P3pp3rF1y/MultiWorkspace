@@ -63,28 +63,30 @@ public final class UseMovingStorageAction extends TypedRegressionAction<UseMovin
 				minecraft.options.keyShift.setDown(true);
 				return RegressionActionProgress.WAITING;
 			}
-			try {
-				if (minecraft.gameMode != null) {
+			if (minecraft.gameMode != null) {
+				try {
 					Entity entity = context.values().require(arguments.ref(), MovingStorageEntityHandle.class).findClient(minecraft);
 					if (entity != null) {
 						minecraft.gameMode.interact(minecraft.player, entity, new EntityHitResult(entity), InteractionHand.MAIN_HAND);
 						interactionTick = minecraft.player.tickCount;
 						return RegressionActionProgress.WAITING;
 					}
+				} catch (RuntimeException e) {
+					return releaseShiftThenFail(minecraft, failureMessage(e));
 				}
-			} catch (RuntimeException e) {
-				minecraft.options.keyShift.setDown(false);
-				String message = e.getMessage();
-				return fail(message == null ? e.toString() : message);
 			}
 			return minecraft.player.tickCount >= deadline
-					? failAfterReleasingShift(minecraft, "Moving entity " + arguments.ref() + " did not synchronize to the client")
+					? releaseShiftThenFail(minecraft, "Moving entity " + arguments.ref() + " did not synchronize to the client")
 					: RegressionActionProgress.WAITING;
 		}
 
-		private RegressionActionProgress failAfterReleasingShift(Minecraft minecraft, String message) {
+		private RegressionActionProgress releaseShiftThenFail(Minecraft minecraft, String message) {
 			minecraft.options.keyShift.setDown(false);
 			return fail(message);
+		}
+
+		private String failureMessage(RuntimeException exception) {
+			return exception.getMessage() == null ? exception.toString() : exception.getMessage();
 		}
 	}
 }

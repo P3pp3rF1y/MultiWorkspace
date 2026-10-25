@@ -12,12 +12,13 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.ClientLinkedStorageContents
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<AssertLinkedMenuDeltaAction.Arguments> {
-	public record Arguments(String kind, String ref, String baseline, String item, int count, int slot) {
+	public record Arguments(MenuKind kind, String ref, String baseline, String item, int count, int slot) {
 	}
 
 	public AssertLinkedMenuDeltaAction() {
@@ -27,12 +28,14 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("kind", "ref", "baseline", "item", "count", "slot"), description);
-		String kind = requireString(args, "kind", description);
-		if (!Set.of("moving", "mounted", "storageBlock", "backpackItem").contains(kind)) {
+		MenuKind kind = MenuKind.parse(requireString(args, "kind", description));
+		if (kind == MenuKind.BACKPACK_BLOCK) {
 			throw new IllegalArgumentException("Argument kind on " + description + " must be moving, mounted, storageBlock or backpackItem");
 		}
 		return new Arguments(kind,
-				Set.of("storageBlock", "backpackItem").contains(kind) ? "" : RegressionValueStore.requireName(requireString(args, "ref", description)),
+				kind == MenuKind.STORAGE_BLOCK || kind == MenuKind.BACKPACK_ITEM
+						? ""
+						: RegressionValueStore.requireName(requireString(args, "ref", description)),
 				RegressionValueStore.requireName(requireString(args, "baseline", description)), requireString(args, "item", description),
 				requirePositiveInt(args, "count", description), optionalNonNegativeInt(args, "slot", 0, description));
 	}
@@ -40,8 +43,8 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 	@Override
 	protected RegressionValueContract values(Arguments arguments) {
 		RegressionValueContract inputs = switch (arguments.kind()) {
-			case "moving" -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
-			case "mounted" -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
+			case MOVING -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+			case MOUNTED -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
 			default -> RegressionValueContract.EMPTY;
 		};
 		return inputs.and(RegressionValueContract.consuming(arguments.baseline(), RegressionValueTypes.MENU_BASELINE));
@@ -54,19 +57,20 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 
 	@Override
 	protected Set<String> dependencies(Arguments arguments) {
-		return Set.of("minecraft:client", switch (arguments.kind()) {
-			case "moving" -> "sophisticatedstorageinmotion";
-			case "mounted" -> "sophisticatedstoragecreateintegration";
-			case "storageBlock" -> "sophisticatedstorage";
-			case "backpackItem" -> "sophisticatedbackpacks";
-			default -> throw new IllegalStateException("Unsupported linked menu kind " + arguments.kind());
-		});
+		return switch (arguments.kind()) {
+			case MOVING -> Set.of("minecraft:client", "sophisticatedstorageinmotion");
+			case MOUNTED -> Set.of("minecraft:client", "sophisticatedstoragecreateintegration");
+			case STORAGE_BLOCK -> Set.of("minecraft:client", "sophisticatedstorage");
+			case BACKPACK_ITEM -> Set.of("minecraft:client", "sophisticatedbackpacks");
+			case BACKPACK_BLOCK -> throw new IllegalArgumentException("Unsupported linked menu kind");
+		};
 	}
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private final CaptureLinkedMenuRevisionAction.Baseline baseline;
 		private final Item item;
+		@Nullable
 		private CompletableFuture<Void> serverAssertion;
 		private boolean serverMatched;
 		private int deadline = -1;
@@ -86,7 +90,33 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 			}
 			if (serverAssertion == null) {
 				serverAssertion = context.onServer(player -> {
-					StorageContainerMenuBase<?> menu = requireMenu(player);
+					StorageContainerMenuBase<?> menu;
+					if (arguments.kind() == MenuKind.MOVING) {
+						MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
+						if (!(player.containerMenu instanceof MovingStorageContainerMenu<?> movingMenu)
+								|| movingMenu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
+							throw RegressionActionFailure.infrastructure("Expected moving menu closed on server");
+						}
+						menu = movingMenu;
+					} else if (arguments.kind() == MenuKind.MOUNTED) {
+						if (!(player.containerMenu instanceof StorageContainerMenuBase<?> mountedMenu)
+								|| !MountedLinkedStorageMenuAccess.hasMountedIdentity(context, arguments.ref(), mountedMenu)) {
+							throw RegressionActionFailure.infrastructure("Expected mounted menu closed on server");
+						}
+						menu = mountedMenu;
+					} else if (arguments.kind() == MenuKind.STORAGE_BLOCK) {
+						if (!(player.containerMenu instanceof StorageContainerMenu storageMenu)
+								|| !storageMenu.getStorageBlockEntity().getBlockPos().equals(context.target())) {
+							throw RegressionActionFailure.infrastructure("Expected storage block menu closed on server");
+						}
+						menu = storageMenu;
+					} else {
+						if (!(player.containerMenu instanceof BackpackContainer backpackMenu)
+								|| backpackMenu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
+							throw RegressionActionFailure.infrastructure("Expected held backpack menu closed on server");
+						}
+						menu = backpackMenu;
+					}
 					serverMatched = LinkedStorageGroupsSavedData.get(player.level()).manager().getRevision(baseline.groupId()) > baseline.revision()
 							&& matches(menu);
 				});
@@ -99,41 +129,44 @@ public final class AssertLinkedMenuDeltaAction extends TypedRegressionAction<Ass
 			if (!serverMatched) {
 				serverAssertion = null;
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Server linked group revision or menu slot did not change")
+						? failAssertion("Server linked group revision or menu slot did not change")
 						: RegressionActionProgress.WAITING;
 			}
 			if (ClientLinkedStorageContents.getRevision(baseline.groupId()).orElse(-1L) != baseline.revision()) {
-				return fail("Client linked group received a full snapshot instead of only a menu slot update");
+				return failAssertion("Client linked group received a full snapshot instead of only a menu slot update");
 			}
-			try {
-				return matches(requireMenu(context.minecraft().player))
-						? RegressionActionProgress.PASSED
-						: context.minecraft().player.tickCount >= deadline
-								? fail("Client menu slot did not receive the changed stack")
-								: RegressionActionProgress.WAITING;
-			} catch (IllegalStateException e) {
-				return fail(e.getMessage());
-			}
-		}
-
-		private StorageContainerMenuBase<?> requireMenu(net.minecraft.world.entity.player.Player player) {
-			if (arguments.kind().equals("moving")) {
+			StorageContainerMenuBase<?> menu;
+			if (arguments.kind() == MenuKind.MOVING) {
 				MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
-				if (player.containerMenu instanceof MovingStorageContainerMenu<?> menu
-						&& menu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isPresent()) {
-					return menu;
+				if (!(context.minecraft().player.containerMenu instanceof MovingStorageContainerMenu<?> movingMenu)
+						|| movingMenu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
+					return fail("Expected moving client menu closed before slot synchronization");
 				}
-			} else if (arguments.kind().equals("mounted")) {
-				return MountedLinkedStorageMenuAccess.requireMenu(context, arguments.ref(), player.containerMenu);
-			} else if (arguments.kind().equals("storageBlock")) {
-				if (player.containerMenu instanceof StorageContainerMenu menu && menu.getStorageBlockEntity().getBlockPos().equals(context.target())) {
-					return menu;
+				menu = movingMenu;
+			} else if (arguments.kind() == MenuKind.MOUNTED) {
+				if (!(context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> mountedMenu)
+						|| !MountedLinkedStorageMenuAccess.hasMountedIdentity(context, arguments.ref(), mountedMenu)) {
+					return fail("Expected mounted client menu closed before slot synchronization");
 				}
-			} else if (player.containerMenu instanceof BackpackContainer menu
-					&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK) {
-				return menu;
+				menu = mountedMenu;
+			} else if (arguments.kind() == MenuKind.STORAGE_BLOCK) {
+				if (!(context.minecraft().player.containerMenu instanceof StorageContainerMenu storageMenu)
+						|| !storageMenu.getStorageBlockEntity().getBlockPos().equals(context.target())) {
+					return fail("Expected storage block client menu closed before slot synchronization");
+				}
+				menu = storageMenu;
+			} else {
+				if (!(context.minecraft().player.containerMenu instanceof BackpackContainer backpackMenu)
+						|| backpackMenu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK) {
+					return fail("Expected held backpack client menu closed before slot synchronization");
+				}
+				menu = backpackMenu;
 			}
-			throw new IllegalStateException("Expected " + arguments.kind() + " menu closed before slot synchronization");
+			return matches(menu)
+					? RegressionActionProgress.PASSED
+					: context.minecraft().player.tickCount >= deadline
+							? failAssertion("Client menu slot did not receive the changed stack")
+							: RegressionActionProgress.WAITING;
 		}
 
 		private boolean matches(StorageContainerMenuBase<?> menu) {

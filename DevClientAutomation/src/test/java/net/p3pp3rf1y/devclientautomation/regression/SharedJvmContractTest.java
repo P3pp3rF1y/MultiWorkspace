@@ -270,6 +270,24 @@ class SharedJvmContractTest {
 	}
 
 	@Test
+	void rerunCommandPreservesDirectHttpRequestOptionsWithoutFrontendContext() {
+		JsonObject request = json("""
+				{"suiteId":"backpack-pickup","testId":"basic-pickup-allows-diamond",
+				"conformanceFailureAction":"backpack.configurePickup","actionFailureAfter":"fixture.itemEntity.spawn",
+				"preparationToken":"token'quoted","cleanupFailure":true}
+				""");
+
+		String command = RegressionEndpoints.rerunCommand(request, 49184);
+
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run"
+				+ " -Suite 'backpack-pickup' -Test 'basic-pickup-allows-diamond' -BaseUrl 'http://127.0.0.1:49184'"
+				+ " -ConformanceFailureAction 'backpack.configurePickup' -ActionFailureAfter 'fixture.itemEntity.spawn'"
+				+ " -PreparationToken 'token''quoted' -CleanupFailure", command);
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run -Suite 'test' -Test 'case' -BaseUrl 'http://127.0.0.1:1234'",
+				RegressionEndpoints.rerunCommand(json("{\"suiteId\":\"test\",\"testId\":\"case\"}"), 1234));
+	}
+
+	@Test
 	void idleStatusEndpointSerializationHasRunnerTimingFields() {
 		var json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionResultModel.RunStatus.idle())).getAsJsonObject();
 		assertEquals(0, json.get("durationMillis").getAsDouble());
@@ -288,6 +306,20 @@ class SharedJvmContractTest {
 		assertTrue(RegressionCoordinator.qualify(suite, moving, "", available).stream().allMatch(RegressionResultModel.ConformanceResult::passed));
 		assertEquals(List.of("sophisticatedstoragecreateintegration"), RegressionCoordinator.qualify(suite, mounted, "", available).stream()
 				.filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
+	}
+
+	@Test
+	void qualifyDelegatesModCapabilitiesToTheSuppliedAvailabilityLookup() {
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		RegressionTest storage = test("storage",
+				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"storageBlock\",\"saveAs\":\"baseline\"}"), "storage"));
+		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client", "sophisticatedbackpacks"), "testCell", List.of(storage));
+
+		List<RegressionResultModel.ConformanceResult> results = RegressionCoordinator.qualify(suite, storage, "",
+				dependency -> dependency.equals("minecraft:client"));
+
+		assertEquals(List.of("sophisticatedbackpacks", "sophisticatedstorage"),
+				results.stream().filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
 	private static RegressionTest test(String id, RegressionActionInvocation invocation) {

@@ -57,7 +57,7 @@ public final class AssertHeldBackpackFilterAction extends TypedRegressionAction<
 
 		@Override
 		public RegressionActionProgress tick() {
-			if (!context.isExpectedMenu("backpackItem")) {
+			if (!context.isExpectedMenu(MenuKind.BACKPACK_ITEM, null)) {
 				return fail("Expected held-backpack item menu is not open");
 			}
 			if (deadline < 0) {

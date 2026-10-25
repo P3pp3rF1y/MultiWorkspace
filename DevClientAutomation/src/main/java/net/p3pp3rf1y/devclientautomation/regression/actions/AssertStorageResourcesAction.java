@@ -67,7 +67,7 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 								: entity.getCapability(Capabilities.Energy.ENTITY, Direction.UP);
 						if (!arguments.present()) {
 							if (fluid != null || energy != null) {
-								throw new IllegalStateException("Endpoint unexpectedly exposes fluid or energy");
+								throw RegressionActionFailure.assertion("Endpoint unexpectedly exposes fluid or energy");
 							}
 							return;
 						}
@@ -75,7 +75,7 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 								? ((StorageBlockEntity) player.level().getBlockEntity(context.target())).getLinkedStorageEndpointData()
 								: ((IMovingStorageEntity) entity).getStorageItem().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 						if (endpoint == null) {
-							throw new IllegalStateException("Resource endpoint has no linked group");
+							throw RegressionActionFailure.infrastructure("Resource endpoint has no linked group");
 						}
 						context.putDiagnostic("linkedGroup", endpoint.groupId().toString());
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.level()).manager().resolveVirtualHost(endpoint, false)
@@ -84,17 +84,17 @@ public final class AssertStorageResourcesAction extends TypedRegressionAction<As
 								? filtered.fluidHandler()
 								: fluid;
 						if (canonicalFluid != host.getFluidHandler().orElse(null) || energy != host.getEnergyHandler().orElse(null)) {
-							throw new IllegalStateException("Endpoint capabilities are not the canonical non-item handlers");
+							throw RegressionActionFailure.assertion("Endpoint capabilities are not the canonical non-item handlers");
 						}
 						if (fluid == null || energy == null || fluid.size() == 0 || fluid.getAmountAsLong(0) != arguments.fluid()
 								|| energy.getAmountAsLong() != arguments.energy()) {
-							throw new IllegalStateException("Unexpected canonical fluid/energy amounts");
+							throw RegressionActionFailure.assertion("Unexpected canonical fluid/energy amounts");
 						}
 						RenderData render = entity == null
 								? ((StorageBlockEntity) player.level().getBlockEntity(context.target())).getStorageWrapper().getRenderDataHandler().getData()
 								: ((IMovingStorageEntity) entity).getStorageItem().getOrDefault(ModCoreDataComponents.RENDER_DATA, RenderData.EMPTY);
 						if (!render.tanks().isEmpty() || render.battery().isPresent()) {
-							throw new IllegalStateException("Storage endpoint contains tank or battery render projection");
+							throw RegressionActionFailure.assertion("Storage endpoint contains tank or battery render projection");
 						}
 					});
 				}

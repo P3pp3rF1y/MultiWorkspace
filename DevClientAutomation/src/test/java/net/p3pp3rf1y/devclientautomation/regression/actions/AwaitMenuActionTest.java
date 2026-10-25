@@ -16,7 +16,7 @@ class AwaitMenuActionTest {
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), AwaitMenuAction.Arguments.class).timeoutTicks());
 		assertEquals(40, RegressionActionTestSupport
 				.arguments(RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": 40}"), AwaitMenuAction.Arguments.class).timeoutTicks());
-		assertEquals("backpackBlock",
+		assertEquals(MenuKind.BACKPACK_BLOCK,
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), AwaitMenuAction.Arguments.class).kind());
 		assertEquals("await.menu", action.metadata().id());
 		assertEquals("2", action.metadata().revision());

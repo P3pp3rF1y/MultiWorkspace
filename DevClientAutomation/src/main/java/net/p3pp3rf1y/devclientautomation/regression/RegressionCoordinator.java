@@ -16,6 +16,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionFail
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionMetadata;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionProgress;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionExecutionContext;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,10 +37,12 @@ public final class RegressionCoordinator {
 	private static final String SUITE_INDEX_RESOURCE = "/devclientautomation/regressions/index.json";
 	private static final Set<String> RUNTIME_CAPABILITIES = Set.of("minecraft:client");
 	private static final RegressionActionRegistry ACTIONS = new RegressionActionRegistry();
+	@Nullable
 	private static RegressionCoordinator instance;
 	private final Predicate<String> available;
 	private final Supplier<Map<String, RegressionSuite>> suiteSource;
 
+	@Nullable
 	private RunState run;
 
 	private RegressionCoordinator() {
@@ -70,7 +73,7 @@ public final class RegressionCoordinator {
 	}
 
 	public synchronized RunStatus start(String suiteId, String testId, String conformanceFailureAction) {
-		return start(suiteId, testId, conformanceFailureAction, "", false, "");
+		return start(suiteId, testId, conformanceFailureAction, "", false);
 	}
 
 	public synchronized RunStatus start(String suiteId, String testId, String conformanceFailureAction, String actionFailureAfter, boolean cleanupFailure) {
@@ -154,6 +157,7 @@ public final class RegressionCoordinator {
 			try {
 				current.tick();
 			} catch (RuntimeException e) {
+				// Lifecycle boundary: retain the exception and still restore journaled mutations.
 				current.fail(Outcome.ERROR, RegressionResultModel.Failure.exception("unexpectedException", e));
 			}
 		}
@@ -199,10 +203,6 @@ public final class RegressionCoordinator {
 		return results;
 	}
 
-	private static boolean isAvailable(String requirement) {
-		return RUNTIME_CAPABILITIES.contains(requirement) || NeoForgeLoadedModLookup.isLoaded(requirement);
-	}
-
 	private static void qualifyActions(List<ConformanceResult> results, RegressionTest test, String forcedFailure, Predicate<String> capabilityAvailable) {
 		for (RegressionStep step : executionSteps(test)) {
 			RegressionActionMetadata metadata = step.action().action().metadata();
@@ -212,6 +212,10 @@ public final class RegressionCoordinator {
 						metadata.id() + " revision " + metadata.revision()));
 			}
 		}
+	}
+
+	private static boolean isAvailable(String requirement) {
+		return RUNTIME_CAPABILITIES.contains(requirement) || NeoForgeLoadedModLookup.isLoaded(requirement);
 	}
 
 	private static List<RegressionStep> executionSteps(RegressionTest test) {
@@ -235,21 +239,28 @@ public final class RegressionCoordinator {
 		private final String actionFailureAfter;
 		private final boolean forcedCleanupFailure;
 		private final long startedNanos = System.nanoTime();
+		@Nullable
 		private RegressionExecutionContext executionContext;
 		private String preparationToken = "";
+		@Nullable
 		private RegressionTest activeTest;
 		private List<RegressionStep> activeExecutionSteps = List.of();
 		private final List<StepResult> activeSteps = new ArrayList<>();
 		private int stepIndex;
+		@Nullable
 		private RegressionStep activeStep;
+		@Nullable
 		private RegressionActionExecution activeAction;
+		@Nullable
 		private CompletableFuture<Void> journalPreparation;
+		@Nullable
 		private CompletableFuture<Void> cleanupFuture;
 		private boolean cancelRequested;
+		@Nullable
 		private Outcome terminalOutcome;
 		private String primaryFailure = "";
-		private RegressionResultModel.Failure failure;
-		private RegressionResultModel.Failure cleanupError;
+		private RegressionResultModel.@Nullable Failure failure;
+		private RegressionResultModel.@Nullable Failure cleanupError;
 		private long cleanupStartedNanos;
 		private String primaryOutcome = "running";
 		private String primaryCategory = "";
@@ -451,7 +462,7 @@ public final class RegressionCoordinator {
 			message = detail;
 		}
 
-		void fail(String failure) {
+		void fail(@Nullable String failure) {
 			fail(Outcome.FAILED,
 					RegressionResultModel.Failure.message("assertion", failure == null || failure.isBlank() ? "Regression action failed" : failure));
 		}
@@ -468,7 +479,7 @@ public final class RegressionCoordinator {
 			terminate(desiredOutcome, detail.message());
 		}
 
-		private StepResult stepResult(String stepOutcome, String stepCategory, String detail, RegressionResultModel.Failure exception) {
+		private StepResult stepResult(String stepOutcome, String stepCategory, String detail, RegressionResultModel.@Nullable Failure exception) {
 			RegressionActionMetadata metadata = activeStep.action().action().metadata();
 			return new StepResult(activeStep.id(), metadata.id(), stepOutcome, detail, elapsedMillis(activeActionStartedNanos, System.nanoTime()),
 					metadata.revision(), stepCategory, activeStep.provenance(), activeAction == null ? Map.of() : activeAction.expectedActual(), exception);

@@ -60,7 +60,7 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 						}
 						if (arguments.controller()) {
 							BlockPos controllerPos = main.getControllerPos()
-									.orElseThrow(() -> new IllegalStateException("Double chest did not connect to its controller"));
+									.orElseThrow(() -> RegressionActionFailure.assertion("Double chest did not connect to its controller"));
 							if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntityBase controller)
 									|| !controller.getStoragePositions().equals(List.of(main.getBlockPos()))
 									|| controller.size() != main.getStorageWrapper().getInventoryForInputOutput().size()) {
