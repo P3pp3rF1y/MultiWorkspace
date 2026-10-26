@@ -31,6 +31,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventor
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBarrelAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSettingsSelectionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSortModeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertStorageResourcesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUnlinkedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitBackpackBlockAction;
@@ -51,6 +52,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ClickCapturedMobActi
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickMenuSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickSettingsControlAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ClickSortControlAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageMenuSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageSettingsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CloseMenuAction;
@@ -129,6 +131,8 @@ public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
+		register(new ClickSortControlAction());
+		register(new AssertSortModeAction());
 		register(new ClickStorageSettingsAction());
 		register(new ClickSettingsControlAction());
 		register(lazyJeiAction());
