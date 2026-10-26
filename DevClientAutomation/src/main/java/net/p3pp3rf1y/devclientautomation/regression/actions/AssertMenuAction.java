@@ -9,12 +9,13 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertMenuAction extends TypedRegressionAction<AssertMenuAction.Arguments> {
-	public record Arguments(String kind, int slot, String item, int count, boolean playerInventory, int stableTicks, String ref) {
+	public record Arguments(MenuKind kind, int slot, String item, int count, boolean playerInventory, int stableTicks, @Nullable String ref) {
 	}
 
 	public AssertMenuAction() {
@@ -24,17 +25,24 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("kind", "slot", "item", "count", "playerInventory", "stableTicks", "ref"), description);
-		String kind = optionalString(args, "kind", "backpackBlock", description);
-		if (!Set.of("backpackBlock", "backpackItem", "storageBlock", "moving").contains(kind)) {
+		MenuKind kind = MenuKind.parse(optionalString(args, "kind", "backpackBlock", description));
+		if (kind == MenuKind.MOUNTED) {
 			throw new IllegalArgumentException("Argument kind on " + description + " must be backpackBlock, backpackItem, or storageBlock");
 		}
-		if (kind.equals("moving") != args.has("ref")) {
+		if (kind == MenuKind.MOVING != args.has("ref")) {
 			throw new IllegalArgumentException("Argument ref on " + description + " is required exactly for moving menus");
 		}
 		return new Arguments(kind, optionalNonNegativeInt(args, "slot", 0, description), requireString(args, "item", description),
 				optionalNonNegativeInt(args, "count", 1, description), optionalBoolean(args, "playerInventory", false, description),
 				optionalNonNegativeInt(args, "stableTicks", 0, description),
-				kind.equals("moving") ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null);
+				kind == MenuKind.MOVING ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null);
+	}
+
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.kind() == MenuKind.MOVING
+				? RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				: RegressionValueContract.EMPTY;
 	}
 
 	@Override
@@ -44,11 +52,11 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> serverAssertion;
 		private boolean serverMatched;
-		private String serverInventory;
 		private int deadline = -1;
-		private int matchedSince = -1;
+		private int stableSince = -1;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
@@ -62,13 +70,9 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 				deadline = minecraft.player.tickCount + 100;
 			}
 			if (serverAssertion == null) {
-				serverAssertion = context.onServer(player -> {
-					serverMatched = AwaitMenuAction.matchesServerMenu(player, arguments.kind(), arguments.ref(), context)
-							&& player.containerMenu instanceof StorageContainerMenuBase<?> menu && matchesStack(menu);
-					if (!serverMatched && arguments.playerInventory() && player.containerMenu instanceof StorageContainerMenuBase<?> menu) {
-						serverInventory = describeInventory(menu);
-					}
-				});
+				serverAssertion = context
+						.onServer(player -> serverMatched = AwaitMenuAction.matchesServerMenu(player, arguments.kind(), arguments.ref(), context)
+								&& player.containerMenu instanceof StorageContainerMenuBase<?> menu && matchesStack(menu));
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress server = await(serverAssertion);
@@ -77,29 +81,29 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 			}
 			if (!serverMatched) {
 				serverAssertion = null;
-				matchedSince = -1;
+				stableSince = -1;
 				return minecraft.player.tickCount >= deadline
-						? fail("Server menu did not receive the expected item stack" + (serverInventory == null ? "" : "; inventory=" + serverInventory))
+						? failAssertion("Server menu did not receive the expected item stack")
 						: RegressionActionProgress.WAITING;
 			}
 			if (!context.isExpectedMenu(arguments.kind(), arguments.ref())) {
-				matchedSince = -1;
+				stableSince = -1;
 				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
 						? fail("Expected " + arguments.kind() + " menu closed before client synchronization")
 						: RegressionActionProgress.WAITING;
 			}
 			if (!matchesStack((StorageContainerMenuBase<?>) minecraft.player.containerMenu)) {
-				matchedSince = -1;
+				stableSince = -1;
 				serverAssertion = null;
 				return minecraft.player.tickCount >= deadline
-						? fail("Client menu did not synchronize the expected item stack")
+						? failAssertion("Client menu did not synchronize the expected item stack")
 						: RegressionActionProgress.WAITING;
 			}
-			if (matchedSince < 0) {
-				matchedSince = minecraft.player.tickCount;
+			if (stableSince < 0) {
+				stableSince = minecraft.player.tickCount;
 			}
-			if (minecraft.player.tickCount - matchedSince >= arguments.stableTicks()) {
+			if (minecraft.player.tickCount - stableSince >= arguments.stableTicks()) {
 				return RegressionActionProgress.PASSED;
 			}
 			serverAssertion = null;
@@ -107,31 +111,18 @@ public final class AssertMenuAction extends TypedRegressionAction<AssertMenuActi
 		}
 
 		private boolean matchesStack(StorageContainerMenuBase<?> menu) {
+			if (!arguments.playerInventory() && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
+				throw RegressionActionFailure
+						.infrastructure("Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
+			}
+			ItemStack stack;
 			if (arguments.playerInventory()) {
-				return menu.slots.stream().filter(slot -> slot.container instanceof Inventory && slot.getContainerSlot() == arguments.slot()).findFirst()
-						.map(Slot::getItem).map(this::matchesStack)
-						.orElseThrow(() -> new IllegalStateException("Menu has no player inventory slot " + arguments.slot()));
+				stack = menu.slots.stream().filter(slot -> slot.container instanceof Inventory && slot.getContainerSlot() == arguments.slot()).findFirst()
+						.map(Slot::getItem).orElseThrow(() -> RegressionActionFailure.infrastructure("Menu has no player inventory slot " + arguments.slot()));
+			} else {
+				stack = menu.getSlot(arguments.slot()).getItem();
 			}
-			if (arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
-				throw new IllegalStateException(
-						"Menu has " + menu.getNumberOfStorageInventorySlots() + " storage slots; cannot assert slot " + arguments.slot());
-			}
-			return matchesStack(menu.getSlot(arguments.slot()).getItem());
-		}
-
-		private boolean matchesStack(ItemStack stack) {
 			return arguments.count() == 0 ? stack.isEmpty() : stack.is(itemForId(arguments.item())) && stack.getCount() == arguments.count();
-		}
-
-		private static String describeInventory(StorageContainerMenuBase<?> menu) {
-			StringBuilder result = new StringBuilder();
-			for (int i = menu.getNumberOfStorageInventorySlots(); i < menu.getInventorySlotsSize(); i++) {
-				ItemStack stack = menu.getSlot(i).getItem();
-				if (!stack.isEmpty()) {
-					result.append(i).append('=').append(stack).append(' ');
-				}
-			}
-			return result.toString();
 		}
 
 		private static Item itemForId(String itemId) {

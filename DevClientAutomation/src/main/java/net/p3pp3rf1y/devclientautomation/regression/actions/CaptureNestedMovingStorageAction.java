@@ -13,23 +13,24 @@ import java.util.concurrent.CompletableFuture;
 public final class CaptureNestedMovingStorageAction extends TypedRegressionAction<CaptureNestedMovingStorageAction.Arguments> {
 	public record Arguments(String ref, String saveAs) {
 	}
-
 	public CaptureNestedMovingStorageAction() {
 		super("fixture.moving.captureNestedLinkedCarrier", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("ref", "saveAs"), description);
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "ref", description)),
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)));
 	}
-
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.NESTED_STORAGE));
+	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
-
 			@Override
 			public RegressionActionProgress tick() {
 				if (future == null) {

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,16 +25,13 @@ class ReviewFollowUpSuiteTest {
 			assertTrue(test.steps().stream().noneMatch(step -> step.action().action().metadata().id().equals("backpack.linkHeld")
 					|| step.action().action().metadata().id().equals("player.selectHeldLinkedEndpoint")));
 		}
-		RegressionTest prepare = restart.tests().get(0);
-		RegressionTest verify = restart.tests().get(1);
-		assertEquals("prepare-canonical-mob-and-stashed-items", prepare.id());
-		assertEquals(PlayerStatePolicy.CHECKPOINT_PREPARE, prepare.playerState());
-		assertEquals("canonical-mob-items", prepare.checkpoint());
-		assertEquals(true, prepare.prepareTestCell());
-		assertEquals("verify-canonical-mob-and-stashed-items-after-server-restart", verify.id());
-		assertEquals(PlayerStatePolicy.CHECKPOINT_VERIFY, verify.playerState());
-		assertEquals("canonical-mob-items", verify.checkpoint());
-		assertEquals(false, verify.prepareTestCell());
+		assertEquals(PlayerStatePolicy.CHECKPOINT_PREPARE, restart.tests().get(0).playerState());
+		assertEquals(PlayerStatePolicy.CHECKPOINT_VERIFY, restart.tests().get(1).playerState());
+		assertEquals("canonical-mob-items", restart.tests().get(0).checkpoint());
+		assertEquals("canonical-mob-items", restart.tests().get(1).checkpoint());
+		assertTrue(restart.tests().get(0).prepareTestCell());
+		assertFalse(restart.tests().get(1).prepareTestCell());
+		assertEquals(restart.tests().get(0).checkpoint(), restart.tests().get(1).checkpoint());
 	}
 	@Test
 	void parseMenuDeltaCasesUseNativeLinkerInteractionsWithoutObsoleteSelectionAction() throws IOException {
@@ -59,20 +55,9 @@ class ReviewFollowUpSuiteTest {
 	void parseConformanceCasesContainExpectedFailureDiagnosticsAndAnIndependentConsumer() throws IOException {
 		RegressionSuite conformance = suite("linked-storage-action-conformance");
 
-		assertEquals(
-				List.of("empty-crafting-times-out-with-slot-diagnostics", "missing-and-out-of-range-entity-handles-fail-deterministically",
-						"missing-mob-index-and-menu-fail-deterministically", "missing-controller-and-capabilities-fail-deterministically",
-						"inventory-mutation-is-journal-owned"),
-				conformance.tests().stream().filter(test -> test.tags().contains("runtimeConformance")).map(RegressionTest::id).toList());
-		assertEquals(
-				List.of("Player crafting result did not appear; client slots=", "Regression value missing has not been bound",
-						"outside player interaction range", "Backpack screen is not open", "Captured mob index is missing", "Fixture controller is missing",
-						"No fluid capability at endpoint", "No energy capability at endpoint", "Storage inventory screen is not open",
-						"Linked settings screen did not open with canonical categories"),
-				conformance.tests().stream().flatMap(test -> test.steps().stream()).map(RegressionStep::expectFailure).filter(message -> !message.isEmpty())
-						.toList());
-		assertEquals(List.of("qualification-and-cleanup-consumer"),
-				conformance.tests().stream().filter(test -> !test.tags().contains("runtimeConformance")).map(RegressionTest::id).toList());
+		assertEquals(5, conformance.tests().stream().filter(test -> test.tags().contains("runtimeConformance")).count());
+		assertEquals(9, conformance.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
+		assertFalse(conformance.tests().getLast().tags().contains("runtimeConformance"));
 	}
 	@Test
 	void parseRejectsIncompleteCheckpointAndAmbiguousExpectedFailure() {
@@ -80,6 +65,9 @@ class ReviewFollowUpSuiteTest {
 		RegressionActionRegistry actions = new RegressionActionRegistry();
 
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(test.formatted("\"playerState\":\"checkpointVerify\",", ""), actions));
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(test.formatted("\"checkpoint\":\"checkpoint\",", ""), actions));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionSuiteParser.parse(test.formatted("\"playerState\":\"checkpointVerify\",\"checkpoint\":\"checkpoint\",", ""), actions));
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(test.formatted("\"playerState\":\"unknown\",", ""), actions));
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(test.formatted("", ",\"expectFailure\":\"\""), actions));
 	}

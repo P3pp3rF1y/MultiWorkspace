@@ -11,6 +11,7 @@ import net.p3pp3rf1y.sophisticatedstorage.client.gui.StorageScreen;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.client.gui.MovingStorageScreen;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.UUID;
@@ -21,7 +22,9 @@ public final class RegressionExecutionContext {
 	private final String runId;
 	private final Map<String, Object> diagnostics;
 	private final RegressionValueStore values = new RegressionValueStore();
+	@Nullable
 	private BlockPos support;
+	@Nullable
 	private RegressionMutationJournal journal;
 	private PlayerStatePolicy playerState = PlayerStatePolicy.ISOLATED;
 	private String checkpoint = "";
@@ -122,32 +125,29 @@ public final class RegressionExecutionContext {
 		diagnostics.put(name, value);
 	}
 
+	@Nullable
 	public Object getDiagnostic(String name) {
 		return diagnostics.get(name);
 	}
 
-	public boolean isExpectedMenu(String kind, String ref) {
+	public boolean isExpectedMenu(MenuKind kind, @Nullable String ref) {
 		Minecraft minecraft = minecraft();
 		if (minecraft.player == null) {
 			return false;
 		}
 		return switch (kind) {
-			case "backpackBlock" -> minecraft.gui.screen() instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
+			case MOUNTED -> false;
+			case BACKPACK_BLOCK -> minecraft.gui.screen() instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
 					&& menu.getBackpackContext().getType() == BackpackContext.ContextType.BLOCK_BACKPACK
 					&& menu.getBlockPosition().filter(target()::equals).isPresent();
-			case "backpackItem" -> minecraft.gui.screen() instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
+			case BACKPACK_ITEM -> minecraft.gui.screen() instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
 					&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK && menu.getBlockPosition().isEmpty();
-			case "storageBlock" -> minecraft.gui.screen() instanceof StorageScreen && minecraft.player.containerMenu instanceof StorageContainerMenu menu
+			case STORAGE_BLOCK -> minecraft.gui.screen() instanceof StorageScreen && minecraft.player.containerMenu instanceof StorageContainerMenu menu
 					&& menu.getBlockPosition().filter(target()::equals).isPresent();
-			case "moving" ->
+			case MOVING ->
 				minecraft.gui.screen() instanceof MovingStorageScreen && minecraft.player.containerMenu instanceof MovingStorageContainerMenu<?> menu && menu
 						.getStorageEntity().filter(entity -> entity == values.require(ref, MovingStorageEntityHandle.class).findClient(minecraft)).isPresent();
-			default -> throw new IllegalArgumentException("Unknown menu kind " + kind);
 		};
-	}
-
-	public boolean isExpectedMenu(String kind) {
-		return isExpectedMenu(kind, null);
 	}
 
 	private static Map<String, Integer> position(BlockPos position) {

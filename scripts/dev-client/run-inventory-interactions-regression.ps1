@@ -43,13 +43,10 @@ function Stop-AutomationClient {
 }
 
 function Wait-AutomationClientStopped {
-    if ($clientProcessId -le 0) {
-        return
-    }
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
         Start-Sleep -Milliseconds 500
-        if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
             return
         }
     } while ((Get-Date) -lt $deadline)
@@ -57,7 +54,7 @@ function Wait-AutomationClientStopped {
 }
 
 $startedClient = $false
-$clientProcessId = 0
+$clientProcessId = $null
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
@@ -72,6 +69,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 

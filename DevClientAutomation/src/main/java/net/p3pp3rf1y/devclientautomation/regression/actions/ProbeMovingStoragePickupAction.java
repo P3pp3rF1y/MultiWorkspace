@@ -18,11 +18,9 @@ import java.util.concurrent.CompletableFuture;
 public final class ProbeMovingStoragePickupAction extends TypedRegressionAction<ProbeMovingStoragePickupAction.Arguments> {
 	public record Arguments(String phase, String ref, String primaryRef) {
 	}
-
 	public ProbeMovingStoragePickupAction() {
 		super("moving.probePickup", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("phase", "ref", "primaryRef"), description);
@@ -33,22 +31,23 @@ public final class ProbeMovingStoragePickupAction extends TypedRegressionAction<
 		return new Arguments(phase, RegressionValueStore.requireName(requireString(args, "ref", description)),
 				RegressionValueStore.requireName(requireString(args, "primaryRef", description)));
 	}
-
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.primaryRef(), RegressionValueTypes.MOVING_STORAGE));
+	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
-
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private CompletableFuture<Void> future;
 		private int startTick = -1;
-
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
 			this.arguments = arguments;
 		}
-
 		@Override
 		public RegressionActionProgress tick() {
 			if (startTick < 0) {

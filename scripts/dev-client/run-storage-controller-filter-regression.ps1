@@ -5,9 +5,9 @@ param(
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime,
     [switch]$Jfr,
+    [switch]$ManualDeposit,
     [int]$Runs = 0
 )
 
@@ -50,13 +50,10 @@ function Stop-AutomationClient {
 }
 
 function Wait-AutomationClientStopped {
-    if ($clientProcessId -le 0) {
-        return
-    }
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
         Start-Sleep -Milliseconds 500
-        if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
             return
         }
     } while ((Get-Date) -lt $deadline)
@@ -64,20 +61,17 @@ function Wait-AutomationClientStopped {
 }
 
 $startedClient = $false
-$clientProcessId = 0
+$clientProcessId = $null
 $jfrStarted = $false
 
 if ($Runs -le 0) {
-    $Runs = if ($Jfr) { 1000 } else { 1 }
+    $Runs = if ($Jfr -or $ManualDeposit) { 1000 } else { 1 }
 }
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if ($MinimalRuntime) {
             $readyArgs.MinimalRuntime = $true
         }
@@ -87,6 +81,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
 
@@ -99,7 +94,8 @@ try {
         $jfrStarted = $true
         Write-Host "JFR recording start command dispatched."
 
-        $profileResult = Invoke-BridgeJson -Method Post -Path "/storage/controller-filter-regressions" -Body @{ mode = "profile"; runs = $Runs }
+        $profileMode = if ($ManualDeposit) { "manualDepositProfile" } else { "profile" }
+        $profileResult = Invoke-BridgeJson -Method Post -Path "/storage/controller-filter-regressions" -Body @{ mode = $profileMode; runs = $Runs }
         Assert-True $profileResult.ok "Storage controller filter profile failed: $($profileResult | ConvertTo-Json -Compress -Depth 16)"
 
         Invoke-BridgeJson -Method Post -Path "/command" -Body @{ command = "jfr stop" } | Out-Null
@@ -119,6 +115,24 @@ try {
             setup = $setupResult
             profile = $profileResult
             verify = $verifyResult
+        }
+        return
+    }
+
+    if ($ManualDeposit) {
+        $setupResult = Invoke-BridgeJson -Method Post -Path "/storage/controller-filter-regressions" -Body @{ mode = "setup"; profileCapacity = $true }
+        Assert-True $setupResult.ok "Storage controller filter setup failed: $($setupResult | ConvertTo-Json -Compress -Depth 16)"
+        $profileResult = Invoke-BridgeJson -Method Post -Path "/storage/controller-filter-regressions" -Body @{ mode = "manualDepositProfile"; runs = $Runs }
+        Assert-True $profileResult.ok "Storage controller filter manual deposit profile failed: $($profileResult | ConvertTo-Json -Compress -Depth 16)"
+        Write-Host "PASS storage_controller_filter_manual_deposit: $($profileResult.insertCalls) deposit calls, $($profileResult.itemsInserted) items, deposit=$($profileResult.insertMillis)ms"
+
+        [pscustomobject]@{
+            ok = $true
+            baseUrl = $BaseUrl
+            jfr = $false
+            runs = $Runs
+            setup = $setupResult
+            profile = $profileResult
         }
         return
     }

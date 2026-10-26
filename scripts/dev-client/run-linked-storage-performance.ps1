@@ -5,7 +5,6 @@ param(
     [string]$BaseUrl = "",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime,
     [switch]$Jfr,
     [string]$JfrOutputDirectory = "$WorkspaceRoot\DevClientAutomation\build\reports\linked-storage-performance",
@@ -98,13 +97,13 @@ try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MaximizeClient) { $readyArgs.Maximize = $true }
         if ($MinimalRuntime) { $readyArgs.MinimalRuntime = $true }
         $ready = & "$PSScriptRoot\start-and-ready.ps1" @readyArgs
         $BaseUrl = $ready.baseUrl
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
     $magnet = Invoke-PerformancePhase -Workload "magnet"

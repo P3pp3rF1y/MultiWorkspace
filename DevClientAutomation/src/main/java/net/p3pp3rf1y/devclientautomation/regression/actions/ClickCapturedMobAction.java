@@ -47,8 +47,8 @@ public final class ClickCapturedMobAction extends TypedRegressionAction<ClickCap
 					return fail("Captured mob index is missing");
 				}
 				Slot slot = menu.getSlot(mobs.get(arguments.index()).slot());
-				double x = screen.getGuiLeft() + slot.x + 8;
-				double y = screen.getGuiTop() + slot.y + 8;
+				double x = screen.getLeftPos() + slot.x + 8;
+				double y = screen.getTopPos() + slot.y + 8;
 				screen.mouseMoved(x, y);
 				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 				screen.mouseClicked(event, false);

@@ -18,9 +18,11 @@ import java.util.concurrent.CompletableFuture;
 public final class SpawnMovingStorageAction extends TypedRegressionAction<SpawnMovingStorageAction.Arguments> {
 	public record Arguments(String kind, int offsetX, String storageItem, String saveAs) {
 	}
+
 	public SpawnMovingStorageAction() {
 		super("fixture.moving.spawn", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
+
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("kind", "offsetX", "storageItem", "saveAs"), description);
@@ -32,17 +34,26 @@ public final class SpawnMovingStorageAction extends TypedRegressionAction<SpawnM
 				optionalString(args, "storageItem", "sophisticatedstorage:barrel", description),
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)));
 	}
+
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
+
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private CompletableFuture<Void> future;
+
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
 			this.arguments = arguments;
 		}
+
 		@Override
 		public RegressionActionProgress tick() {
 			if (future == null) {
@@ -62,12 +73,12 @@ public final class SpawnMovingStorageAction extends TypedRegressionAction<SpawnM
 							throw new IllegalStateException("Failed to create llama");
 						}
 						llama.setTamed(true);
-						llama.snapTo(pos.getX() + .5, pos.getY(), pos.getZ() + .5, 0, 0);
+						llama.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
 						moving = (IMovingStorageEntity) llama;
 					} else {
 						moving = arguments.kind().equals("boat")
-								? new StorageBoat(player.level(), pos.getX() + .5, pos.getY(), pos.getZ() + .5)
-								: new StorageMinecart(player.level(), pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+								? new StorageBoat(player.level(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5)
+								: new StorageMinecart(player.level(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
 						var storageItem = BuiltInRegistries.ITEM.getOptional(Identifier.parse(arguments.storageItem()))
 								.orElseThrow(() -> new IllegalArgumentException("Unknown storage item " + arguments.storageItem()));
 						moving.getStorageHolder().setStorageItemFrom(new ItemStack(storageItem), true);

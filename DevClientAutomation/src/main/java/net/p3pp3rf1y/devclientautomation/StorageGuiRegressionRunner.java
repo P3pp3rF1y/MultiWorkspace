@@ -447,8 +447,8 @@ final class StorageGuiRegressionRunner {
 		if (!(Minecraft.getInstance().gui.screen() instanceof BackpackScreen screen)) {
 			throw new IllegalStateException("Backpack screen is not open");
 		}
-		double x = screen.getGuiLeft() + 20.0;
-		double y = screen.getGuiTop() + 30.0;
+		double x = screen.getLeftPos() + 20.0;
+		double y = screen.getTopPos() + 30.0;
 		int steps = action.count() == 0 ? 1 : Math.abs(action.count());
 		double scrollY = action.count() < 0 ? 1.0 : -1.0;
 		for (int i = 0; i < steps; i++) {

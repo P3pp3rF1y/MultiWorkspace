@@ -15,23 +15,23 @@ import java.util.UUID;
 public final class UseFixtureEntityAction extends TypedRegressionAction<UseFixtureEntityAction.Arguments> {
 	public record Arguments(String ref) {
 	}
-
 	public UseFixtureEntityAction() {
 		super("player.sneakUseFixtureEntity", "1", Set.of("minecraft:client"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("ref"), description);
 		return new Arguments(requireString(args, "ref", description));
 	}
-
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.UUID);
+	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private int deadline = -1;
 			private int usedAt = -1;
-
 			@Override
 			public RegressionActionProgress tick() {
 				Minecraft minecraft = context.minecraft();
@@ -51,8 +51,8 @@ public final class UseFixtureEntityAction extends TypedRegressionAction<UseFixtu
 						Input sneakingInput = new Input(previousInput.forward(), previousInput.backward(), previousInput.left(), previousInput.right(),
 								previousInput.jump(), true, previousInput.sprint());
 						minecraft.player.input.keyPresses = sneakingInput;
+						minecraft.player.connection.send(new ServerboundPlayerInputPacket(sneakingInput));
 						try {
-							minecraft.player.connection.send(new ServerboundPlayerInputPacket(sneakingInput));
 							InteractionResult result = minecraft.gameMode.interact(minecraft.player, entity, new EntityHitResult(entity),
 									InteractionHand.MAIN_HAND);
 							if (!result.consumesAction()) {

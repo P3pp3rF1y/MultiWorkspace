@@ -10,7 +10,7 @@ import java.util.Queue;
 
 public class DemoPlayback {
 	private static final Queue<String> COMMANDS = new ArrayDeque<>();
-	private static CommandSourceStack source;
+	private static volatile CommandSourceStack source;
 	private static int waitTicks = 0;
 	private static int executedSteps = 0;
 	private static String demoName = "";
@@ -19,6 +19,10 @@ public class DemoPlayback {
 	}
 
 	public static void start(CommandSourceStack commandSource, String name, List<String> commands) {
+		net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime.runOnClient(() -> {
+			PresentationNativeInput.requireStart();
+			return null;
+		});
 		COMMANDS.clear();
 		COMMANDS.addAll(commands);
 		source = commandSource;

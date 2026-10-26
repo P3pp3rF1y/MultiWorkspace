@@ -1,7 +1,8 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
@@ -9,8 +10,6 @@ import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
-import static net.p3pp3rf1y.sophisticatedcore.init.ModItems.ENDER_LINKER;
 
 public final class LinkTargetStorageBlockAction extends TypedRegressionAction<LinkTargetStorageBlockAction.Arguments> {
 	public record Arguments(String saveAs) {
@@ -27,6 +26,13 @@ public final class LinkTargetStorageBlockAction extends TypedRegressionAction<Li
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.saveAs().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.ITEM_STACK);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
@@ -35,37 +41,30 @@ public final class LinkTargetStorageBlockAction extends TypedRegressionAction<Li
 
 			@Override
 			public RegressionActionProgress tick() {
-				if (deadline < 0) {
+				if (deadline < 0)
 					deadline = context.minecraft().player.tickCount + 100;
-				}
 				if (future == null) {
 					future = context.onServer(player -> {
-						if (!(player.level().getBlockEntity(context.target()) instanceof StorageBlockEntity storage)) {
+						if (!(player.level().getBlockEntity(context.target()) instanceof StorageBlockEntity storage))
 							throw new IllegalStateException("Target is not a storage block");
-						}
-						ItemStack linker = new ItemStack(ENDER_LINKER.get());
-						if (LinkedStorageService.linkWithResult((ServerLevel) player.level(), player.getUUID(), linker,
-								storage) != LinkedStorageService.LinkResult.SUCCESS) {
+						ItemStack linker = new ItemStack(BuiltInRegistries.ITEM.get(Identifier.parse("sophisticatedcore:ender_linker")).orElseThrow().value());
+						if (LinkedStorageService.linkWithResult(player.level(), player.getUUID(), linker, storage) != LinkedStorageService.LinkResult.SUCCESS)
 							throw new IllegalStateException("Could not link target storage block");
-						}
 						linkedEndpoint = storage.getLinkedStorageEndpointData();
-						if (linkedEndpoint == null) {
+						if (linkedEndpoint == null)
 							throw new IllegalStateException("Linked target storage block has no endpoint");
-						}
-						if (!arguments.saveAs().isEmpty()) {
+						if (!arguments.saveAs().isEmpty())
 							context.values().put(arguments.saveAs(), ItemStack.class, linker);
-						}
 						context.putDiagnostic("linkedGroup", linkedEndpoint.groupId().toString());
 					});
 				}
 				RegressionActionProgress progress = await(future);
-				if (progress != RegressionActionProgress.PASSED) {
+				if (progress != RegressionActionProgress.PASSED)
 					return progress;
-				}
-				if (context.minecraft().level != null && context.minecraft().level.getBlockEntity(context.target()) instanceof StorageBlockEntity storage
-						&& linkedEndpoint.equals(storage.getLinkedStorageEndpointData())) {
+				if (linkedEndpoint != null && context.minecraft().level != null
+						&& context.minecraft().level.getBlockEntity(context.target()) instanceof StorageBlockEntity storage
+						&& linkedEndpoint.equals(storage.getLinkedStorageEndpointData()))
 					return RegressionActionProgress.PASSED;
-				}
 				return context.minecraft().player.tickCount >= deadline
 						? fail("Linked storage block endpoint did not synchronize to client")
 						: RegressionActionProgress.WAITING;

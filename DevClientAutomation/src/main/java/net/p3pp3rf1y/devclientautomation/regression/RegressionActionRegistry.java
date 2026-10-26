@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression;
 
 import com.google.gson.JsonObject;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackAutomationExtractableAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalBackpackTemplateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalCapturedMobsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkGroupsAction;
@@ -33,6 +34,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSettingsSelect
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertStorageResourcesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUnlinkedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitBackpackBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuClosedAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitPlayerCraftingResultAction;
@@ -54,17 +56,18 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageSettings
 import net.p3pp3rf1y.devclientautomation.regression.actions.CloseMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackDepositAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackFilterAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackRestockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureStorageContentsFilterAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ControlJukeboxPlaybackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CopyPlayerInventoryItemAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.CreateActionArgumentSchemas;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMainHandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateLockToolAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateMainHandItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.FillBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.LazyRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
@@ -79,6 +82,9 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMoveBackpackSto
 import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMovePlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionMetadata;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueContract;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueStore;
+import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionValueTypes;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadChunkBlockEntitiesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadFixtureControllerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadMovingStorageAction;
@@ -100,9 +106,9 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerGameModeAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageBlockSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnFixturePigAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.StorageResourceCacheAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.TierUpgradeRecipeActionArgumentSchemas;
 import net.p3pp3rf1y.devclientautomation.regression.actions.TransferStorageResourceAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseControllerLinkToolAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseFixtureEntityAction;
@@ -112,12 +118,12 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.UseHeldItemOnTargetA
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseTargetBlockAction;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
@@ -138,13 +144,10 @@ public final class RegressionActionRegistry {
 		register(new SetHeldBackpackUpgradeAction());
 		register(new TransferStorageResourceAction());
 		register(new AssertStorageResourcesAction());
-		registerLazyTierRecipeAction("assert.storageTierUpgradeRecipe",
-				"net.p3pp3rf1y.devclientautomation.regression.actions.AssertStorageTierUpgradeRecipeAction", Set.of("minecraft:client", "sophisticatedstorage"),
-				TierUpgradeRecipeActionArgumentSchemas::validateStorage);
-		registerLazyTierRecipeAction("assert.movingStorageTierUpgradeRecipe",
-				"net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageTierUpgradeRecipeAction",
-				Set.of("minecraft:client", "sophisticatedstorage", "sophisticatedstorageinmotion"),
-				TierUpgradeRecipeActionArgumentSchemas::validateMovingStorage);
+		register(lazyTierAction("assert.storageTierUpgradeRecipe", Set.of("minecraft:client", "sophisticatedstorage"), "AssertStorageTierUpgradeRecipeAction",
+				"form", Set.of("normal", "double")));
+		register(lazyTierAction("assert.movingStorageTierUpgradeRecipe", Set.of("minecraft:client", "sophisticatedstorage", "sophisticatedstorageinmotion"),
+				"AssertMovingStorageTierUpgradeRecipeAction", "carrier", Set.of("boat", "minecart")));
 		register(new ResetRegionAction());
 		register(new ResetPlayerAction());
 		register(new AssertPlayerInventoryBaselineAction());
@@ -163,6 +166,11 @@ public final class RegressionActionRegistry {
 		register(new ConfigureBackpackDepositAction());
 		register(new UseHeldBackpackOnStorageAction());
 		register(new AssertInventoryCountAction());
+		register(new ConfigureBackpackPickupAction());
+		register(new FillBackpackAction());
+		register(new SpawnItemEntityAction());
+		register(new AwaitItemEntityAction());
+		register(new AssertBackpackPickupAction());
 		register(new AssertRestockBackpackAction());
 		register(new AssertRestockBarrelAction());
 		register(new SetPlayerInventorySlotAction());
@@ -188,7 +196,19 @@ public final class RegressionActionRegistry {
 		register(new RestoreMovingStorageAction());
 		register(new ReloadMovingStorageAction());
 		register(new HoldRecoveredMovingStorageInnerAction());
-		registerOptionalCreateActions();
+		register(lazyCreateAction("fixture.create.mountLinkedStorage", "sophisticatedstoragecreateintegration", "MountLinkedStorageAction", Set.of("saveAs"),
+				Set.of("saveAs"), Set.of(), Set.of(),
+				args -> RegressionValueContract.producing(args.get("saveAs").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
+		register(lazyCreateAction("fixture.create.mountBackpack", "sophisticatedbackpackscreateintegration", "MountBackpackOnCartAction", Set.of("saveAs"),
+				Set.of("saveAs"), Set.of(), Set.of(), args -> RegressionValueContract.producing(args.get("saveAs").getAsString(), RegressionValueTypes.UUID)));
+		register(lazyCreateAction("create.disassembleBackpack", "sophisticatedbackpackscreateintegration", "DisassembleCartBackpackAction", Set.of("ref"),
+				Set.of("ref"), Set.of(), Set.of(), args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.UUID)));
+		register(lazyCreateAction("fixture.create.setMountedBackpackSlot", "sophisticatedbackpackscreateintegration", "SetMountedBackpackSlotAction",
+				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of(),
+				args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.UUID)));
+		register(lazyCreateAction("fixture.create.setMountedSlot", "sophisticatedstoragecreateintegration", "SetMountedStorageSlotAction",
+				Set.of("ref", "item", "count"), Set.of("ref", "item"), Set.of("count"), Set.of(),
+				args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
 		register(new SetMovingStorageSlotAction());
 		register(new SetMovingJukeboxDiscAction());
 		register(new SetMovingStorageUpgradeAction());
@@ -199,8 +219,17 @@ public final class RegressionActionRegistry {
 		register(new UseMovingStorageAction());
 		register(new AssertLinkedMovingStorageAction());
 		register(new AssertLinkedStorageBlockAction());
-		registerLazyCreate("assert.createMountedLinkedStorage", "net.p3pp3rf1y.devclientautomation.regression.actions.AssertMountedLinkedStorageAction",
-				CreateActionArgumentSchemas::validateAssertMounted);
+		register(new LazyOptionalRegressionAction("assert.createMountedLinkedStorage", "1", Set.of("minecraft:client", "sophisticatedstoragecreateintegration"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.AssertMountedLinkedStorageAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("ref", "count", "checkPresentation"), description);
+					LazyOptionalRegressionAction.requireString(args, "ref", description);
+					RegressionValueStore.requireName(args.get("ref").getAsString());
+					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "count", description);
+					if (args.has("checkPresentation")
+							&& (!args.get("checkPresentation").isJsonPrimitive() || !args.getAsJsonPrimitive("checkPresentation").isBoolean())) {
+						throw new IllegalArgumentException("Argument checkPresentation on " + description + " must be boolean");
+					}
+				}, args -> RegressionValueContract.consuming(args.get("ref").getAsString(), RegressionValueTypes.MOUNTED_STORAGE)));
 		register(new CaptureLinkedMenuRevisionAction());
 		register(new AssertLinkedMenuDeltaAction());
 		register(new AssertLinkedMenuSettingsAction());
@@ -241,73 +270,6 @@ public final class RegressionActionRegistry {
 		register(new AwaitMenuClosedAction());
 	}
 
-	private void registerOptionalCreateActions() {
-		registerLazyCreate("fixture.create.mountLinkedStorage", "net.p3pp3rf1y.devclientautomation.regression.actions.MountLinkedStorageAction",
-				CreateActionArgumentSchemas::validateMount);
-		registerLazyBackpackCreate("fixture.create.mountBackpack", "MountBackpackOnCartAction", CreateActionArgumentSchemas::validateMount);
-		registerLazyBackpackCreate("create.disassembleBackpack", "DisassembleCartBackpackAction", CreateActionArgumentSchemas::validateDisassemble);
-		registerLazyBackpackCreate("fixture.create.setMountedBackpackSlot", "SetMountedBackpackSlotAction", CreateActionArgumentSchemas::validateSetSlot);
-		registerLazyCreate("fixture.create.setMountedSlot", "net.p3pp3rf1y.devclientautomation.regression.actions.SetMountedStorageSlotAction",
-				CreateActionArgumentSchemas::validateSetSlot);
-	}
-
-	private void registerLazyBackpackCreate(String id, String simpleClassName, java.util.function.BiConsumer<JsonObject, String> argumentValidator) {
-		register(new LazyRegressionAction(new RegressionActionMetadata(id, "1", Set.of("minecraft:client", "sophisticatedbackpackscreateintegration")),
-				() -> instantiateOptionalAction("net.p3pp3rf1y.devclientautomation.regression.actions." + simpleClassName), argumentValidator));
-	}
-
-	private void registerLazyCreate(String id, String className, java.util.function.BiConsumer<JsonObject, String> argumentValidator) {
-		register(new LazyRegressionAction(new RegressionActionMetadata(id, "1", Set.of("minecraft:client", "sophisticatedstoragecreateintegration")),
-				() -> instantiateOptionalAction(className), argumentValidator));
-	}
-
-	private void registerLazyTierRecipeAction(String id, String className, Set<String> dependencies,
-			java.util.function.BiConsumer<JsonObject, String> argumentValidator) {
-		register(new LazyRegressionAction(new RegressionActionMetadata(id, "2", dependencies), () -> instantiateOptionalAction(className), argumentValidator));
-	}
-
-	static RegressionAction instantiateOptionalAction(String className) {
-		try {
-			return Class.forName(className).asSubclass(RegressionAction.class).getDeclaredConstructor().newInstance();
-		} catch (InvocationTargetException e) {
-			Throwable cause = e.getCause();
-			if (cause instanceof LinkageError linkageError) {
-				throw linkageError;
-			}
-			if (cause instanceof RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			if (cause instanceof Error error) {
-				throw error;
-			}
-			throw new IllegalStateException("Optional Create regression action is unavailable: " + className, e);
-		} catch (ReflectiveOperationException e) {
-			throw new IllegalStateException("Optional Create regression action is unavailable: " + className, e);
-		}
-	}
-
-	private static RegressionAction lazyJeiAction() {
-		return new LazyRegressionAction(new RegressionActionMetadata("recipeviewer.dropSettingsGhost", "1", Set.of("minecraft:client", "jei")),
-				() -> instantiateOptionalAction("net.p3pp3rf1y.devclientautomation.regression.actions.DropSettingsGhostAction"), (args, description) -> {
-					for (String name : args.keySet()) {
-						if (!name.equals("slot")) {
-							throw new IllegalArgumentException("Unsupported argument " + name + " on " + description);
-						}
-					}
-					if (args.has("slot") && (!args.get("slot").isJsonPrimitive() || !args.getAsJsonPrimitive("slot").isNumber() || nonNegativeSlot(args) < 0)) {
-						throw new IllegalArgumentException("Argument slot on " + description + " must not be negative");
-					}
-				});
-	}
-
-	private static int nonNegativeSlot(JsonObject args) {
-		try {
-			return RegressionJsonNumbers.integer(args.get("slot"));
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Argument slot must be an integer", e);
-		}
-	}
-
 	public RegressionAction require(String actionId) {
 		RegressionAction action = actions.get(actionId);
 		if (action == null) {
@@ -319,7 +281,7 @@ public final class RegressionActionRegistry {
 	public Map<String, RegressionActionMetadata> all() {
 		Map<String, RegressionActionMetadata> metadata = new LinkedHashMap<>();
 		actions.forEach((id, action) -> metadata.put(id, action.metadata()));
-		return Collections.unmodifiableMap(metadata);
+		return Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
 	}
 
 	public List<RegressionStep> testCellSetup() {
@@ -333,4 +295,50 @@ public final class RegressionActionRegistry {
 	private void register(RegressionAction action) {
 		actions.put(action.metadata().id(), action);
 	}
+
+	private static RegressionAction lazyJeiAction() {
+		return new LazyOptionalRegressionAction("recipeviewer.dropSettingsGhost", "1", Set.of("minecraft:client", "jei"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.DropSettingsGhostAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("slot"), description);
+					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "slot", description);
+				});
+	}
+
+	private static RegressionAction lazyCreateAction(String id, String capability, String implementation, Set<String> names, Set<String> strings,
+			Set<String> positiveInts, Set<String> nonNegativeInts, Function<JsonObject, RegressionValueContract> values) {
+		return new LazyOptionalRegressionAction(id, "1", Set.of("minecraft:client", capability),
+				"net.p3pp3rf1y.devclientautomation.regression.actions." + implementation, (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, names, description);
+					strings.forEach(name -> requireCreateString(args, name, description));
+					positiveInts.forEach(name -> LazyOptionalRegressionAction.requirePositiveInt(args, name, description));
+					nonNegativeInts.forEach(name -> LazyOptionalRegressionAction.optionalNonNegativeInt(args, name, description));
+				}, values);
+	}
+
+	private static void requireCreateString(JsonObject args, String name, String description) {
+		LazyOptionalRegressionAction.requireString(args, name, description);
+		if (name.equals("ref") || name.equals("saveAs")) {
+			RegressionValueStore.requireName(args.get(name).getAsString());
+		}
+	}
+
+	private static RegressionAction lazyTierAction(String id, Set<String> dependencies, String implementation, String variant, Set<String> variants) {
+		return new LazyOptionalRegressionAction(id, "2", dependencies, "net.p3pp3rf1y.devclientautomation.regression.actions." + implementation,
+				(args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of(variant, "recipe", "linkage"), description);
+					LazyOptionalRegressionAction.requireString(args, variant, description);
+					String value = args.get(variant).getAsString();
+					if (!variants.contains(value)) {
+						throw new IllegalArgumentException("Argument " + variant + " on " + description + " must be one of " + variants);
+					}
+					LazyOptionalRegressionAction.requireString(args, "recipe", description);
+					LazyOptionalRegressionAction.requireString(args, "linkage", description);
+					String recipe = args.get("recipe").getAsString();
+					String linkage = args.get("linkage").getAsString();
+					if (!Set.of("shaped", "shapeless").contains(recipe) || !Set.of("unlinked", "primary", "secondary").contains(linkage)) {
+						throw new IllegalArgumentException("Invalid tier upgrade recipe arguments on " + description);
+					}
+				});
+	}
+
 }

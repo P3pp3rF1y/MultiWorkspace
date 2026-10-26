@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
@@ -9,54 +10,51 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedDat
 
 import javax.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AssertLinkedItemContentsAction extends TypedRegressionAction<AssertLinkedItemContentsAction.Arguments> {
-	public record Arguments(int slot, int count) {
+	public record Arguments(int slot, int count, int timeoutTicks) {
+		public Arguments(int slot, int count) {
+			this(slot, count, 0);
+		}
 	}
-
 	public AssertLinkedItemContentsAction() {
 		super("assert.linkedItemContents", "1", Set.of("minecraft:client", "sophisticatedcore"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("slot", "count"), description);
+		requireOnly(args, Set.of("slot", "count", "timeoutTicks"), description);
 		int slot = optionalNonNegativeInt(args, "slot", 0, description);
 		if (slot > 35) {
 			throw new IllegalArgumentException("Inventory slot must be between 0 and 35 on " + description);
 		}
-		return new Arguments(slot, optionalNonNegativeInt(args, "count", 0, description));
+		return new Arguments(slot, optionalNonNegativeInt(args, "count", 0, description), optionalNonNegativeInt(args, "timeoutTicks", 0, description));
 	}
-
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
+			private final Map<String, Object> observations = new ConcurrentHashMap<>();
 			@Nullable
 			private CompletableFuture<Void> future;
-
+			private int deadline = -1;
+			private int observedCount;
+			private boolean observed;
 			@Override
 			public RegressionActionProgress tick() {
+				if (deadline < 0 && arguments.timeoutTicks() > 0) {
+					deadline = context.minecraft().player.tickCount + arguments.timeoutTicks();
+				}
 				if (future == null) {
 					future = context.onServer(player -> {
 						ItemStack stack = player.getInventory().getItem(arguments.slot());
 						LinkedStorageEndpointData endpoint = stack.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 						if (endpoint == null || stack.has(ModCoreDataComponents.STORAGE_UUID) || stack.has(ModCoreDataComponents.ENDER_LINK_PENDING_CRAFT)) {
-							List<String> inventory = new ArrayList<>();
-							for (int slot = 0; slot < 36; slot++) {
-								ItemStack found = player.getInventory().getItem(slot);
-								if (!found.isEmpty()) {
-									inventory.add(slot + "=" + found + " " + found.getComponentsPatch());
-								}
-							}
-							throw new IllegalStateException("Expected a finalized linked item without an ordinary backend at " + arguments.slot() + ": " + stack
-									+ ", endpoint=" + endpoint + ", ordinary=" + stack.get(ModCoreDataComponents.STORAGE_UUID) + ", pending="
-									+ stack.get(ModCoreDataComponents.ENDER_LINK_PENDING_CRAFT) + ", inventory=" + inventory + ", carried="
-									+ player.containerMenu.getCarried() + ", menu=" + player.containerMenu.getClass().getSimpleName() + ", craftingSlots="
-									+ player.containerMenu.getItems().subList(0, Math.min(5, player.containerMenu.getItems().size())));
+							throw RegressionActionFailure.assertion("Expected a finalized linked item without an ordinary backend at " + arguments.slot() + ": "
+									+ stack + ", endpoint=" + endpoint + ", ordinary=" + stack.get(ModCoreDataComponents.STORAGE_UUID) + ", pending="
+									+ stack.get(ModCoreDataComponents.ENDER_LINK_PENDING_CRAFT));
 						}
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.level()).manager().resolveVirtualHost(endpoint, false)
 								.orElseThrow();
@@ -64,26 +62,53 @@ public final class AssertLinkedItemContentsAction extends TypedRegressionAction<
 						for (int slot = 0; slot < host.getInventoryHandler().size(); slot++) {
 							count += host.getInventoryHandler().getStackInSlot(slot).getCount();
 						}
-						if (count != arguments.count()) {
-							List<String> inventory = new ArrayList<>();
-							for (int slot = 0; slot < 36; slot++) {
-								ItemStack found = player.getInventory().getItem(slot);
-								if (!found.isEmpty()) {
-									inventory.add(slot + "=" + found + " " + found.getComponentsPatch());
-								}
-							}
-							List<String> upgrades = new ArrayList<>();
-							for (int slot = 0; slot < host.getUpgradeHandler().size(); slot++) {
-								ItemStack upgrade = host.getUpgradeHandler().getStackInSlot(slot);
-								upgrades.add(slot + "=" + upgrade + " " + upgrade.getComponentsPatch());
-							}
-							throw new IllegalStateException("Expected canonical item count " + arguments.count() + ", got " + count + ", inventory=" + inventory
-									+ ", canonicalUpgrades=" + upgrades + ", menu=" + player.containerMenu.getClass().getSimpleName());
+						observedCount = count;
+						observed = true;
+						if (count != arguments.count() && arguments.timeoutTicks() == 0) {
+							observations.put("atAssertion", snapshot(player, arguments.slot(), count));
+							throw RegressionActionFailure.assertion("Expected canonical item count " + arguments.count() + ", got " + count);
 						}
 					});
 				}
-				return await(future);
+				if (arguments.timeoutTicks() == 0) {
+					RegressionActionProgress result = await(future);
+					if (result == RegressionActionProgress.FAILED && !observations.isEmpty()) {
+						observe(arguments.count(), observations);
+					}
+					return result;
+				}
+				if (!future.isDone()) {
+					return context.minecraft().player.tickCount >= deadline
+							? failAssertion("Canonical item count observation timed out after " + arguments.timeoutTicks() + " ticks; expected "
+									+ arguments.count() + ", last observed " + (observed ? observedCount : "none"))
+							: RegressionActionProgress.WAITING;
+				}
+				RegressionActionProgress result = await(future);
+				if (result != RegressionActionProgress.PASSED) {
+					return result;
+				}
+				if (observedCount == arguments.count()) {
+					return RegressionActionProgress.PASSED;
+				}
+				if (context.minecraft().player.tickCount >= deadline) {
+					return failAssertion("Canonical item count did not reach " + arguments.count() + " in " + arguments.timeoutTicks()
+							+ " ticks; last observed " + observedCount);
+				}
+				future = null;
+				return RegressionActionProgress.WAITING;
 			}
 		};
+	}
+
+	private static Map<String, Object> snapshot(ServerPlayer player, int slot, int count) {
+		StringBuilder inventory = new StringBuilder();
+		for (int i = 0; i < 36; i++) {
+			ItemStack item = player.getInventory().getItem(i);
+			if (!item.isEmpty()) {
+				inventory.append(i).append('=').append(item).append(';');
+			}
+		}
+		return Map.of("canonicalCount", count, "linkedSlot", slot, "inventory", inventory.toString(), "menuId", player.containerMenu.containerId, "cursor",
+				player.containerMenu.getCarried().toString());
 	}
 }

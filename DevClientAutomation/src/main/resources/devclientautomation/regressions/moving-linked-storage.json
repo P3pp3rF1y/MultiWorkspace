@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "moving-linked-storage",
-  "requires": ["minecraft:client", "sophisticatedstorageinmotion"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {
@@ -39,6 +39,7 @@
       "tags": ["moving", "link", "tier", "authorization"],
       "timeoutTicks": 400,
       "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
         {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
         {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
         {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
@@ -98,6 +99,7 @@
       "tags": ["moving", "horse", "lifecycle"],
       "timeoutTicks": 400,
       "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
         {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
         {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
         {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
@@ -267,9 +269,11 @@
     },
     {
       "id": "create-cart-mount-opens-original-linked-group",
+      "requires": ["create"],
       "tags": ["moving", "create", "conversion", "menu"],
       "timeoutTicks": 500,
       "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
         {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
         {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
         {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
@@ -287,6 +291,7 @@
     },
     {
       "id": "limited-barrel-mount-opens-linked-group",
+      "requires": ["create"],
       "tags": ["moving", "limited", "create", "conversion", "menu"],
       "timeoutTicks": 500,
       "steps": [
@@ -431,6 +436,7 @@
     },
     {
       "id": "mounted-open-menu-receives-live-slot-delta",
+      "requires": ["create"],
       "tags": ["moving", "create", "menu", "sync"],
       "timeoutTicks": 550,
       "steps": [
