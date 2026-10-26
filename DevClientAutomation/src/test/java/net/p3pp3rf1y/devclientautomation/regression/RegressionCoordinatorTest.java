@@ -19,7 +19,7 @@ class RegressionCoordinatorTest {
 			suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 		}
 
-		Set<String> capabilities = Set.of("minecraft:client", "sophisticatedstorageinmotion", "sophisticatedstorage");
+		Set<String> capabilities = Set.of("minecraft:client", "sophisticatedcore", "sophisticatedstorageinmotion", "sophisticatedstorage");
 		RegressionTest movingTest = test(suite, "boat-link-through-entity-interaction");
 		RegressionTest mountedTest = test(suite, "mounted-open-menu-receives-live-slot-delta");
 

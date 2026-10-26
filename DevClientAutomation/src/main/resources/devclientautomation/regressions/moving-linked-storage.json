@@ -6,21 +6,43 @@
   "tests": [
     {
       "id": "boat-link-through-entity-interaction",
-      "tags": ["moving", "link", "boat"],
-      "timeoutTicks": 400,
+      "tags": ["moving", "link", "boat", "sorting"],
+      "timeoutTicks": 600,
       "steps": [
         {"id": "spawn-boat", "action": "fixture.moving.spawn", "args": {"kind": "boat", "saveAs": "boat"}},
         {"id": "seed-diamonds", "action": "moving.setSlot", "args": {"ref": "boat", "item": "minecraft:diamond", "count": 7}},
+        {"id": "empty-hand-before-open", "action": "player.clearMainHand"},
+        {"id": "open-unlinked-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-unlinked-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "select-mod-before-linking", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-unlinked-mod", "action": "assert.sortMode", "args": {"mode": "MOD"}},
+        {"id": "select-count-before-linking", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-unlinked-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "close-unlinked-menu", "action": "menu.close"},
+        {"id": "await-unlinked-close", "action": "await.menuClosed"},
         {"id": "hold-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
         {"id": "link-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
         {"id": "assert-identity", "action": "assert.movingLinked", "args": {"ref": "boat", "primary": true, "count": 7}},
+        {"id": "spawn-secondary-cart", "action": "fixture.moving.spawn", "args": {"kind": "minecart", "offsetX": 4, "saveAs": "secondary"}},
+        {"id": "link-secondary-cart", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
         {"id": "clear-hand", "action": "player.clearMainHand"},
         {"id": "open-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
         {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
         {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "boat", "item": "minecraft:diamond", "count": 7}},
         {"id": "assert-group-title-and-primary-icon", "action": "assert.movingMenuPresentation", "args": {"ref": "boat", "role": "primary"}},
+        {"id": "assert-linked-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "select-linked-tags", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-linked-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}},
         {"id": "close-menu", "action": "menu.close"},
-        {"id": "await-closed", "action": "await.menuClosed"}
+        {"id": "await-closed", "action": "await.menuClosed"},
+        {"id": "reopen-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-reopened-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "assert-reopened-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}},
+        {"id": "close-reopened-menu", "action": "menu.close"},
+        {"id": "await-reopened-close", "action": "await.menuClosed"},
+        {"id": "open-secondary-cart", "action": "player.useMovingStorage", "args": {"ref": "secondary"}},
+        {"id": "await-secondary-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "secondary"}},
+        {"id": "assert-secondary-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}}
       ]
     },
     {
@@ -270,7 +292,7 @@
     {
       "id": "create-cart-mount-opens-original-linked-group",
       "requires": ["create"],
-      "tags": ["moving", "create", "conversion", "menu"],
+      "tags": ["moving", "create", "conversion", "menu", "sorting"],
       "timeoutTicks": 500,
       "steps": [
         {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
@@ -284,9 +306,25 @@
         {"id": "place-inner", "action": "player.placeHeldBlock"},
         {"id": "await-block", "action": "await.storageBlock"},
         {"id": "assert-original-endpoint", "action": "assert.linkedStorageBlock", "args": {"count": 7}},
+        {"id": "clear-hand-before-sort", "action": "player.clearMainHand"},
+        {"id": "open-before-mount", "action": "player.useTargetBlock"},
+        {"id": "await-before-mount", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "select-mod-before-mount", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-mod-before-mount", "action": "assert.sortMode", "args": {"mode": "MOD"}},
+        {"id": "select-count-before-mount", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-count-before-mount", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "close-before-mount", "action": "menu.close"},
+        {"id": "await-before-mount-close", "action": "await.menuClosed"},
         {"id": "mount-block", "action": "fixture.create.mountLinkedStorage", "args": {"saveAs": "mounted"}},
         {"id": "clear-hand", "action": "player.clearMainHand"},
-        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}}
+        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}},
+        {"id": "assert-mounted-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "select-mounted-tags", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "assert-mounted-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}},
+        {"id": "close-mounted-menu", "action": "menu.close"},
+        {"id": "await-mounted-close", "action": "await.menuClosed"},
+        {"id": "reopen-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}},
+        {"id": "assert-reopened-mounted-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}}
       ]
     },
     {
