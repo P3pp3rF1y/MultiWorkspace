@@ -19,8 +19,15 @@
         {"id": "await-menu", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
         {"id": "assert-canonical-menu", "action": "assert.menu", "args": {"kind": "moving", "ref": "boat", "item": "minecraft:diamond", "count": 7}},
         {"id": "assert-group-title-and-primary-icon", "action": "assert.movingMenuPresentation", "args": {"ref": "boat", "role": "primary"}},
+        {"id": "sort-mode-mod", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "await-mod", "action": "assert.sortMode", "args": {"mode": "MOD"}},
+        {"id": "sort-mode-count", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "await-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
         {"id": "close-menu", "action": "menu.close"},
-        {"id": "await-closed", "action": "await.menuClosed"}
+        {"id": "await-closed", "action": "await.menuClosed"},
+        {"id": "reopen-boat", "action": "player.useMovingStorage", "args": {"ref": "boat"}},
+        {"id": "await-reopened", "action": "await.menu", "args": {"kind": "moving", "ref": "boat"}},
+        {"id": "retained-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}}
       ]
     },
     {
@@ -284,9 +291,25 @@
         {"id": "place-inner", "action": "player.placeHeldBlock"},
         {"id": "await-block", "action": "await.storageBlock"},
         {"id": "assert-original-endpoint", "action": "assert.linkedStorageBlock", "args": {"count": 7}},
+        {"id": "clear-before-open", "action": "player.clearMainHand"},
+        {"id": "open-before-mount", "action": "player.useTargetBlock"},
+        {"id": "await-before-mount", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "sort-mode-mod", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "await-mod", "action": "assert.sortMode", "args": {"mode": "MOD"}},
+        {"id": "sort-mode-count", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "await-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "close-before-mount", "action": "menu.close"},
+        {"id": "await-closed-before-mount", "action": "await.menuClosed"},
         {"id": "mount-block", "action": "fixture.create.mountLinkedStorage", "args": {"saveAs": "mounted"}},
         {"id": "clear-hand", "action": "player.clearMainHand"},
-        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}}
+        {"id": "assert-mounted-menu", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}},
+        {"id": "mounted-count", "action": "assert.sortMode", "args": {"mode": "COUNT"}},
+        {"id": "mounted-mode-tags", "action": "menu.clickSortControl", "args": {"control": "mode"}},
+        {"id": "mounted-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}},
+        {"id": "close-mounted", "action": "menu.close"},
+        {"id": "await-mounted-closed", "action": "await.menuClosed"},
+        {"id": "reopen-mounted", "action": "assert.createMountedLinkedStorage", "args": {"ref": "mounted", "count": 7}},
+        {"id": "mounted-retains-tags", "action": "assert.sortMode", "args": {"mode": "TAGS"}}
       ]
     },
     {

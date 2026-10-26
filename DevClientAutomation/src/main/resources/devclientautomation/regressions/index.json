@@ -15,6 +15,7 @@
   "linked-storage-action-conformance.json",
   "linked-storage-resources.json",
   "linked-storage-menu.json",
+  "linked-storage-sorting.json",
   "linked-storage-controller-lifecycle.json",
   "linked-storage-restart.json",
   "linked-storage-inception.json",
