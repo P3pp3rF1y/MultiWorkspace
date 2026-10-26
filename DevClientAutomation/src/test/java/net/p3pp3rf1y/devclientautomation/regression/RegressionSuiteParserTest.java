@@ -89,16 +89,16 @@ class RegressionSuiteParserTest {
 						fixtureCount += suite.getAsJsonObject("fixtures").size();
 					if (indexedPath.equals("backpack-menu.json")) {
 						assertEquals(
-								List.of("backpack-actions-execute-with-valid-fixture", "placed-backpack-opens-synchronized-menu",
-										"held-backpack-opens-synchronized-item-menu", "placed-backpack-menu-click-and-quick-move-stay-synchronized",
-										"linked-held-backpack-opens-with-enchanted-book", "linked-placed-backpack-opens-with-enchanted-book",
-										"linked-held-backpack-quick-move-stays-synchronized", "linked-placed-backpack-quick-move-stays-synchronized",
-										"linked-held-backpack-menu-receives-slot-delta"),
+								List.of("held-backpack-tank-battery-swap-preserves-slot-layout", "backpack-actions-execute-with-valid-fixture",
+										"placed-backpack-opens-synchronized-menu", "held-backpack-opens-synchronized-item-menu",
+										"placed-backpack-menu-click-and-quick-move-stay-synchronized", "linked-held-backpack-opens-with-enchanted-book",
+										"linked-placed-backpack-opens-with-enchanted-book", "linked-held-backpack-quick-move-stays-synchronized",
+										"linked-placed-backpack-quick-move-stays-synchronized", "linked-held-backpack-menu-receives-slot-delta"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
 					}
 				}
 			}
-			assertEquals(109, testCount);
+			assertEquals(110, testCount);
 			assertEquals(19, fixtureCount);
 		}
 	}
