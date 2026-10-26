@@ -7,8 +7,7 @@ import net.p3pp3rf1y.sophisticatedcore.client.gui.SettingsScreen;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.SettingsContainerMenu;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedcore.settings.main.MainSettingsCategory;
-
-import javax.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -29,6 +28,11 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 			throw new IllegalArgumentException(description + " requires boolean backpackPrimary");
 		}
 		return new Arguments(args.get("backpackPrimary").getAsBoolean());
+	}
+
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming("settings-group", RegressionValueTypes.UUID);
 	}
 
 	@Override
@@ -57,14 +61,20 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 						IStorageWrapper host = (IStorageWrapper) LinkedStorageGroupsSavedData.get(player.level()).manager()
 								.resolveVirtualHost(context.values().require("settings-group", UUID.class)).orElseThrow();
 						if (wrapper.getSettingsHandler() != host.getSettingsHandler()) {
-							throw new IllegalStateException("Settings menu does not use canonical settings");
+							throw RegressionActionFailure.assertion("Settings menu does not use canonical settings");
 						}
 						categories = Set.copyOf(host.getSettingsHandler().getSettingsCategories().keySet());
-						String expectedMain = MainSettingsCategory.NAME;
-						if (!categories.contains(expectedMain)) {
-							throw new IllegalStateException("Settings categories do not match the primary family");
+						if (!categories.contains(MainSettingsCategory.NAME)) {
+							throw RegressionActionFailure.assertion("Settings categories do not match the primary family");
 						}
-						assertSettingsContainers(menu, arguments.backpackPrimary(), "server");
+						menu.forEachSettingsContainer((name, container) -> {
+							if (container == null) {
+								throw RegressionActionFailure.assertion("Missing server settings container " + name);
+							}
+							if (name.equals(MainSettingsCategory.NAME) && (container instanceof BackpackMainSettingsContainer) != arguments.backpackPrimary()) {
+								throw RegressionActionFailure.assertion("Settings categories do not match the primary family");
+							}
+						});
 						serverReady = true;
 					});
 					return RegressionActionProgress.WAITING;
@@ -81,27 +91,16 @@ public final class AssertLinkedSettingsAction extends TypedRegressionAction<Asse
 						|| !screen.getMenu().getStorageWrapper().getSettingsHandler().getSettingsCategories().keySet().equals(categories)) {
 					return RegressionActionProgress.WAITING;
 				}
-				assertSettingsContainers(screen.getMenu(), arguments.backpackPrimary(), "client");
+				screen.getMenu().forEachSettingsContainer((name, container) -> {
+					if (container == null) {
+						throw RegressionActionFailure.assertion("Missing client settings container " + name);
+					}
+					if (name.equals(MainSettingsCategory.NAME) && (container instanceof BackpackMainSettingsContainer) != arguments.backpackPrimary()) {
+						throw RegressionActionFailure.assertion("Client settings categories do not match the primary family");
+					}
+				});
 				return RegressionActionProgress.PASSED;
 			}
 		};
-	}
-
-	private static void assertSettingsContainers(SettingsContainerMenu<?> menu, boolean backpackPrimary, String side) {
-		boolean[] hasMainContainer = {false};
-		menu.forEachSettingsContainer((name, container) -> {
-			if (container == null) {
-				throw new IllegalStateException("Missing " + side + " settings container " + name);
-			}
-			if (MainSettingsCategory.NAME.equals(name)) {
-				hasMainContainer[0] = true;
-				if (backpackPrimary != (container instanceof BackpackMainSettingsContainer)) {
-					throw new IllegalStateException("Settings main container does not use the required primary family on " + side);
-				}
-			}
-		});
-		if (!hasMainContainer[0]) {
-			throw new IllegalStateException("Missing " + side + " main settings container");
-		}
 	}
 }

@@ -1865,8 +1865,8 @@ public class DemoCommand {
 			}
 			KeyMapping.set(key, true);
 			KeyMapping.click(key);
-			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, 1), SDLKeycode.SDL_KMOD_ALT));
-			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, 0), SDLKeycode.SDL_KMOD_ALT));
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, SDLKeycode.SDL_KMOD_ALT), InputConstants.PRESS));
+			NeoForge.EVENT_BUS.post(new InputEvent.Key(new KeyEvent(key.getValue(), 0, SDLKeycode.SDL_KMOD_ALT), InputConstants.RELEASE));
 			KeyMapping.set(key, false);
 		});
 		if (record) {

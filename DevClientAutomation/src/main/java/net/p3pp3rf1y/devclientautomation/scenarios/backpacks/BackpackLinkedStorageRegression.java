@@ -3505,8 +3505,8 @@ public final class BackpackLinkedStorageRegression {
 	}
 
 	private static void clickClientSlot(BackpackScreen screen, Slot slot) {
-		double x = screen.getGuiLeft() + slot.x + 8.0;
-		double y = screen.getGuiTop() + slot.y + 8.0;
+		double x = screen.getLeftPos() + slot.x + 8.0;
+		double y = screen.getTopPos() + slot.y + 8.0;
 		MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
 		if (!screen.mouseClicked(event, false)) {
 			throw new IllegalStateException("Linked backpack Tank upgrade slot click was not handled");

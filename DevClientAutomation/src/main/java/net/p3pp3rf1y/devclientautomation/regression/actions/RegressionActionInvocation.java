@@ -5,9 +5,11 @@ import java.util.Set;
 public interface RegressionActionInvocation {
 	RegressionAction action();
 
-	RegressionActionExecution start(RegressionExecutionContext context);
+	Set<String> dependencies();
 
-	default Set<String> dependencies() {
-		return action().metadata().dependencies();
+	default RegressionValueContract values() {
+		return RegressionValueContract.EMPTY;
 	}
+
+	RegressionActionExecution start(RegressionExecutionContext context);
 }

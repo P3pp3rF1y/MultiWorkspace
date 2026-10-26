@@ -1,7 +1,8 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -10,8 +11,6 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
-import static net.p3pp3rf1y.sophisticatedcore.init.ModItems.ENDER_LINKER;
 
 public final class LinkHeldBackpackAction extends TypedRegressionAction<LinkHeldBackpackAction.Arguments> {
 	public record Arguments(String linkerRef) {
@@ -28,54 +27,46 @@ public final class LinkHeldBackpackAction extends TypedRegressionAction<LinkHeld
 	}
 
 	@Override
-	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
-		return new Execution(context, arguments);
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.linkerRef().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.linkerRef(), RegressionValueTypes.ITEM_STACK);
 	}
 
-	private static final class Execution extends TickRegressionActionExecution {
-		private final Arguments arguments;
-		private CompletableFuture<Void> future;
-		private int deadline = -1;
+	@Override
+	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
+		return new TickRegressionActionExecution(context) {
+			private CompletableFuture<Void> future;
+			private int deadline = -1;
 
-		private Execution(RegressionExecutionContext context, Arguments arguments) {
-			super(context);
-			this.arguments = arguments;
-		}
-
-		@Override
-		public RegressionActionProgress tick() {
-			if (deadline < 0) {
-				deadline = context.minecraft().player.tickCount + 100;
+			@Override
+			public RegressionActionProgress tick() {
+				if (deadline < 0)
+					deadline = context.minecraft().player.tickCount + 100;
+				if (future == null) {
+					future = context.onServer(player -> {
+						ItemStack backpack = player.getMainHandItem();
+						if (!(backpack.getItem() instanceof BackpackItem))
+							throw new IllegalStateException("Main hand does not contain a backpack");
+						ItemStack linker = arguments.linkerRef().isEmpty()
+								? new ItemStack(BuiltInRegistries.ITEM.get(Identifier.parse("sophisticatedcore:ender_linker")).orElseThrow().value())
+								: context.values().require(arguments.linkerRef(), ItemStack.class);
+						if (!LinkedStorageService.link(player.level(), player.getUUID(), linker, backpack))
+							throw new IllegalStateException("Could not link held backpack");
+						player.setItemInHand(InteractionHand.MAIN_HAND, backpack);
+						player.getInventory().setChanged();
+						player.inventoryMenu.broadcastFullState();
+					});
+				}
+				RegressionActionProgress progress = await(future);
+				if (progress != RegressionActionProgress.PASSED)
+					return progress;
+				if (context.minecraft().player.getMainHandItem().has(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT))
+					return RegressionActionProgress.PASSED;
+				return context.minecraft().player.tickCount >= deadline
+						? fail("Linked backpack endpoint did not synchronize to client")
+						: RegressionActionProgress.WAITING;
 			}
-			if (future == null) {
-				future = context.onServer(player -> {
-					ItemStack backpack = player.getMainHandItem();
-					if (!(backpack.getItem() instanceof BackpackItem)) {
-						throw new IllegalStateException("Main hand does not contain a backpack to link");
-					}
-					ItemStack linker = arguments.linkerRef().isEmpty()
-							? new ItemStack(ENDER_LINKER.get())
-							: context.values().require(arguments.linkerRef(), ItemStack.class);
-					LinkedStorageService.LinkResult result = LinkedStorageService.linkWithResult((ServerLevel) player.level(), player.getUUID(), linker,
-							backpack);
-					if (result != LinkedStorageService.LinkResult.SUCCESS) {
-						throw new IllegalStateException("Could not link held backpack: " + result);
-					}
-					player.setItemInHand(InteractionHand.MAIN_HAND, backpack);
-					player.getInventory().setChanged();
-					player.inventoryMenu.broadcastFullState();
-				});
-			}
-			RegressionActionProgress progress = await(future);
-			if (progress != RegressionActionProgress.PASSED) {
-				return progress;
-			}
-			if (context.minecraft().player.getMainHandItem().has(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT)) {
-				return RegressionActionProgress.PASSED;
-			}
-			return context.minecraft().player.tickCount >= deadline
-					? fail("Linked backpack endpoint did not synchronize to client")
-					: RegressionActionProgress.WAITING;
-		}
+		};
 	}
 }

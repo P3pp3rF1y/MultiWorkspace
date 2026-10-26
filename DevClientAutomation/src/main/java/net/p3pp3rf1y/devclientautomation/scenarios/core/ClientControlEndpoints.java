@@ -12,23 +12,23 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime;
 import net.p3pp3rf1y.devclientautomation.bridge.EndpointRegistry;
-import net.p3pp3rf1y.devclientautomation.demo.DemoMouseMotion;
+import net.p3pp3rf1y.devclientautomation.demo.PresentationNativeInput;
+import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInputState;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.CapturedMob;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.mobcatcher.MobCatcherStorage;
-import org.lwjgl.sdl.SDLKeycode;
-import org.lwjgl.sdl.SDLScancode;
-import org.lwjgl.sdl.SDLVideo;
+import org.lwjgl.sdl.SDLKeyboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +65,12 @@ public final class ClientControlEndpoints {
 		endpoints.register("/click-widget", ClientControlEndpoints::clickWidget);
 		endpoints.register("/key", ClientControlEndpoints::key);
 		endpoints.register("/mouse/move", ClientControlEndpoints::moveMouse);
+		endpoints.register("/mouse/clear-hover", ClientControlEndpoints::clearHover);
 		endpoints.register("/mouse/click", ClientControlEndpoints::clickMouse);
 		endpoints.register("/command", ClientControlEndpoints::command);
 		endpoints.register("/screen/move-to-slot", ClientControlEndpoints::moveToSlot);
 		endpoints.register("/screen/throw-slot", ClientControlEndpoints::throwSlot);
-		endpoints.register("/window/maximize", ClientControlEndpoints::maximizeWindow);
+		endpoints.register("/presentation/window/maximize", ClientControlEndpoints::maximizeWindow);
 		endpoints.register("/wait", ClientControlEndpoints::waitFor);
 		endpoints.register("/client/shutdown-world", ClientControlEndpoints::shutdownWorld);
 		endpoints.register("/client/stop", ClientControlEndpoints::stopClient);
@@ -120,7 +121,7 @@ public final class ClientControlEndpoints {
 		JsonObject request = readObject(exchange);
 		int x = integer(request, "x", -1);
 		int y = integer(request, "y", -1);
-		int button = integer(request, "button", 1);
+		int button = integer(request, "button", InputConstants.MOUSE_BUTTON_LEFT);
 		boolean shift = bool(request, "shift", false);
 		sendJsonHandling(exchange, LOGGER, () -> AutomationRuntime.runOnClient(() -> clickMouse(x, y, button, shift)));
 	}
@@ -147,7 +148,18 @@ public final class ClientControlEndpoints {
 
 	private static void maximizeWindow(HttpExchange exchange) throws IOException {
 		requireMethod(exchange, "POST");
-		sendJson(exchange, AutomationRuntime.runOnClient(ClientControlEndpoints::maximizeWindow));
+		sendJsonHandling(exchange, LOGGER, () -> AutomationRuntime.runOnClient(() -> {
+			PresentationNativeInput.maximize();
+			return "{\"ok\":true}";
+		}));
+	}
+
+	private static void clearHover(HttpExchange exchange) throws IOException {
+		requireMethod(exchange, "POST");
+		sendJson(exchange, AutomationRuntime.runOnClient(() -> {
+			VirtualInput.clearHover();
+			return "{\"ok\":true,\"virtual\":true,\"hoverCleared\":true}";
+		}));
 	}
 
 	private static void waitFor(HttpExchange exchange) throws IOException {
@@ -231,9 +243,22 @@ public final class ClientControlEndpoints {
 				+ jsonProperty("screenSimpleName", screen == null ? null : screen.getClass().getSimpleName()) + ","
 				+ jsonProperty("screenTitle", screen == null ? null : screen.getTitle().getString()) + ","
 				+ jsonProperty("gameDirectory", minecraft.gameDirectory.getAbsolutePath()) + "," + "\"inWorld\":" + (minecraft.level != null) + ","
-				+ "\"playerLoaded\":" + (minecraft.player != null) + "," + "\"windowWidth\":" + minecraft.getWindow().getWidth() + ",\"windowHeight\":"
+				+ "\"playerLoaded\":" + (minecraft.player != null) + ",\"singleplayerServerLoaded\":" + minecraft.hasSingleplayerServer()
+				+ ",\"clientLevelLoaded\":" + hasClientLevelLoaded(minecraft) + ",\"windowWidth\":" + minecraft.getWindow().getWidth() + ",\"windowHeight\":"
 				+ minecraft.getWindow().getHeight() + ",\"guiWidth\":" + minecraft.getWindow().getGuiScaledWidth() + ",\"guiHeight\":"
-				+ minecraft.getWindow().getGuiScaledHeight() + "}";
+				+ minecraft.getWindow().getGuiScaledHeight() + ",\"windowActive\":" + minecraft.isWindowActive() + ",\"mouseGrabbed\":"
+				+ minecraft.mouseHandler.isMouseGrabbed() + ",\"virtualMouseX\":" + minecraft.mouseHandler.xpos() + ",\"virtualMouseY\":"
+				+ minecraft.mouseHandler.ypos() + ",\"playerTick\":" + (minecraft.player == null ? 0 : minecraft.player.tickCount) + ",\"pauseOnLostFocus\":"
+				+ minecraft.options.pauseOnLostFocus + ",\"backgroundInput\":" + BackgroundInputPolicy.enabled() + ",\"configuredMasterVolume\":"
+				+ minecraft.options.getSoundSourceVolume(SoundSource.MASTER) + ",\"effectiveMasterVolume\":"
+				+ minecraft.options.getFinalSoundSourceVolume(SoundSource.MASTER) + ",\"effectiveMusicVolume\":"
+				+ minecraft.options.getFinalSoundSourceVolume(SoundSource.MUSIC) + ",\"effectiveBlocksVolume\":"
+				+ minecraft.options.getFinalSoundSourceVolume(SoundSource.BLOCKS) + ",\"effectiveRecordsVolume\":"
+				+ minecraft.options.getFinalSoundSourceVolume(SoundSource.RECORDS) + "}";
+	}
+
+	static boolean hasClientLevelLoaded(Minecraft minecraft) {
+		return minecraft.getConnection() != null && minecraft.getConnection().hasClientLoaded();
 	}
 
 	private static String buildScreenJson() {
@@ -321,9 +346,7 @@ public final class ClientControlEndpoints {
 					&& (targetIndex == index || targetIndex < 0 && textMatches(widget.getMessage().getString(), text, contains))) {
 				double x = widget.getX() + widget.getWidth() / 2.0;
 				double y = widget.getY() + widget.getHeight() / 2.0;
-				MouseButtonEvent event = new MouseButtonEvent(x, y, new MouseButtonInfo(button == 0 ? InputConstants.MOUSE_BUTTON_LEFT : button, 0));
-				boolean clicked = screen.mouseClicked(event, false);
-				screen.mouseReleased(event);
+				boolean clicked = VirtualInput.click(screen, x, y, button, 0);
 				return "{\"ok\":" + clicked + ",\"index\":" + index + ",\"x\":" + x + ",\"y\":" + y + "}";
 			}
 			index++;
@@ -334,17 +357,18 @@ public final class ClientControlEndpoints {
 	private static String pressKey(String keyName, boolean ctrl, boolean shift, boolean alt) {
 		Minecraft minecraft = Minecraft.getInstance();
 		int keyCode = keyCode(keyName);
-		if (keyCode == SDLScancode.SDL_SCANCODE_UNKNOWN) {
+		if (keyCode == InputConstants.UNKNOWN.getValue()) {
 			return "{\"ok\":false,\"error\":\"Unknown key\"}";
 		}
-		if (keyCode == SDLScancode.SDL_SCANCODE_E && minecraft.gui.screen() == null && minecraft.player != null) {
+		if (keyCode == InputConstants.KEY_E && minecraft.gui.screen() == null && minecraft.player != null) {
 			minecraft.gui.setScreen(new InventoryScreen(minecraft.player));
 			return "{\"ok\":true,\"handled\":true}";
 		}
 		if (minecraft.gui.screen() != null) {
-			int modifiers = (ctrl ? SDLKeycode.SDL_KMOD_CTRL : 0) | (shift ? SDLKeycode.SDL_KMOD_SHIFT : 0) | (alt ? SDLKeycode.SDL_KMOD_ALT : 0);
-			boolean handled = minecraft.gui.screen().keyPressed(new KeyEvent(keyCode, 0, modifiers));
-			if (!handled && keyCode == SDLScancode.SDL_SCANCODE_ESCAPE) {
+			int modifiers = (ctrl ? InputConstants.MOD_CONTROL : 0) | (shift ? InputConstants.MOD_SHIFT : 0) | (alt ? InputConstants.MOD_ALT : 0);
+			boolean handled = VirtualInputState.withModifiers(modifiers,
+					() -> minecraft.gui.screen().keyPressed(new KeyEvent(keyCode, SDLKeyboard.SDL_GetKeyFromScancode(keyCode, (short) 0, false), modifiers)));
+			if (!handled && keyCode == InputConstants.KEY_ESCAPE) {
 				minecraft.gui.screen().onClose();
 				handled = true;
 			}
@@ -364,7 +388,7 @@ public final class ClientControlEndpoints {
 		Slot slot = containerScreen.getMenu().slots.get(menuSlot);
 		int x = containerScreen.getLeftPos() + slot.x + 8;
 		int y = containerScreen.getTopPos() + slot.y + 8;
-		DemoMouseMotion.setCursor(minecraft, x, y);
+		VirtualInput.moveToSlot(containerScreen, menuSlot);
 		return "{\"ok\":true,\"menuSlot\":" + menuSlot + ",\"x\":" + x + ",\"y\":" + y + "}";
 	}
 
@@ -411,9 +435,7 @@ public final class ClientControlEndpoints {
 		if (targetX < 0 || targetY < 0) {
 			return "{\"ok\":false,\"error\":\"Missing mouse coordinates\"}";
 		}
-		DemoMouseMotion.setCursor(minecraft, targetX, targetY);
-		DemoMouseMotion.moveTo(targetX, targetY, 12, () -> {
-		});
+		VirtualInput.move(targetX, targetY);
 		return "{\"ok\":true,\"x\":" + targetX + ",\"y\":" + targetY + "}";
 	}
 
@@ -426,23 +448,14 @@ public final class ClientControlEndpoints {
 			return "{\"ok\":false,\"error\":\"Mouse coordinates are outside the screen\"}";
 		}
 
-		DemoMouseMotion.setCursor(minecraft, x, y);
-		MouseButtonInfo buttonInfo = new MouseButtonInfo(button == 0 ? InputConstants.MOUSE_BUTTON_LEFT : button, shift ? SDLKeycode.SDL_KMOD_SHIFT : 0);
-		minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), buttonInfo, 1);
-		minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), buttonInfo, 0);
+		VirtualInput.click(minecraft.gui.screen(), x, y, button, shift ? InputConstants.MOD_SHIFT : 0);
 		return "{\"ok\":true,\"x\":" + x + ",\"y\":" + y + ",\"button\":" + button + ",\"shift\":" + shift + "}";
-	}
-
-	private static String maximizeWindow() {
-		Minecraft minecraft = Minecraft.getInstance();
-		SDLVideo.SDL_MaximizeWindow(minecraft.getWindow().handle());
-		return "{\"ok\":true}";
 	}
 
 	private static boolean matchesCondition(String condition, String screenName) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if ("worldLoaded".equals(condition)) {
-			return minecraft.level != null && minecraft.player != null;
+			return minecraft.level != null && minecraft.player != null && hasClientLevelLoaded(minecraft);
 		}
 		if ("screen".equals(condition)) {
 			Screen screen = minecraft.gui.screen();
@@ -470,19 +483,19 @@ public final class ClientControlEndpoints {
 
 	private static int keyCode(String keyName) {
 		return switch (keyName.toUpperCase(Locale.ROOT)) {
-			case "ESC", "ESCAPE" -> SDLScancode.SDL_SCANCODE_ESCAPE;
-			case "E" -> SDLScancode.SDL_SCANCODE_E;
-			case "ENTER", "RETURN" -> SDLScancode.SDL_SCANCODE_RETURN;
-			case "TAB" -> SDLScancode.SDL_SCANCODE_TAB;
-			case "SPACE" -> SDLScancode.SDL_SCANCODE_SPACE;
-			case "KP_0", "NUMPAD0" -> SDLScancode.SDL_SCANCODE_KP_0;
-			case "UP" -> SDLScancode.SDL_SCANCODE_UP;
-			case "DOWN" -> SDLScancode.SDL_SCANCODE_DOWN;
-			case "LEFT" -> SDLScancode.SDL_SCANCODE_LEFT;
-			case "RIGHT" -> SDLScancode.SDL_SCANCODE_RIGHT;
+			case "ESC", "ESCAPE" -> InputConstants.KEY_ESCAPE;
+			case "E" -> InputConstants.KEY_E;
+			case "ENTER", "RETURN" -> InputConstants.KEY_RETURN;
+			case "TAB" -> InputConstants.KEY_TAB;
+			case "SPACE" -> InputConstants.KEY_SPACE;
+			case "KP_0", "NUMPAD0" -> InputConstants.KEY_NUMPAD0;
+			case "UP" -> InputConstants.KEY_UP;
+			case "DOWN" -> InputConstants.KEY_DOWN;
+			case "LEFT" -> InputConstants.KEY_LEFT;
+			case "RIGHT" -> InputConstants.KEY_RIGHT;
 			default -> keyName.length() == 1 && Character.toUpperCase(keyName.charAt(0)) >= 'A' && Character.toUpperCase(keyName.charAt(0)) <= 'Z'
-					? SDLScancode.SDL_SCANCODE_A + Character.toUpperCase(keyName.charAt(0)) - 'A'
-					: SDLScancode.SDL_SCANCODE_UNKNOWN;
+					? InputConstants.KEY_A + Character.toUpperCase(keyName.charAt(0)) - 'A'
+					: InputConstants.UNKNOWN.getValue();
 		};
 	}
 

@@ -15,23 +15,23 @@ import java.util.concurrent.CompletableFuture;
 public final class SpawnFixturePigAction extends TypedRegressionAction<SpawnFixturePigAction.Arguments> {
 	public record Arguments(String saveAs, int offsetX) {
 	}
-
 	public SpawnFixturePigAction() {
 		super("fixture.entity.spawnPig", "1", Set.of("minecraft:client"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("saveAs", "offsetX"), description);
 		return new Arguments(requireString(args, "saveAs", description), optionalNonNegativeInt(args, "offsetX", 0, description));
 	}
-
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.UUID);
+	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
 			private CompletableFuture<Void> future;
-
 			@Override
 			public RegressionActionProgress tick() {
 				if (future == null) {

@@ -471,7 +471,7 @@ public final class BackpackStorageGuiRegressions {
 		int steps = action.count() == 0 ? 1 : Math.abs(action.count());
 		double scrollY = action.count() < 0 ? 1.0 : -1.0;
 		for (int i = 0; i < steps; i++) {
-			screen.mouseScrolled(screen.getGuiLeft() + 20.0, screen.getGuiTop() + 30.0, 0.0, scrollY);
+			screen.mouseScrolled(screen.getLeftPos() + 20.0, screen.getTopPos() + 30.0, 0.0, scrollY);
 		}
 		return true;
 	}
@@ -626,11 +626,11 @@ public final class BackpackStorageGuiRegressions {
 	}
 
 	private static double getSlotCenterX(BackpackScreen screen, Slot slot) {
-		return screen.getGuiLeft() + slot.x + 8.0;
+		return screen.getLeftPos() + slot.x + 8.0;
 	}
 
 	private static double getSlotCenterY(BackpackScreen screen, Slot slot) {
-		return screen.getGuiTop() + slot.y + 8.0;
+		return screen.getTopPos() + slot.y + 8.0;
 	}
 
 	private static StorageGuiColumnUpgradeExpectation clickColumnUpgrade(StorageGuiAction action) {

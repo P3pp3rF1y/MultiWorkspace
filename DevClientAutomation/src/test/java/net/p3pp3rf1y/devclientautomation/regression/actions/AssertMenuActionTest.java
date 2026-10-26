@@ -9,16 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AssertMenuActionTest {
 	@Test
-	void usesDefaultSlot() {
+	void usesDefaultArguments() {
 		AssertMenuAction action = new AssertMenuAction();
 
 		AssertMenuAction.Arguments arguments = RegressionActionTestSupport
-				.arguments(RegressionActionTestSupport.bind(action, "{\"item\": \"minecraft:diamond\", \"count\": 7}"), AssertMenuAction.Arguments.class);
+				.arguments(RegressionActionTestSupport.bind(action, "{\"item\": \"minecraft:diamond\"}"), AssertMenuAction.Arguments.class);
 
 		assertEquals(0, arguments.slot());
-		assertEquals("backpackBlock", arguments.kind());
+		assertEquals(MenuKind.BACKPACK_BLOCK, arguments.kind());
 		assertEquals("minecraft:diamond", arguments.item());
-		assertEquals(7, arguments.count());
+		assertEquals(1, arguments.count());
 		assertEquals(false, arguments.playerInventory());
 		assertEquals(0, arguments.stableTicks());
 		assertEquals(null, arguments.ref());
@@ -40,7 +40,7 @@ class AssertMenuActionTest {
 		assertEquals(true, playerSlot.playerInventory());
 		assertEquals(3, playerSlot.stableTicks());
 		assertEquals(null, playerSlot.ref());
-		assertEquals("moving",
+		assertEquals(MenuKind.MOVING,
 				RegressionActionTestSupport.arguments(
 						RegressionActionTestSupport.bind(action, "{\"kind\":\"moving\",\"ref\":\"boat\",\"item\":\"minecraft:diamond\",\"count\":1}"),
 						AssertMenuAction.Arguments.class).kind());
@@ -53,16 +53,11 @@ class AssertMenuActionTest {
 	}
 
 	@Test
-	void movingMenusRequireExactReferenceWhileRetainingExtendedArguments() {
-		AssertMenuAction.Arguments arguments = RegressionActionTestSupport.arguments(
-				RegressionActionTestSupport.bind(new AssertMenuAction(),
-						"{\"kind\":\"moving\",\"item\":\"minecraft:diamond\",\"count\":0,\"playerInventory\":true,\"stableTicks\":3,\"ref\":\"primary\"}"),
-				AssertMenuAction.Arguments.class);
+	void movingMenusRequireExactReference() {
+		AssertMenuAction.Arguments arguments = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(new AssertMenuAction(),
+				"{\"kind\":\"moving\",\"item\":\"minecraft:diamond\",\"count\":1,\"ref\":\"primary\"}"), AssertMenuAction.Arguments.class);
 
 		assertEquals("primary", arguments.ref());
-		assertEquals(0, arguments.count());
-		assertEquals(true, arguments.playerInventory());
-		assertEquals(3, arguments.stableTicks());
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(new AssertMenuAction(), "{\"kind\":\"moving\",\"item\":\"minecraft:diamond\",\"count\":1}"));
 		assertThrows(IllegalArgumentException.class,

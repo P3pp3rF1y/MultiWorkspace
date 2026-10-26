@@ -54,7 +54,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 		JeiSettingsGhostIngredientHandler<SettingsScreen> handler = new JeiSettingsGhostIngredientHandler<>();
 		try {
 			IGhostIngredientHandler.Target<ItemStack> target = handler.getTargetsTyped(screen, ingredient, true).stream()
-					.filter(candidate -> candidate.getArea().contains(screen.getGuiLeft() + slot.x + 8, screen.getGuiTop() + slot.y + 8)).findFirst()
+					.filter(candidate -> candidate.getArea().contains(screen.getLeftPos() + slot.x + 8, screen.getTopPos() + slot.y + 8)).findFirst()
 					.orElseThrow(() -> new IllegalStateException("JEI memory ghost target is missing"));
 			target.accept(stack);
 		} finally {

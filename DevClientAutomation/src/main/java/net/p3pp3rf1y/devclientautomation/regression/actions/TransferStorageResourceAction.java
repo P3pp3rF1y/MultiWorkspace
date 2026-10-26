@@ -43,6 +43,13 @@ public final class TransferStorageResourceAction extends TypedRegressionAction<T
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.ref().isEmpty()
+				? RegressionValueContract.EMPTY
+				: RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable
@@ -56,42 +63,36 @@ public final class TransferStorageResourceAction extends TypedRegressionAction<T
 								? null
 								: context.values().require(arguments.ref(), MovingStorageEntityHandle.class).requireServer(player);
 						int transferred;
-						if (arguments.operation().equals("fill") || arguments.operation().equals("drain")) {
-							ResourceHandler<FluidResource> fluid = entity == null
-									? player.level().getCapability(Capabilities.Fluid.BLOCK, context.target(), Direction.UP)
-									: entity.getCapability(Capabilities.Fluid.ENTITY, Direction.UP);
-							if (fluid == null) {
-								throw new IllegalStateException("No fluid capability at endpoint");
-							}
-							try (Transaction transaction = Transaction.openRoot()) {
+						try (Transaction transaction = Transaction.openRoot()) {
+							if (arguments.operation().equals("fill") || arguments.operation().equals("drain")) {
+								ResourceHandler<FluidResource> fluid = entity == null
+										? player.level().getCapability(Capabilities.Fluid.BLOCK, context.target(), Direction.UP)
+										: entity.getCapability(Capabilities.Fluid.ENTITY, Direction.UP);
+								if (fluid == null) {
+									throw new IllegalStateException("No fluid capability at endpoint");
+								}
+								FluidResource resource = FluidResource.of(arguments.fluid().equals("water") ? Fluids.WATER : Fluids.LAVA);
 								if (arguments.operation().equals("fill")) {
-									transferred = fluid.insert(FluidResource.of(arguments.fluid().equals("water") ? Fluids.WATER : Fluids.LAVA),
-											arguments.amount(), transaction);
+									transferred = fluid.insert(resource, arguments.amount(), transaction);
 								} else {
-									int resourceIndex = TransferStorageResourceSelector.firstNonEmptySlot(fluid.size(),
+									int resourceIndex = TransferResourceSelection.firstNonEmptyIndex(fluid.size(),
 											index -> !fluid.getResource(index).isEmpty());
 									transferred = resourceIndex < 0 ? 0 : fluid.extract(fluid.getResource(resourceIndex), arguments.amount(), transaction);
 								}
-								TransferStorageResourceSelector.requireExpectedCount(transferred, arguments.expected());
-								if (!arguments.simulate()) {
-									transaction.commit();
+							} else {
+								EnergyHandler energy = entity == null
+										? player.level().getCapability(Capabilities.Energy.BLOCK, context.target(), Direction.UP)
+										: entity.getCapability(Capabilities.Energy.ENTITY, Direction.UP);
+								if (energy == null) {
+									throw new IllegalStateException("No energy capability at endpoint");
 								}
-							}
-						} else {
-							EnergyHandler energy = entity == null
-									? player.level().getCapability(Capabilities.Energy.BLOCK, context.target(), Direction.UP)
-									: entity.getCapability(Capabilities.Energy.ENTITY, Direction.UP);
-							if (energy == null) {
-								throw new IllegalStateException("No energy capability at endpoint");
-							}
-							try (Transaction transaction = Transaction.openRoot()) {
 								transferred = arguments.operation().equals("receive")
 										? energy.insert(arguments.amount(), transaction)
 										: energy.extract(arguments.amount(), transaction);
-								TransferStorageResourceSelector.requireExpectedCount(transferred, arguments.expected());
-								if (!arguments.simulate()) {
-									transaction.commit();
-								}
+							}
+							TransferResourceSelection.requireExpectedTransfer(transferred, arguments.expected());
+							if (!arguments.simulate()) {
+								transaction.commit();
 							}
 						}
 					});

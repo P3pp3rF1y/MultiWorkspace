@@ -11,37 +11,50 @@ import java.util.Set;
 public final class UseMovingStorageAction extends TypedRegressionAction<UseMovingStorageAction.Arguments> {
 	public record Arguments(String ref) {
 	}
+
 	public UseMovingStorageAction() {
 		super("player.useMovingStorage", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
+
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("ref"), description);
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "ref", description)));
 	}
+
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
+
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private int deadline = -1;
 		private int interactionTick = -1;
+
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
 			this.arguments = arguments;
 		}
+
 		@Override
 		public RegressionActionProgress tick() {
 			Minecraft minecraft = context.minecraft();
 			if (interactionTick >= 0) {
-				if (minecraft.player.tickCount - interactionTick < 4)
+				if (minecraft.player.tickCount - interactionTick < 4) {
 					return RegressionActionProgress.WAITING;
+				}
 				minecraft.options.keyShift.setDown(false);
 				return RegressionActionProgress.PASSED;
 			}
-			if (deadline < 0)
+			if (deadline < 0) {
 				deadline = minecraft.player.tickCount + 100;
+			}
 			if (minecraft.player.containerMenu != minecraft.player.inventoryMenu) {
 				minecraft.player.closeContainer();
 				return RegressionActionProgress.WAITING;
@@ -59,22 +72,21 @@ public final class UseMovingStorageAction extends TypedRegressionAction<UseMovin
 						return RegressionActionProgress.WAITING;
 					}
 				} catch (RuntimeException e) {
-					return releaseShiftAndFail(e);
+					return releaseShiftThenFail(minecraft, failureMessage(e));
 				}
 			}
 			return minecraft.player.tickCount >= deadline
-					? releaseShiftAndFail("Moving entity " + arguments.ref() + " did not synchronize to the client")
+					? releaseShiftThenFail(minecraft, "Moving entity " + arguments.ref() + " did not synchronize to the client")
 					: RegressionActionProgress.WAITING;
 		}
 
-		private RegressionActionProgress releaseShiftAndFail(RuntimeException exception) {
-			String message = exception.getMessage();
-			return releaseShiftAndFail(message == null ? exception.toString() : message);
+		private RegressionActionProgress releaseShiftThenFail(Minecraft minecraft, String message) {
+			minecraft.options.keyShift.setDown(false);
+			return fail(message);
 		}
 
-		private RegressionActionProgress releaseShiftAndFail(String message) {
-			context.minecraft().options.keyShift.setDown(false);
-			return fail(message);
+		private String failureMessage(RuntimeException exception) {
+			return exception.getMessage() == null ? exception.toString() : exception.getMessage();
 		}
 	}
 }

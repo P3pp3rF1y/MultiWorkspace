@@ -55,7 +55,7 @@ public final class AssertLinkedBackpackHostAction extends TypedRegressionAction<
 						ItemStack stack = player.getMainHandItem();
 						if (arguments.placed()) {
 							if (!(player.level().getBlockEntity(context.target().south(arguments.offsetZ())) instanceof BackpackBlockEntity backpack)) {
-								throw new IllegalStateException("Expected a placed Backpack secondary");
+								throw RegressionActionFailure.infrastructure("Expected a placed Backpack secondary");
 							}
 							stack = backpack.getBackpackWrapper().getBackpack();
 						}
@@ -64,20 +64,20 @@ public final class AssertLinkedBackpackHostAction extends TypedRegressionAction<
 							context.putDiagnostic("linkedGroup", endpoint.groupId().toString());
 						}
 						if (endpoint == null || stack.has(ModCoreDataComponents.STORAGE_UUID)) {
-							throw new IllegalStateException("Backpack secondary has no endpoint or retained an ordinary backend");
+							throw RegressionActionFailure.assertion("Backpack secondary has no endpoint or retained an ordinary backend");
 						}
 						LinkedStorageGroupManager manager = LinkedStorageGroupsSavedData.get(player.level()).manager();
 						IStorageWrapper host = (IStorageWrapper) manager.resolveVirtualHost(endpoint, false).orElseThrow();
 						IBackpackWrapper facade = BackpackLinkedStorageResolver.resolveCanonicalHost(player.level(), stack).orElseThrow();
 						if (manager.isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId()) || facade.getInventoryHandler() != host.getInventoryHandler()
 								|| facade.getUpgradeHandler() != host.getUpgradeHandler() || facade.getSettingsHandler() != host.getSettingsHandler()) {
-							throw new IllegalStateException("Backpack secondary does not delegate to the native canonical host");
+							throw RegressionActionFailure.assertion("Backpack secondary does not delegate to the native canonical host");
 						}
 						slots = host.getInventoryHandler().size();
 						storageType = host.getStorageType();
 						settingsType = host.getSettingsHandler().getClass();
 						if (slots < arguments.minimumSlots()) {
-							throw new IllegalStateException("Canonical inventory has only " + slots + " slots");
+							throw RegressionActionFailure.assertion("Canonical inventory has only " + slots + " slots");
 						}
 					});
 				}
@@ -92,7 +92,7 @@ public final class AssertLinkedBackpackHostAction extends TypedRegressionAction<
 						deadline = context.minecraft().player.tickCount + 100;
 					}
 					return context.minecraft().player.tickCount >= deadline
-							? fail("Client Backpack menu did not use the native host profile and settings platform")
+							? failAssertion("Client Backpack menu did not use the native host profile and settings platform")
 							: RegressionActionProgress.WAITING;
 				}
 				if (arguments.placed() && (!(menu instanceof BackpackContainer backpackMenu)

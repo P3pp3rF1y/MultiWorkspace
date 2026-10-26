@@ -6,6 +6,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -14,11 +15,9 @@ import java.util.concurrent.CompletableFuture;
 public final class ProbePackedPrimaryAction extends TypedRegressionAction<ProbePackedPrimaryAction.Arguments> {
 	public record Arguments(String phase, String primaryRef, String secondaryRef) {
 	}
-
 	public ProbePackedPrimaryAction() {
 		super("moving.probePackedPrimary", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
-
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("phase", "primaryRef", "secondaryRef"), description);
@@ -29,23 +28,26 @@ public final class ProbePackedPrimaryAction extends TypedRegressionAction<ProbeP
 		return new Arguments(phase, RegressionValueStore.requireName(requireString(args, "primaryRef", description)),
 				RegressionValueStore.requireName(requireString(args, "secondaryRef", description)));
 	}
-
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.primaryRef(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.secondaryRef(), RegressionValueTypes.MOVING_STORAGE));
+	}
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
-
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> spawn;
+		@Nullable
 		private CompletableFuture<Void> verify;
 		private int startTick = -1;
-
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
 			this.arguments = arguments;
 		}
-
 		@Override
 		public RegressionActionProgress tick() {
 			if (startTick < 0) {

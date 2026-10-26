@@ -10,6 +10,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackBlockEntity;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -48,13 +49,18 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 	private static final class Execution extends TickRegressionActionExecution {
 		private final BlockPos target;
 		private int deadline = -1;
+		@Nullable
 		private CompletableFuture<Void> enableSneaking;
-		private CompletableFuture<Void> snapshot;
+		@Nullable
 		private CompletableFuture<Void> checkPlacement;
+		@Nullable
 		private CompletableFuture<Void> disableSneaking;
+		@Nullable
+		private CompletableFuture<Void> snapshotTarget;
 		private boolean clientUseSent;
 		private boolean serverPlaced;
 		private boolean terminalFailureLatched;
+		@Nullable
 		private String terminalFailure;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
@@ -64,10 +70,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 
 		@Override
 		public RegressionActionProgress tick() {
-			Minecraft minecraft = context.minecraft();
 			if (terminalFailureLatched) {
 				return disableSneakingThenFail();
 			}
+			Minecraft minecraft = context.minecraft();
 			if (deadline < 0) {
 				deadline = minecraft.player.tickCount + 100;
 			}
@@ -76,30 +82,36 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress sneaking = await(enableSneaking);
-			if (sneaking != RegressionActionProgress.PASSED) {
-				return latchFailureAndDisable(failure());
+			if (sneaking == RegressionActionProgress.WAITING) {
+				return sneaking;
+			}
+			if (sneaking == RegressionActionProgress.FAILED) {
+				return disableSneakingThenFail(failure());
 			}
 			if (clientUseSent) {
 				return awaitServerPlacement(minecraft);
 			}
-			if (snapshot == null) {
-				snapshot = context.onServer(player -> context.journal().recordBlock(player.level(), target));
+			if (snapshotTarget == null) {
+				snapshotTarget = context.onServer(player -> context.journal().recordBlock(player.level(), target));
 				return RegressionActionProgress.WAITING;
 			}
-			RegressionActionProgress snapped = await(snapshot);
-			if (snapped != RegressionActionProgress.PASSED) {
-				return latchFailureAndDisable(failure());
+			RegressionActionProgress snapshot = await(snapshotTarget);
+			if (snapshot == RegressionActionProgress.WAITING) {
+				return snapshot;
+			}
+			if (snapshot == RegressionActionProgress.FAILED) {
+				return disableSneakingThenFail(failure());
 			}
 			BlockPos support = target.below();
 			if (minecraft.player != null && minecraft.gameMode != null && minecraft.level != null
 					&& minecraft.player.blockPosition().equals(context.standingPosition()) && minecraft.player.onGround()
 					&& minecraft.player.getMainHandItem().getItem() instanceof BackpackItem && minecraft.level.getBlockState(support).is(Blocks.STONE)) {
+				minecraft.player.setShiftKeyDown(true);
 				try {
-					minecraft.player.setShiftKeyDown(true);
 					minecraft.gameMode.useItemOn(minecraft.player, InteractionHand.MAIN_HAND,
 							new BlockHitResult(Vec3.atCenterOf(support), Direction.UP, support, false));
 				} catch (RuntimeException e) {
-					return latchFailureAndDisable(e.getMessage());
+					return disableSneakingThenFail(e.getMessage());
 				} finally {
 					minecraft.player.setShiftKeyDown(false);
 				}
@@ -107,7 +119,7 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			if (minecraft.player.tickCount >= deadline) {
-				return latchFailureAndDisable("Client backpack fixture did not synchronize before placement");
+				return disableSneakingThenFail("Client backpack fixture did not synchronize before placement");
 			}
 			return RegressionActionProgress.WAITING;
 		}
@@ -118,8 +130,11 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress checked = await(checkPlacement);
-			if (checked != RegressionActionProgress.PASSED) {
-				return latchFailureAndDisable(failure());
+			if (checked == RegressionActionProgress.WAITING) {
+				return checked;
+			}
+			if (checked == RegressionActionProgress.FAILED) {
+				return disableSneakingThenFail(failure());
 			}
 			if (serverPlaced) {
 				context.putDiagnostic("serverPlacement", "confirmed");
@@ -131,12 +146,12 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 			}
 			checkPlacement = null;
 			if (minecraft.player.tickCount >= deadline) {
-				return latchFailureAndDisable("Server did not place the held backpack");
+				return disableSneakingThenFail("Server did not place the held backpack");
 			}
 			return RegressionActionProgress.WAITING;
 		}
 
-		private RegressionActionProgress latchFailureAndDisable(String message) {
+		private RegressionActionProgress disableSneakingThenFail(@Nullable String message) {
 			if (!terminalFailureLatched) {
 				terminalFailure = message;
 				terminalFailureLatched = true;

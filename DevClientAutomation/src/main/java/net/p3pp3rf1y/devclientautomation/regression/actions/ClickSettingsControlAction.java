@@ -51,8 +51,8 @@ public final class ClickSettingsControlAction extends TypedRegressionAction<Clic
 					int y;
 					if (arguments.operation() == Operation.SLOT) {
 						Slot slot = screen.getMenu().getStorageInventorySlots().get(arguments.slot());
-						x = screen.getGuiLeft() + slot.x + 8;
-						y = screen.getGuiTop() + slot.y + 8;
+						x = screen.getLeftPos() + slot.x + 8;
+						y = screen.getTopPos() + slot.y + 8;
 					} else {
 						Tab tab = screen.getSettingsTabControl().children().stream()
 								.filter(child -> arguments.operation() == Operation.MEMORY

@@ -23,6 +23,16 @@ class ActionFoundationContractTest {
 		RegressionActionTestSupport.bind(new AssertDoubleChestAction(), "{}");
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertDoubleChestAction(), "{\"forceJoin\":true}"));
 	}
+
+	@Test
+	void storageBlockLinkBindsOptionalSavedLinkerName() {
+		LinkTargetStorageBlockAction action = new LinkTargetStorageBlockAction();
+		assertEquals("",
+				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), LinkTargetStorageBlockAction.Arguments.class).saveAs());
+		assertEquals("linker", RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(action, "{\"saveAs\": \"linker\"}"), LinkTargetStorageBlockAction.Arguments.class).saveAs());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"saveAs\": 1}"));
+	}
 	@Test
 	void heldUseAndBlockPlacementRejectArguments() {
 		assertNoArguments(new UseHeldItemAction(), "player.useHeldItem");
@@ -76,6 +86,9 @@ class ActionFoundationContractTest {
 				SetPlayerInventorySlotAction.Arguments.class);
 		assertEquals(9, arguments.slot());
 		assertEquals("2", action.metadata().revision());
+		assertEquals(0,
+				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\": 0, \"item\": \"minecraft:stick\", \"count\": 1}"),
+						SetPlayerInventorySlotAction.Arguments.class).slot());
 		assertEquals(false,
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\": 0, \"item\": \"minecraft:stick\", \"count\": 1}"),
 						SetPlayerInventorySlotAction.Arguments.class).clearMatching());
@@ -83,30 +96,23 @@ class ActionFoundationContractTest {
 				RegressionActionTestSupport.arguments(
 						RegressionActionTestSupport.bind(action, "{\"slot\": 0, \"item\": \"minecraft:stick\", \"count\": 1, \"clearMatching\": true}"),
 						SetPlayerInventorySlotAction.Arguments.class).clearMatching());
-		assertEquals(0,
-				RegressionActionTestSupport.arguments(
-						RegressionActionTestSupport.bind(action, "{\"slot\": 0, \"item\": \"minecraft:stick\", \"count\": 1, \"clearMatching\": true}"),
-						SetPlayerInventorySlotAction.Arguments.class).slot());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"item\": \"minecraft:stick\", \"count\": 1}"));
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(action, "{\"slot\": -1, \"item\": \"minecraft:stick\", \"count\": 1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": 1, \"count\": 1}"));
-		for (String json : java.util.List.of("{\"slot\":9,\"item\":\"minecraft:stick\"}", "{\"slot\":9,\"item\":\"minecraft:stick\",\"count\":0}",
-				"{\"slot\":9,\"item\":\"minecraft:stick\",\"count\":true}", "{\"slot\":9.5,\"item\":\"minecraft:stick\",\"count\":1}",
-				"{\"slot\":9,\"item\":\"minecraft:stick\",\"count\":1.5}", "{\"slot\":9,\"item\":\"minecraft:stick\",\"count\":1,\"clearMatching\":\"true\"}",
-				"{\"slot\":9,\"item\":\"minecraft:stick\",\"count\":1,\"extra\":true}")) {
-			assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, json));
-		}
-	}
-
-	@Test
-	void storageBlockLinkBindsOptionalSavedLinkerName() {
-		LinkTargetStorageBlockAction action = new LinkTargetStorageBlockAction();
-		assertEquals("",
-				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), LinkTargetStorageBlockAction.Arguments.class).saveAs());
-		assertEquals("linker", RegressionActionTestSupport
-				.arguments(RegressionActionTestSupport.bind(action, "{\"saveAs\":\"linker\"}"), LinkTargetStorageBlockAction.Arguments.class).saveAs());
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"saveAs\":1}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\"}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\", \"count\": 0}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\", \"count\": true}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9.5, \"item\": \"minecraft:stick\", \"count\": 1}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\", \"count\": 1.5}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\", \"count\": 1, \"clearMatching\": \"true\"}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"slot\": 9, \"item\": \"minecraft:stick\", \"count\": 1, \"extra\": true}"));
 	}
 
 	@Test
@@ -115,9 +121,43 @@ class ActionFoundationContractTest {
 		assertEquals(100,
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), AwaitMenuClosedAction.Arguments.class).timeoutTicks());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": 0}"));
-		for (String json : java.util.List.of("{\"timeoutTicks\":\"100\"}", "{\"timeoutTicks\":1.5}", "{\"timeoutTicks\":1,\"extra\":true}")) {
-			assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, json));
-		}
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": \"100\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": 1.5}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\": 1, \"extra\": true}"));
+	}
+
+	@Test
+	void inventoryClickServerConfirmationIsOptInAndBounded() {
+		ClickPlayerInventorySlotAction action = new ClickPlayerInventorySlotAction();
+		var legacy = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":10}"),
+				ClickPlayerInventorySlotAction.Arguments.class);
+		var confirmed = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(action, "{\"area\":\"result\",\"slot\":0,\"awaitServer\":true,\"timeoutTicks\":25}"),
+				ClickPlayerInventorySlotAction.Arguments.class);
+		assertEquals(false, legacy.awaitServer());
+		assertEquals(40, legacy.timeoutTicks());
+		assertEquals(true, confirmed.awaitServer());
+		assertEquals(25, confirmed.timeoutTicks());
+		assertEquals("1", action.metadata().revision());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"awaitServer\":\"true\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"awaitServer\":true,\"timeoutTicks\":0}"));
+	}
+	@Test
+	void linkedItemCanonicalConfirmationIsOptInAndBounded() {
+		AssertLinkedItemContentsAction action = new AssertLinkedItemContentsAction();
+		assertEquals("1", action.metadata().revision());
+		assertEquals(0,
+				RegressionActionTestSupport
+						.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":0,\"count\":7}"), AssertLinkedItemContentsAction.Arguments.class)
+						.timeoutTicks());
+		var bounded = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":0,\"count\":7,\"timeoutTicks\":40}"),
+				AssertLinkedItemContentsAction.Arguments.class);
+		assertEquals(7, bounded.count());
+		assertEquals(40, bounded.timeoutTicks());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":-1}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":1.5}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":\"40\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":40,\"extra\":true}"));
 	}
 
 	@Test
@@ -125,9 +165,9 @@ class ActionFoundationContractTest {
 		ClickMenuSlotAction click = new ClickMenuSlotAction();
 		assertEquals(0, RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(click, "{}"), ClickMenuSlotAction.Arguments.class).slot());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\": false}"));
-		for (String json : java.util.List.of("{\"slot\":-1}", "{\"slot\":0.5}", "{\"slot\":0,\"extra\":true}")) {
-			assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, json));
-		}
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\": -1}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\": 0.5}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\": 0, \"extra\": true}"));
 
 		QuickMovePlayerInventorySlotAction quickMove = new QuickMovePlayerInventorySlotAction();
 		assertEquals(9,
@@ -136,9 +176,9 @@ class ActionFoundationContractTest {
 						.inventorySlot());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, "{\"inventorySlot\": 8}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, "{\"inventorySlot\": \"9\"}"));
-		for (String json : java.util.List.of("{\"inventorySlot\":9.5}", "{\"inventorySlot\":36}", "{\"inventorySlot\":9,\"extra\":true}")) {
-			assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, json));
-		}
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, "{\"inventorySlot\": 9.5}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, "{\"inventorySlot\": 36}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(quickMove, "{\"inventorySlot\": 9, \"extra\": true}"));
 	}
 
 	private static void assertNoArguments(RegressionAction action, String id) {

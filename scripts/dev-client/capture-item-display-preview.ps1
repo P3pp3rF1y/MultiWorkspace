@@ -3,7 +3,7 @@ param(
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "item-display-preview-screenshots"),
     [string]$PreviewCropDirectory = "",
     [switch]$StartClient,
-    [switch]$MoveMouseToCorner = $true,
+    [switch]$ClearVirtualHover = $true,
     [int]$PreviewSettleMilliseconds = 1250
 )
 
@@ -178,14 +178,7 @@ function Close-OpenScreen {
             return
         }
 
-        Invoke-BridgeJson -Method Post -Path "/game/unpause" | Out-Null
-        Start-Sleep -Milliseconds 150
-        $closeWait = Invoke-BridgeJson -Method Post -Path "/wait" -Body @{ condition = "noScreen"; timeoutMs = 250 }
-        if ($closeWait.ok -and -not $closeWait.timedOut) {
-            return
-        }
-
-        Invoke-BridgeJson -Method Post -Path "/key" -Body @{ key = "E" } | Out-Null
+        Invoke-BridgeJson -Method Post -Path "/key" -Body @{ key = "ESCAPE" } | Out-Null
         Start-Sleep -Milliseconds 150
     }
 
@@ -199,10 +192,11 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     if (-not $StartClient) {
         throw "Pass -BaseUrl for an already running dev client, or pass -StartClient to launch one via start-and-ready.ps1."
     }
-    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -Maximize -SkipRecipeViewerReady -MinimalRuntime
+    $ready = & "$PSScriptRoot\start-and-ready.ps1" -WorkspaceRoot (Resolve-Path "$PSScriptRoot\..\..").Path -SkipRecipeViewerReady -MinimalRuntime
     $BaseUrl = $ready.baseUrl
 }
 
+& "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
 New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
 if ([string]::IsNullOrWhiteSpace($PreviewCropDirectory)) {
     $PreviewCropDirectory = Join-Path $ScreenshotDirectory "preview-crops"
@@ -249,23 +243,10 @@ foreach ($case in $cases) {
     Close-OpenScreen
     $open = Invoke-BridgeJson -Method Post -Path "/storage/item-display-preview/open" -Body $case
     if (-not $open.ok) {
-        if ($case.scenario.StartsWith("create_cart_") -and $open.error -like "*Create item-display preview scenarios are unavailable*") {
-            $captures += [pscustomobject]@{
-                name = $name
-                skipped = $true
-                reason = $open.error
-                screenshot = $null
-                previewCrop = $null
-                state = $null
-                screen = $null
-                open = $open
-            }
-            continue
-        }
-        throw "Failed to open item display preview for ${name}: $($open.error)"
+        throw "Failed to open item display preview for $name"
     }
-    if ($MoveMouseToCorner) {
-        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    if ($ClearVirtualHover) {
+        Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     }
     Start-Sleep -Milliseconds $PreviewSettleMilliseconds
 
@@ -282,7 +263,6 @@ foreach ($case in $cases) {
 
     $captures += [pscustomobject]@{
         name = $name
-        skipped = $false
         screenshot = $pngPath
         previewCrop = $previewCropPath
         state = $statePath

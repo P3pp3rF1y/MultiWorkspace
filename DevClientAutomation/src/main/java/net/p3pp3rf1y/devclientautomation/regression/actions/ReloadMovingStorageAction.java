@@ -27,6 +27,10 @@ public final class ReloadMovingStorageAction extends TypedRegressionAction<Reloa
 		return new Arguments(RegressionValueStore.requireName(requireString(args, "ref", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}

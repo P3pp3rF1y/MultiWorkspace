@@ -57,7 +57,7 @@ public final class AssertHeldBackpackFilterAction extends TypedRegressionAction<
 
 		@Override
 		public RegressionActionProgress tick() {
-			if (!context.isExpectedMenu("backpackItem")) {
+			if (!context.isExpectedMenu(MenuKind.BACKPACK_ITEM, null)) {
 				return fail("Expected held-backpack item menu is not open");
 			}
 			if (deadline < 0) {
@@ -72,13 +72,13 @@ public final class AssertHeldBackpackFilterAction extends TypedRegressionAction<
 				return checked;
 			}
 			if (!serverMatched) {
-				return fail("Server held backpack filter configuration or storage slot did not match the suite expectation");
+				return failAssertion("Server held backpack filter configuration or storage slot did not match the suite expectation");
 			}
 			if (matches(((BackpackContainer) context.minecraft().player.containerMenu).getStorageWrapper(), arguments)) {
 				return RegressionActionProgress.PASSED;
 			}
 			return context.minecraft().player.tickCount >= deadline
-					? fail("Client held backpack filter configuration or storage slot did not synchronize")
+					? failAssertion("Client held backpack filter configuration or storage slot did not synchronize")
 					: RegressionActionProgress.WAITING;
 		}
 	}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "storage-menu",
-  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
     {
