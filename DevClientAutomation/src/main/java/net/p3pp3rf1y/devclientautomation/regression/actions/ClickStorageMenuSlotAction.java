@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.world.inventory.ContainerInput;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
 
+import java.util.Map;
 import java.util.Set;
 
 public final class ClickStorageMenuSlotAction extends TypedRegressionAction<ClickStorageMenuSlotAction.Arguments> {
@@ -42,12 +43,17 @@ public final class ClickStorageMenuSlotAction extends TypedRegressionAction<Clic
 					case "upgrade" -> menu.getInventorySlotsSize() + arguments.slot();
 					default -> arguments.slot();
 				};
-				if (arguments.area().equals("upgrade") && arguments.slot() >= menu.getStorageWrapper().getUpgradeHandler().size()
+				if (arguments.area().equals("upgrade") && arguments.slot() >= menu.getNumberOfUpgradeSlots()
 						|| arguments.area().equals("storage") && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
 					return fail("Storage menu has no requested slot");
 				}
+				String slotBefore = menu.getSlot(slot).getItem().toString();
+				String cursorBefore = menu.getCarried().toString();
 				context.minecraft().gameMode.handleContainerInput(menu.containerId, slot, 0,
 						arguments.click().equals("quickMove") ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP, context.minecraft().player);
+				observe(Map.of("menuId", menu.containerId, "slot", slot, "area", arguments.area(), "inventorySlot", arguments.slot(), "click",
+						arguments.click(), "slotBefore", slotBefore, "cursorBefore", cursorBefore),
+						Map.of("slotAfter", menu.getSlot(slot).getItem().toString(), "cursorAfter", menu.getCarried().toString()));
 				return RegressionActionProgress.PASSED;
 			}
 		};
