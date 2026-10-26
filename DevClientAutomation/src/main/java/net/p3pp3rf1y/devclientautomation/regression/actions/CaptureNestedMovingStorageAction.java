@@ -23,6 +23,11 @@ public final class CaptureNestedMovingStorageAction extends TypedRegressionActio
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.NESTED_STORAGE));
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;

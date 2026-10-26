@@ -71,12 +71,12 @@ public final class RegressionMutationJournal {
 
 	public static RegressionMutationJournal open(ServerPlayer player, String runId, PlayerStatePolicy policy, String checkpointId,
 			Map<String, Object> diagnostics) {
-		if (player.containerMenu != player.inventoryMenu) {
-			throw new IllegalStateException("Close the active container before starting a regression; its transient inputs are not journal-owned");
-		}
 		Path path = player.level().getServer().getWorldPath(LevelResource.ROOT).resolve(FILE_NAME);
 		if (Files.exists(path)) {
 			read(path).finish(player, null, false);
+		}
+		if (player.containerMenu != player.inventoryMenu) {
+			throw new IllegalStateException("Close the active container before starting a regression; its transient inputs are not journal-owned");
 		}
 		RegressionMutationJournal journal = new RegressionMutationJournal(path, runId);
 		journal.playerState = policy;
@@ -119,13 +119,13 @@ public final class RegressionMutationJournal {
 	private static CompoundTag snapshotPlayer(ServerPlayer player) {
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, player.registryAccess());
 		output.putString("player", player.getUUID().toString());
-		output.putString("gameMode", player.gameMode.getGameModeForPlayer().getName());
 		player.getInventory().save(output.list("inventory", ItemStackWithSlot.CODEC));
 		var equipment = output.list("equipment", ItemStack.OPTIONAL_CODEC);
 		for (int slot = 36; slot <= 42; slot++) {
 			equipment.add(player.getInventory().getItem(slot));
 		}
 		output.putInt("selected", player.getInventory().getSelectedSlot());
+		output.putInt("gameMode", player.gameMode.getGameModeForPlayer().getId());
 		output.store("carried", ItemStack.OPTIONAL_CODEC, player.containerMenu.getCarried());
 		var crafting = output.list("crafting", ItemStack.OPTIONAL_CODEC);
 		for (int slot = 1; slot <= 4; slot++) {
@@ -155,7 +155,6 @@ public final class RegressionMutationJournal {
 		}
 		ValueInput input = TagValueInput.create(ProblemReporter.DISCARDING, player.registryAccess(), snapshot);
 		clearPlayer(player);
-		player.setGameMode(GameType.byName(snapshot.getStringOr("gameMode", "survival"), GameType.SURVIVAL));
 		player.getInventory().load(input.listOrEmpty("inventory", ItemStackWithSlot.CODEC));
 		var equipment = input.listOrEmpty("equipment", ItemStack.OPTIONAL_CODEC).iterator();
 		for (int slot = 36; slot <= 42; slot++) {
@@ -165,6 +164,7 @@ public final class RegressionMutationJournal {
 			player.getInventory().setItem(slot, equipment.next());
 		}
 		player.getInventory().setSelectedSlot(input.getIntOr("selected", 0));
+		player.setGameMode(GameType.byId(input.getIntOr("gameMode", GameType.SURVIVAL.getId())));
 		player.connection.send(new ClientboundSetHeldSlotPacket(player.getInventory().getSelectedSlot()));
 		var crafting = input.listOrEmpty("crafting", ItemStack.OPTIONAL_CODEC).iterator();
 		for (int slot = 1; slot <= 4; slot++) {
@@ -176,7 +176,7 @@ public final class RegressionMutationJournal {
 		player.inventoryMenu.setCarried(input.read("carried", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
 		player.inventoryMenu.broadcastFullState();
 		if (!snapshotPlayer(player).equals(snapshot)) {
-			throw new IllegalStateException("Restored player game mode/inventory/cursor/crafting/selection differs from journal");
+			throw new IllegalStateException("Restored player inventory/cursor/crafting/selection differs from journal");
 		}
 	}
 

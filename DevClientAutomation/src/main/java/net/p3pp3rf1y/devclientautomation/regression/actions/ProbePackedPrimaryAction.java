@@ -6,6 +6,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.entity.IMovingStorageEntity;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
@@ -28,12 +29,19 @@ public final class ProbePackedPrimaryAction extends TypedRegressionAction<ProbeP
 				RegressionValueStore.requireName(requireString(args, "secondaryRef", description)));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.primaryRef(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.secondaryRef(), RegressionValueTypes.MOVING_STORAGE));
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> spawn;
+		@Nullable
 		private CompletableFuture<Void> verify;
 		private int startTick = -1;
 		private Execution(RegressionExecutionContext context, Arguments arguments) {

@@ -153,15 +153,24 @@ neoForge {
 
         client {
             client()
+            systemProperty 'devclientautomation.backgroundInput', 'false'
             systemProperty 'mixin.debug.export', 'true'
             systemProperty 'mixin.debug.export.decompile', 'true'
         }
 
         client2 {
             client()
+            systemProperty 'devclientautomation.backgroundInput', 'false'
 
             gameDirectory = file('runs/client2')
             programArguments.addAll '--username', 'Dev2'
+            systemProperty 'mixin.debug.export', 'true'
+            systemProperty 'mixin.debug.export.decompile', 'true'
+        }
+
+        regressionClient {
+            client()
+            systemProperty 'devclientautomation.backgroundInput', 'true'
             systemProperty 'mixin.debug.export', 'true'
             systemProperty 'mixin.debug.export.decompile', 'true'
         }

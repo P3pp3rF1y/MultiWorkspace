@@ -26,6 +26,10 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 
 	protected abstract RegressionActionExecution start(RegressionExecutionContext context, A arguments);
 
+	protected RegressionValueContract values(A arguments) {
+		return RegressionValueContract.EMPTY;
+	}
+
 	protected Set<String> dependencies(A arguments) {
 		return metadata.dependencies();
 	}
@@ -59,7 +63,7 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 		if (!args.has(name) || !args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be numeric");
 		}
-		int value = RegressionJsonNumbers.integer(args.get(name));
+		int value = integer(args, name, description);
 		if (value < 1) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be positive");
 		}
@@ -70,30 +74,36 @@ public abstract class TypedRegressionAction<A> implements RegressionAction {
 		return args.has(name) ? requirePositiveInt(args, name, description) : defaultValue;
 	}
 
-	protected static int optionalNonNegativeInt(JsonObject args, String name, int defaultValue, String description) {
-		if (!args.has(name)) {
-			return defaultValue;
-		}
-		if (!args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isNumber()) {
+	protected static int requireNonNegativeInt(JsonObject args, String name, String description) {
+		if (!args.has(name) || !args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be numeric");
 		}
-		int value = RegressionJsonNumbers.integer(args.get(name));
+		int value = integer(args, name, description);
 		if (value < 0) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must not be negative");
 		}
 		return value;
 	}
 
-	protected static int requireNonNegativeInt(JsonObject args, String name, String description) {
+	protected static int optionalNonNegativeInt(JsonObject args, String name, int defaultValue, String description) {
 		if (!args.has(name)) {
-			throw new IllegalArgumentException("Argument " + name + " on " + description + " is required");
+			return defaultValue;
 		}
-		return optionalNonNegativeInt(args, name, 0, description);
+		return requireNonNegativeInt(args, name, description);
+	}
+
+	private static int integer(JsonObject args, String name, String description) {
+		try {
+			return RegressionJsonNumbers.integer(args.get(name));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be an integer", e);
+		}
 	}
 
 	protected static boolean optionalBoolean(JsonObject args, String name, boolean defaultValue, String description) {
-		if (!args.has(name))
+		if (!args.has(name)) {
 			return defaultValue;
+		}
 		if (!args.get(name).isJsonPrimitive() || !args.get(name).getAsJsonPrimitive().isBoolean()) {
 			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be boolean");
 		}

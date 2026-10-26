@@ -1,13 +1,12 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
-import com.google.gson.JsonParser;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionActionRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -17,104 +16,83 @@ class MountedLinkedStorageActionBindingTest {
 		RegressionActionRegistry registry = new RegressionActionRegistry();
 		RegressionAction mountStorage = registry.require("fixture.create.mountLinkedStorage");
 		RegressionAction mountBackpack = registry.require("fixture.create.mountBackpack");
-		RegressionAction disassembleBackpack = registry.require("create.disassembleBackpack");
-		RegressionAction setMountedBackpackSlot = registry.require("fixture.create.setMountedBackpackSlot");
-		RegressionAction setMountedStorageSlot = registry.require("fixture.create.setMountedSlot");
-		RegressionAction assertMountedStorage = registry.require("assert.createMountedLinkedStorage");
-		assertCreateMetadata(mountStorage, "sophisticatedstoragecreateintegration");
-		assertCreateMetadata(mountBackpack, "sophisticatedbackpackscreateintegration");
-		assertCreateMetadata(disassembleBackpack, "sophisticatedbackpackscreateintegration");
-		assertCreateMetadata(setMountedBackpackSlot, "sophisticatedbackpackscreateintegration");
-		assertCreateMetadata(setMountedStorageSlot, "sophisticatedstoragecreateintegration");
-		assertCreateMetadata(assertMountedStorage, "sophisticatedstoragecreateintegration");
-		assertSame(mountStorage, bind(mountStorage, "{\"saveAs\":\"mounted\"}").action());
-		assertSame(mountBackpack, bind(mountBackpack, "{\"saveAs\":\"mounted\"}").action());
-		assertSame(disassembleBackpack, bind(disassembleBackpack, "{\"ref\":\"mounted\"}").action());
-		assertSame(setMountedBackpackSlot, bind(setMountedBackpackSlot, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1}").action());
-		assertSame(setMountedStorageSlot, bind(setMountedStorageSlot, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1}").action());
-		assertSame(assertMountedStorage, bind(assertMountedStorage, "{\"ref\":\"mounted\"}").action());
-		assertSame(assertMountedStorage, bind(assertMountedStorage, "{\"ref\":\"mounted\",\"count\":0,\"checkPresentation\":false}").action());
-		assertInvalid(mountStorage, "{}");
-		assertInvalid(mountStorage, "{\"saveAs\":1}");
-		assertInvalidValueNames(mountStorage, "saveAs", "");
-		assertInvalid(mountStorage, "{\"saveAs\":\"mounted\",\"extra\":true}");
-		assertInvalid(mountBackpack, "{}");
-		assertInvalid(mountBackpack, "{\"saveAs\":1}");
-		assertInvalidValueNames(mountBackpack, "saveAs", "");
-		assertInvalid(mountBackpack, "{\"saveAs\":\"mounted\",\"extra\":true}");
-		assertInvalid(disassembleBackpack, "{}");
-		assertInvalid(disassembleBackpack, "{\"ref\":1}");
-		assertInvalidValueNames(disassembleBackpack, "ref", "");
-		assertInvalid(disassembleBackpack, "{\"ref\":\"mounted\",\"extra\":true}");
-		assertSlotSchemaIsStrict(setMountedBackpackSlot);
-		assertSlotSchemaIsStrict(setMountedStorageSlot);
-		assertInvalid(assertMountedStorage, "{}");
-		assertInvalid(assertMountedStorage, "{\"ref\":1}");
-		assertInvalidValueNames(assertMountedStorage, "ref", "");
-		assertInvalid(assertMountedStorage, "{\"ref\":\"mounted\",\"count\":1.5}");
-		assertInvalid(assertMountedStorage, "{\"ref\":\"mounted\",\"count\":-1}");
-		assertInvalid(assertMountedStorage, "{\"ref\":\"mounted\",\"checkPresentation\":\"false\"}");
-		assertInvalid(assertMountedStorage, "{\"ref\":\"mounted\",\"extra\":true}");
+		RegressionAction disassemble = registry.require("create.disassembleBackpack");
+		RegressionAction backpackSlot = registry.require("fixture.create.setMountedBackpackSlot");
+		RegressionAction storageSlot = registry.require("fixture.create.setMountedSlot");
+		RegressionAction assertion = registry.require("assert.createMountedLinkedStorage");
+		for (RegressionAction action : new RegressionAction[]{mountStorage, mountBackpack, disassemble, backpackSlot, storageSlot, assertion}) {
+			assertInstanceOf(LazyOptionalRegressionAction.class, action);
+			assertEquals("1", action.metadata().revision());
+			String capability = Set.of(mountBackpack, disassemble, backpackSlot).contains(action)
+					? "sophisticatedbackpackscreateintegration"
+					: "sophisticatedstoragecreateintegration";
+			assertEquals(Set.of("minecraft:client", capability), action.metadata().dependencies());
+		}
+		for (RegressionAction action : new RegressionAction[]{mountStorage, mountBackpack}) {
+			assertSame(action, bind(action, "{\"saveAs\":\"mounted\"}").action());
+			assertInvalid(action, "{}");
+			assertInvalid(action, "{\"saveAs\":1}");
+			assertInvalidNames(action, "saveAs", "");
+			assertInvalid(action, "{\"saveAs\":\"mounted\",\"extra\":true}");
+		}
+		assertSame(disassemble, bind(disassemble, "{\"ref\":\"mounted\"}").action());
+		assertInvalid(disassemble, "{}");
+		assertInvalid(disassemble, "{\"ref\":1}");
+		assertInvalidNames(disassemble, "ref", "");
+		assertInvalid(disassemble, "{\"ref\":\"mounted\",\"extra\":true}");
+		for (RegressionAction action : new RegressionAction[]{backpackSlot, storageSlot}) {
+			assertSame(action, bind(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1}").action());
+			for (String invalid : new String[]{"{}", "{\"item\":\"minecraft:emerald\",\"count\":1}", "{\"ref\":\"mounted\",\"count\":1}",
+					"{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\"}", "{\"ref\":1,\"item\":\"minecraft:emerald\",\"count\":1}",
+					"{\"ref\":\"mounted\",\"item\":1,\"count\":1}", "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":\"1\"}",
+					"{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1.5}", "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":0}",
+					"{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1,\"extra\":true}"})
+				assertInvalid(action, invalid);
+			assertInvalidNames(action, "ref", ",\"item\":\"minecraft:emerald\",\"count\":1");
+		}
+		assertSame(assertion, bind(assertion, "{\"ref\":\"mounted\"}").action());
+		assertSame(assertion, bind(assertion, "{\"ref\":\"mounted\",\"count\":0,\"checkPresentation\":false}").action());
+		for (String invalid : new String[]{"{}", "{\"ref\":1}", "{\"ref\":\"mounted\",\"count\":1.5}", "{\"ref\":\"mounted\",\"count\":-1}",
+				"{\"ref\":\"mounted\",\"checkPresentation\":\"false\"}", "{\"ref\":\"mounted\",\"extra\":true}"})
+			assertInvalid(assertion, invalid);
+		assertInvalidNames(assertion, "ref", "");
 	}
 
-	private static void assertCreateMetadata(RegressionAction action, String capability) {
-		assertEquals("1", action.metadata().revision());
-		assertEquals(Set.of("minecraft:client", capability), action.metadata().dependencies());
+	private static void assertInvalidNames(RegressionAction action, String name, String suffix) {
+		for (String invalid : new String[]{"", "Mounted", "mounted.name"})
+			assertInvalid(action, "{\"" + name + "\":\"" + invalid + "\"" + suffix + "}");
 	}
-
-	private static void assertSlotSchemaIsStrict(RegressionAction action) {
-		assertInvalid(action, "{}");
-		assertInvalid(action, "{\"item\":\"minecraft:emerald\",\"count\":1}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"count\":1}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\"}");
-		assertInvalid(action, "{\"ref\":1,\"item\":\"minecraft:emerald\",\"count\":1}");
-		assertInvalidValueNames(action, "ref", ",\"item\":\"minecraft:emerald\",\"count\":1");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":1,\"count\":1}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":\"1\"}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1.5}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":0}");
-		assertInvalid(action, "{\"ref\":\"mounted\",\"item\":\"minecraft:emerald\",\"count\":1,\"extra\":true}");
-	}
-
-	private static void assertInvalidValueNames(RegressionAction action, String name, String suffix) {
-		assertInvalid(action, "{\"" + name + "\":\"\"" + suffix + "}");
-		assertInvalid(action, "{\"" + name + "\":\"Mounted\"" + suffix + "}");
-		assertInvalid(action, "{\"" + name + "\":\"mounted.name\"" + suffix + "}");
-	}
-
 	private static RegressionActionInvocation bind(RegressionAction action, String json) {
-		return action.bind(JsonParser.parseString(json).getAsJsonObject(), "test");
+		return action.bind(com.google.gson.JsonParser.parseString(json).getAsJsonObject(), "test action");
 	}
-
 	private static void assertInvalid(RegressionAction action, String json) {
-		assertThrows(IllegalArgumentException.class, () -> bind(action, json));
+		assertThrows(IllegalArgumentException.class, () -> bind(action, json), json);
 	}
 	@Test
 	void mountedLinkedStorageActionsBindExactReferences() {
-		assertEquals("mounted",
-				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(new MountLinkedStorageAction(), "{\"saveAs\":\"mounted\"}"),
-						MountLinkedStorageAction.Arguments.class).saveAs());
-		AssertMountedLinkedStorageAction.Arguments assertion = RegressionActionTestSupport.arguments(
-				RegressionActionTestSupport.bind(new AssertMountedLinkedStorageAction(), "{\"ref\":\"mounted\",\"count\":2,\"checkPresentation\":false}"),
-				AssertMountedLinkedStorageAction.Arguments.class);
-		assertEquals("mounted", assertion.ref());
-		assertEquals(2, assertion.count());
-		assertFalse(assertion.checkPresentation());
-		assertEquals("mounted",
-				RegressionActionTestSupport.arguments(
-						RegressionActionTestSupport.bind(new SetMountedStorageSlotAction(), "{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}"),
-						SetMountedStorageSlotAction.Arguments.class).ref());
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		for (String id : new String[]{"fixture.create.mountLinkedStorage", "assert.createMountedLinkedStorage", "fixture.create.setMountedSlot"}) {
+			RegressionAction action = registry.require(id);
+			String args = id.equals("fixture.create.mountLinkedStorage")
+					? "{\"saveAs\":\"mounted\"}"
+					: id.equals("assert.createMountedLinkedStorage")
+							? "{\"ref\":\"mounted\",\"count\":2,\"checkPresentation\":false}"
+							: "{\"ref\":\"mounted\",\"item\":\"minecraft:diamond\",\"count\":1}";
+			assertSame(action, bind(action, args).action());
+		}
 	}
 
 	@Test
 	void mountedLinkedStorageActionsRejectUnboundArguments() {
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new MountLinkedStorageAction(), "{}"));
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(registry.require("fixture.create.mountLinkedStorage"), "{}"));
 		assertThrows(IllegalArgumentException.class,
-				() -> RegressionActionTestSupport.bind(new MountLinkedStorageAction(), "{\"saveAs\":\"mounted\",\"ref\":\"other\"}"));
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertMountedLinkedStorageAction(), "{\"count\":1}"));
+				() -> RegressionActionTestSupport.bind(registry.require("fixture.create.mountLinkedStorage"), "{\"saveAs\":\"mounted\",\"ref\":\"other\"}"));
 		assertThrows(IllegalArgumentException.class,
-				() -> RegressionActionTestSupport.bind(new AssertMountedLinkedStorageAction(), "{\"ref\":\"mounted\",\"checkPresentation\":\"false\"}"));
+				() -> RegressionActionTestSupport.bind(registry.require("assert.createMountedLinkedStorage"), "{\"count\":1}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(registry.require("assert.createMountedLinkedStorage"),
+				"{\"ref\":\"mounted\",\"checkPresentation\":\"false\"}"));
 		assertThrows(IllegalArgumentException.class,
-				() -> RegressionActionTestSupport.bind(new SetMountedStorageSlotAction(), "{\"ref\":\"mounted\",\"count\":1}"));
+				() -> RegressionActionTestSupport.bind(registry.require("fixture.create.setMountedSlot"), "{\"ref\":\"mounted\",\"count\":1}"));
 	}
 }

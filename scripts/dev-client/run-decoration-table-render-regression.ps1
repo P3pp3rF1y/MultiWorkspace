@@ -6,7 +6,6 @@ param(
     [string]$ScreenshotDirectory = (Join-Path (Resolve-Path "$PSScriptRoot\..\..\workspace\run").Path "decoration-table-render-screenshots"),
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime
 )
 
@@ -39,28 +38,23 @@ function Invoke-BridgeJson {
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress) -TimeoutSec $TimeoutSeconds
 }
 
-function Stop-ProcessTree {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0 -or $null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) {
-        return
-    }
-    try {
-        & taskkill.exe /PID $ProcessId /T /F | Out-Null
-    } catch {
-        Write-Warning "Failed to kill dev client process tree ${ProcessId}: $($_.Exception.Message)"
-    }
-}
-
 function Stop-AutomationClient {
-    param([int]$ProcessId)
-
     try {
         Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
     } catch {
         Write-Warning "Failed to stop dev client through automation bridge: $($_.Exception.Message)"
     }
-    Stop-ProcessTree -ProcessId $ProcessId
+}
+
+function Wait-AutomationClientStopped {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
 }
 
 function Test-VisiblePixel {
@@ -70,10 +64,7 @@ function Test-VisiblePixel {
 }
 
 function Get-VisibleBounds {
-    param(
-        [Parameter(Mandatory = $true)] [string]$ScreenshotPath,
-        [int]$BottomInset = 0
-    )
+    param([Parameter(Mandatory = $true)] [string]$ScreenshotPath)
 
     $bitmap = [System.Drawing.Bitmap]::FromFile($ScreenshotPath)
     try {
@@ -82,7 +73,7 @@ function Get-VisibleBounds {
         # Slot tooltips can overlap the top edge of the preview crop after opening the legacy screen.
         # All valid preview geometry starts below this band.
         $minY = 24
-        $maxY = $bitmap.Height - $BottomInset
+        $maxY = $bitmap.Height
         $left = $maxX
         $right = $minX
         $top = $maxY
@@ -206,9 +197,6 @@ try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if ($MinimalRuntime) {
             $readyArgs.MinimalRuntime = $true
         }
@@ -218,6 +206,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     Assert-True $state.playerLoaded "Dev client world is not loaded."
     New-Item -ItemType Directory -Path $ScreenshotDirectory -Force | Out-Null
@@ -233,7 +222,7 @@ try {
         Assert-True $open.ok "Failed to set up decoration table preview for ${item}: $($open.error)"
         Assert-True ($null -ne $open.preview) "Decoration table preview bounds were not returned for $item."
         Assert-True ($null -ne $open.resultSlot) "Decoration table result slot bounds were not returned for $item."
-        Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+        Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
         Start-Sleep -Milliseconds 1250
 
         $screenshotPath = Join-Path $ScreenshotDirectory "$item.png"
@@ -241,9 +230,8 @@ try {
         $state = Invoke-BridgeJson -Method Get -Path "/state"
         $previewCropPath = Join-Path $previewCropDirectory "$item.png"
         Save-DecorationTablePreviewCrop -ScreenshotPath $screenshotPath -PreviewCropPath $previewCropPath -State $state -Preview $open.preview
-        # The target preview crop includes a footer separator below the rendered model.
-        $bounds = Get-VisibleBounds -ScreenshotPath $previewCropPath -BottomInset 12
-        $minimumWidthFraction = if ($item -like "leather_*") { 0.3 } else { 0.5 }
+        $bounds = Get-VisibleBounds -ScreenshotPath $previewCropPath
+        $minimumWidthFraction = if ($item -like "leather_*") { 0.3 } elseif ($item -eq "backpack") { 0.5 } else { 0.55 }
         Assert-True ($bounds.count -ge 30) "No substantial decoration result was rendered for $item. Preview crop: $previewCropPath"
         Assert-True ($bounds.width -ge $bounds.imageWidth * 0.2 -and $bounds.height -ge $bounds.imageHeight * 0.15) "Decoration result for $item is too small. Bounds=$($bounds | ConvertTo-Json -Compress)"
         Assert-True ($bounds.width -ge $bounds.imageWidth * $minimumWidthFraction) "Decoration result for $item does not fill enough of the preview. Bounds=$($bounds | ConvertTo-Json -Compress)"
@@ -266,7 +254,7 @@ try {
     $rotationDirectory = Join-Path $ScreenshotDirectory "barrel-directional"
     New-Item -ItemType Directory -Path $rotationDirectory -Force | Out-Null
     $rotationResults = @()
-    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     Start-Sleep -Milliseconds 2500
     $firstOpenScreenshotPath = Join-Path $rotationDirectory "first-open.png"
     Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $firstOpenScreenshotPath | Out-Null
@@ -295,7 +283,7 @@ try {
         Write-Host "PASS barrel-directional-$rotation $($bounds | ConvertTo-Json -Compress)"
     }
 
-    Invoke-BridgeJson -Method Post -Path "/mouse/move" -Body @{ position = "top-left" } | Out-Null
+    Invoke-BridgeJson -Method Post -Path "/mouse/clear-hover" -Body @{} | Out-Null
     Start-Sleep -Milliseconds 2500
     $returnScreenshotPath = Join-Path $rotationDirectory "return.png"
     Invoke-WebRequest -Uri "$BaseUrl/screenshot" -OutFile $returnScreenshotPath | Out-Null
@@ -318,6 +306,7 @@ try {
     }
 } finally {
     if ($startedClient) {
-        Stop-AutomationClient -ProcessId $clientProcessId
+        Stop-AutomationClient
+        Wait-AutomationClientStopped
     }
 }

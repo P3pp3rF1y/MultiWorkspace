@@ -2,12 +2,10 @@ package net.p3pp3rf1y.devclientautomation.regression;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.p3pp3rf1y.devclientautomation.regression.actions.LazyRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionInvocation;
 import org.junit.jupiter.api.Test;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SharedJvmContractTest {
 	private static final String CANONICAL_ACTION_METADATA = """
 			assert.backpackAutomationExtractable|1|minecraft:client,sophisticatedbackpacks
+			assert.backpackPickupConfiguration|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalBackpackTemplate|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalCapturedMobs|1|minecraft:client,sophisticatedbackpacks
 			assert.controllerLinkGroups|1|minecraft:client,sophisticatedstorage
@@ -26,7 +25,7 @@ class SharedJvmContractTest {
 			assert.doubleChest|2|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
-			assert.inventoryCount|1|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
+			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
@@ -48,10 +47,11 @@ class SharedJvmContractTest {
 			assert.playerInventoryBaseline|1|minecraft:client
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
-			assert.settingsSelection|1|minecraft:client,sophisticatedcore
+			assert.settingsSelection|2|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
+			await.itemEntity|1|minecraft:client
 			await.menu|2|minecraft:client
 			await.menuClosed|1|minecraft:client
 			await.playerCraftingResult|1|minecraft:client
@@ -59,8 +59,10 @@ class SharedJvmContractTest {
 			backpack.breakAndAssertDrop|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureDeposit|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureFilter|1|minecraft:client,sophisticatedbackpacks
+			backpack.configurePickup|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureRestock|1|minecraft:client,sophisticatedbackpacks
 			backpack.createInMainHand|1|minecraft:client,sophisticatedbackpacks
+			backpack.fillStorage|1|minecraft:client,sophisticatedbackpacks
 			backpack.linkHeld|1|minecraft:client,sophisticatedbackpacks
 			backpack.pickupPlaced|1|minecraft:client,sophisticatedbackpacks
 			backpack.placeHeld|2|minecraft:client,sophisticatedbackpacks
@@ -83,6 +85,7 @@ class SharedJvmContractTest {
 			fixture.create.setMountedBackpackSlot|1|minecraft:client,sophisticatedbackpackscreateintegration
 			fixture.create.setMountedSlot|1|minecraft:client,sophisticatedstoragecreateintegration
 			fixture.entity.spawnPig|1|minecraft:client
+			fixture.itemEntity.spawn|1|minecraft:client
 			fixture.linked.replaceRoot|1|minecraft:client,sophisticatedcore
 			fixture.moving.captureNestedLinkedCarrier|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.moving.holdRecoveredInner|1|minecraft:client,sophisticatedstorageinmotion
@@ -131,126 +134,12 @@ class SharedJvmContractTest {
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
 			storage.setBlockSlot|1|minecraft:client,sophisticatedstorage
 			""";
-	private static final String CANONICAL_ACTION_ORDER = """
-			menu.clickStorageSettings
-			menu.clickSettingsControl
-			recipeviewer.dropSettingsGhost
-			assert.settingsSelection
-			assert.linkedSettings
-			fixture.entity.spawnPig
-			player.sneakUseFixtureEntity
-			assert.canonicalCapturedMobs
-			menu.clickCapturedMob
-			player.useHeldItemOnTarget
-			capability.storageResourceCache
-			fixture.linked.replaceRoot
-			fixture.backpack.setUpgrade
-			capability.transferStorageResource
-			assert.storageResources
-			assert.storageTierUpgradeRecipe
-			assert.movingStorageTierUpgradeRecipe
-			fixture.region.reset
-			player.reset
-			assert.playerInventoryBaseline
-			backpack.createInMainHand
-			backpack.templateCommand
-			player.createMainHandItem
-			fixture.player.copyInventoryItem
-			player.breakTargetBlock
-			backpack.setStorageSlot
-			backpack.linkHeld
-			storage.linkBlock
-			backpack.configureFilter
-			backpack.probeFilterIO
-			assert.heldBackpackFilter
-			backpack.configureRestock
-			backpack.configureDeposit
-			backpack.useOnStorage
-			assert.inventoryCount
-			assert.restockBackpack
-			assert.restockBarrel
-			player.setInventorySlot
-			backpack.placeHeld
-			assert.placedBackpackContents
-			assert.backpackAutomationExtractable
-			assert.heldBackpackContents
-			backpack.pickupPlaced
-			backpack.breakAndAssertDrop
-			player.placeHeldBlock
-			await.backpackBlock
-			await.storageBlock
-			fixture.storage.contentsFilter
-			fixture.block.set
-			fixture.controller.scanAdjacent
-			fixture.controllerLinkLine.breakFirstBarrel
-			fixture.controllerLinkGroups.breakBarrel
-			player.useControllerLinkTool
-			assert.controllerLinkLine
-			assert.controllerLinkGroups
-			fixture.moving.spawn
-			moving.destroy
-			fixture.moving.restoreDrop
-			fixture.moving.reload
-			fixture.moving.holdRecoveredInner
-			fixture.create.mountLinkedStorage
-			fixture.create.mountBackpack
-			create.disassembleBackpack
-			fixture.create.setMountedBackpackSlot
-			fixture.create.setMountedSlot
-			moving.setSlot
-			fixture.moving.setJukeboxDisc
-			moving.setUpgrade
-			moving.setPacked
-			moving.setPresentation
-			moving.probePickup
-			moving.probePackedPrimary
-			player.useMovingStorage
-			assert.movingLinked
-			assert.linkedStorageBlock
-			assert.createMountedLinkedStorage
-			menu.captureLinkedRevision
-			assert.linkedMenuDelta
-			assert.linkedMenuSettings
-			menu.jukeboxPlayback
-			assert.linkedJukeboxPlayback
-			assert.movingPresentation
-			assert.movingUnlinked
-			assert.movingForgedRejected
-			fixture.moving.captureNestedLinkedCarrier
-			assert.movingNestedLinkedIdentity
-			assert.movingStorageCompatibilityProfile
-			storage.setBlockSlot
-			player.clearMainHand
-			player.useHeldItem
-			player.useTargetBlock
-			await.menu
-			assert.menu
-			assert.menuUpgradeLayout
-			assert.linkedBackpackHost
-			assert.linkedItemContents
-			assert.canonicalBackpackTemplate
-			player.sendCommand
-			assert.controllerSharedGroup
-			fixture.controller.reload
-			fixture.chunk.reloadBlockEntities
-			await.playerCraftingResult
-			assert.doubleChest
-			fixture.storage.createLockTool
-			player.openInventory
-			fixture.player.setGameMode
-			menu.clickPlayerInventorySlot
-			menu.clickStorageSlot
-			assert.movingMenuPresentation
-			menu.clickSlot
-			menu.quickMovePlayerInventorySlot
-			menu.quickMoveBackpackStorageSlot
-			menu.close
-			await.menuClosed
-			""";
 	private static final String CANONICAL_SUITE_TESTS = """
-			backpack-menu:backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
+			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
+			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -270,31 +159,63 @@ class SharedJvmContractTest {
 			linked-storage-mob-catcher:canonical-capture-and-menu-release,captured-mob-shows-in-barrel-secondary,captured-mob-shows-in-chest-secondary,captured-mob-shows-in-shulker-secondary
 			linked-storage-settings:settings-edit-actions-reject-missing-screen,barrel-primary-backpack-settings,chest-primary-backpack-settings,shulker-primary-backpack-settings,backpack-primary-barrel-settings,backpack-primary-chest-settings,backpack-primary-shulker-settings,backpack-primary-boat-settings,backpack-primary-minecart-settings,backpack-primary-llama-settings
 			""";
+	private static final String CANONICAL_ACTION_ORDER = """
+			menu.clickStorageSettings menu.clickSettingsControl recipeviewer.dropSettingsGhost assert.settingsSelection assert.linkedSettings
+			fixture.entity.spawnPig player.sneakUseFixtureEntity assert.canonicalCapturedMobs menu.clickCapturedMob player.useHeldItemOnTarget
+			capability.storageResourceCache fixture.linked.replaceRoot fixture.backpack.setUpgrade capability.transferStorageResource assert.storageResources
+			assert.storageTierUpgradeRecipe assert.movingStorageTierUpgradeRecipe fixture.region.reset player.reset assert.playerInventoryBaseline
+			backpack.createInMainHand backpack.templateCommand player.createMainHandItem fixture.player.copyInventoryItem player.breakTargetBlock
+			backpack.setStorageSlot backpack.linkHeld storage.linkBlock backpack.configureFilter backpack.probeFilterIO assert.heldBackpackFilter
+			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount backpack.configurePickup backpack.fillStorage
+			fixture.itemEntity.spawn await.itemEntity assert.backpackPickupConfiguration assert.restockBackpack assert.restockBarrel
+			player.setInventorySlot backpack.placeHeld assert.placedBackpackContents assert.backpackAutomationExtractable assert.heldBackpackContents
+			backpack.pickupPlaced backpack.breakAndAssertDrop player.placeHeldBlock await.backpackBlock await.storageBlock fixture.storage.contentsFilter
+			fixture.block.set fixture.controller.scanAdjacent fixture.controllerLinkLine.breakFirstBarrel fixture.controllerLinkGroups.breakBarrel
+			player.useControllerLinkTool assert.controllerLinkLine assert.controllerLinkGroups fixture.moving.spawn moving.destroy fixture.moving.restoreDrop
+			fixture.moving.reload fixture.moving.holdRecoveredInner fixture.create.mountLinkedStorage fixture.create.mountBackpack create.disassembleBackpack
+			fixture.create.setMountedBackpackSlot fixture.create.setMountedSlot moving.setSlot fixture.moving.setJukeboxDisc moving.setUpgrade
+			moving.setPacked moving.setPresentation moving.probePickup moving.probePackedPrimary player.useMovingStorage assert.movingLinked
+			assert.linkedStorageBlock assert.createMountedLinkedStorage menu.captureLinkedRevision assert.linkedMenuDelta assert.linkedMenuSettings
+			menu.jukeboxPlayback assert.linkedJukeboxPlayback assert.movingPresentation assert.movingUnlinked assert.movingForgedRejected
+			fixture.moving.captureNestedLinkedCarrier assert.movingNestedLinkedIdentity assert.movingStorageCompatibilityProfile storage.setBlockSlot
+			player.clearMainHand player.useHeldItem player.useTargetBlock await.menu assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
+			assert.linkedItemContents assert.canonicalBackpackTemplate player.sendCommand assert.controllerSharedGroup fixture.controller.reload
+			fixture.chunk.reloadBlockEntities await.playerCraftingResult assert.doubleChest fixture.storage.createLockTool player.openInventory
+			fixture.player.setGameMode menu.clickPlayerInventorySlot menu.clickStorageSlot assert.movingMenuPresentation menu.clickSlot
+			menu.quickMovePlayerInventorySlot menu.quickMoveBackpackStorageSlot menu.close await.menuClosed
+			""";
+	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.settingsSelection", "assert.menu",
+			"assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage",
+			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot");
 
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
-		RegressionActionRegistry registry = new RegressionActionRegistry();
-		String actual = registry.all().values().stream().sorted(Comparator.comparing(metadata -> metadata.id()))
-				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
-				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(114, CANONICAL_ACTION_METADATA.lines().count());
-		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
-		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
+		var all = new RegressionActionRegistry().all();
+		assertEquals(119, all.size());
+		assertEquals(119, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(CANONICAL_ACTION_METADATA.strip(),
+				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
+						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
+						.collect(java.util.stream.Collectors.joining("\n")));
+		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), List.copyOf(all.keySet()));
+		assertEquals(REVISION_TWO, all.values().stream().filter(metadata -> metadata.revision().equals("2")).map(metadata -> metadata.id())
+				.collect(java.util.stream.Collectors.toSet()));
+		assertTrue(all.values().stream().allMatch(metadata -> metadata.revision().equals("1") || metadata.revision().equals("2")));
 	}
 
 	@Test
 	void boundInvocationsExposeDynamicDependenciesAndValidateRegisteredOptionalProxies() {
-		RegressionActionRegistry registry = new RegressionActionRegistry();
-		Map<String, String> expectedDependencies = Map.of("moving", "sophisticatedstorageinmotion", "mounted", "sophisticatedstoragecreateintegration",
-				"storageBlock", "sophisticatedstorage", "backpackItem", "sophisticatedbackpacks");
-		for (String actionId : List.of("menu.captureLinkedRevision", "assert.linkedMenuDelta")) {
-			for (Map.Entry<String, String> entry : expectedDependencies.entrySet()) {
-				RegressionActionInvocation invocation = registry.require(actionId).bind(linkedMenuArguments(entry.getKey(), actionId),
-						actionId + " " + entry.getKey());
-				assertEquals(Set.of("minecraft:client", entry.getValue()), invocation.dependencies());
+		var registry = new RegressionActionRegistry();
+		Map<String, String> dependencies = Map.of("moving", "sophisticatedstorageinmotion", "mounted", "sophisticatedstoragecreateintegration", "storageBlock",
+				"sophisticatedstorage", "backpackItem", "sophisticatedbackpacks");
+		for (String id : List.of("menu.captureLinkedRevision", "assert.linkedMenuDelta")) {
+			for (var entry : dependencies.entrySet()) {
+				String args = "{\"kind\":\"" + entry.getKey() + "\"" + (Set.of("moving", "mounted").contains(entry.getKey()) ? ",\"ref\":\"linked\"" : "")
+						+ (id.startsWith("menu") ? ",\"saveAs\":\"baseline\"}" : ",\"baseline\":\"baseline\",\"item\":\"minecraft:stone\",\"count\":1}");
+				assertEquals(Set.of("minecraft:client", entry.getValue()), registry.require(id).bind(json(args), id).dependencies());
 			}
 		}
-		Map<String, String> optionalBindings = Map.ofEntries(Map.entry("recipeviewer.dropSettingsGhost", "{}"),
+		Map<String, String> bindings = Map.ofEntries(Map.entry("recipeviewer.dropSettingsGhost", "{}"),
 				Map.entry("assert.storageTierUpgradeRecipe", "{\"form\":\"normal\",\"recipe\":\"shaped\",\"linkage\":\"unlinked\"}"),
 				Map.entry("assert.movingStorageTierUpgradeRecipe", "{\"carrier\":\"boat\",\"recipe\":\"shaped\",\"linkage\":\"unlinked\"}"),
 				Map.entry("fixture.create.mountLinkedStorage", "{\"saveAs\":\"mounted\"}"),
@@ -302,82 +223,103 @@ class SharedJvmContractTest {
 				Map.entry("fixture.create.setMountedBackpackSlot", "{\"ref\":\"mounted\",\"item\":\"minecraft:stone\",\"count\":1}"),
 				Map.entry("fixture.create.setMountedSlot", "{\"ref\":\"mounted\",\"item\":\"minecraft:stone\",\"count\":1}"),
 				Map.entry("assert.createMountedLinkedStorage", "{\"ref\":\"mounted\",\"count\":1,\"checkPresentation\":true}"));
-		optionalBindings.forEach((actionId, arguments) -> {
-			assertTrue(registry.require(actionId) instanceof LazyRegressionAction);
-			assertDoesNotThrow(() -> registry.require(actionId).bind(json(arguments), actionId));
-		});
-	}
-
-	@Test
-	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
-		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
-		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
-		JsonObject actions = catalog.getAsJsonObject("actions");
-		assertEquals(expectedSuiteTests.keySet().stream().toList(),
-				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
-		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(114, actions.size());
-		for (String entry : CANONICAL_ACTION_METADATA.strip().split("\\R")) {
-			String[] metadata = entry.split("\\|", 3);
-			JsonObject serialized = actions.getAsJsonObject(metadata[0]);
-			assertEquals(metadata[1], serialized.get("revision").getAsString());
-			assertEquals(List.of(metadata[2].split(",")),
-					serialized.getAsJsonArray("dependencies").asList().stream().map(element -> element.getAsString()).sorted().toList());
+		bindings.forEach((id, args) -> assertDoesNotThrow(() -> registry.require(id).bind(json(args), id)));
+		for (String id : List.of("fixture.create.mountLinkedStorage", "fixture.create.mountBackpack", "create.disassembleBackpack",
+				"fixture.create.setMountedBackpackSlot", "fixture.create.setMountedSlot", "assert.createMountedLinkedStorage")) {
+			assertInstanceOf(LazyOptionalRegressionAction.class, registry.require(id));
 		}
 	}
 
 	@Test
+	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
+		var suites = RegressionCoordinator.loadSuites();
+		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
+		var actions = catalog.getAsJsonObject("actions");
+		assertEquals(23, suites.size());
+		assertEquals(110, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
+		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
+		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
+		assertEquals(119, actions.size());
+		assertCatalogActionMetadata(actions);
+		assertEquals(10, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
+		String actualSuiteTests = catalog
+				.getAsJsonObject("suiteTests").entrySet().stream().map(entry -> entry.getKey() + ":" + entry.getValue().getAsJsonArray().asList().stream()
+						.map(value -> value.getAsString()).collect(java.util.stream.Collectors.joining(",")))
+				.collect(java.util.stream.Collectors.joining("\n"));
+		assertEquals(CANONICAL_SUITE_TESTS.strip(), actualSuiteTests);
+	}
+
+	@Test
 	void statusEndpointSerializationExposesDtoTimingsAndFailedCleanup() {
-		RegressionCoordinator.StepResult passed = new RegressionCoordinator.StepResult("first", "menu.close", "passed", "", 1.25);
-		RegressionCoordinator.StepResult failed = new RegressionCoordinator.StepResult("second", "menu.close", "failed", "failure", 2.5);
-		RegressionCoordinator.RuntimeConformanceResult conformance = new RegressionCoordinator.RuntimeConformanceResult("probe", "passed", "", List.of(passed),
-				3.75);
-		RegressionCoordinator.CleanupResult cleanup = new RegressionCoordinator.CleanupResult("case", "failed", "Cleanup failed");
-		RegressionCoordinator.RunStatus status = new RegressionCoordinator.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed",
-				List.of(), List.of(failed), List.of(conformance), Map.of(), 10.5, 4.25, List.of(cleanup), "execution");
-		JsonObject result = json(RegressionEndpoints.statusJson(status));
-		assertEquals(10.5, result.get("durationMillis").getAsDouble());
-		assertEquals(4.25, result.get("testDurationMillis").getAsDouble());
-		assertEquals(2.5, result.getAsJsonArray("steps").get(0).getAsJsonObject().get("durationMillis").getAsDouble());
-		assertEquals(3.75, result.getAsJsonArray("runtimeConformance").get(0).getAsJsonObject().get("durationMillis").getAsDouble());
-		assertEquals(1.25, result.getAsJsonArray("runtimeConformance").get(0).getAsJsonObject().getAsJsonArray("steps").get(0).getAsJsonObject()
+		var passed = new RegressionResultModel.StepResult("first", "menu.close", "passed", "", 1.25);
+		var failed = new RegressionResultModel.StepResult("second", "menu.close", "failed", "failure", 2.5);
+		var probe = new RegressionResultModel.RuntimeConformanceResult("probe", "passed", "", List.of(passed), 3.75);
+		var cleanup = new RegressionResultModel.CleanupResult("case", "failed", "Cleanup failed");
+		var status = new RegressionResultModel.RunStatus(false, "suite/case", "suite", "case", "failed", "Cleanup failed", List.of(), List.of(failed),
+				List.of(probe), Map.of(), 10.5, 4.25, List.of(cleanup), "execution");
+		var json = JsonParser.parseString(RegressionEndpoints.statusJson(status)).getAsJsonObject();
+		assertEquals(10.5, json.get("durationMillis").getAsDouble());
+		assertEquals(4.25, json.get("testDurationMillis").getAsDouble());
+		assertEquals(2.5, json.getAsJsonArray("steps").get(0).getAsJsonObject().get("durationMillis").getAsDouble());
+		assertEquals(3.75, json.getAsJsonArray("runtimeConformance").get(0).getAsJsonObject().get("durationMillis").getAsDouble());
+		assertEquals(1.25, json.getAsJsonArray("runtimeConformance").get(0).getAsJsonObject().getAsJsonArray("steps").get(0).getAsJsonObject()
 				.get("durationMillis").getAsDouble());
-		assertEquals("failed", result.getAsJsonArray("cleanup").get(0).getAsJsonObject().get("outcome").getAsString());
-		assertTrue(result.has("phase"));
+		assertEquals("failed", json.getAsJsonArray("cleanup").get(0).getAsJsonObject().get("outcome").getAsString());
+		assertTrue(json.has("phase"));
+	}
+
+	@Test
+	void rerunCommandPreservesDirectHttpRequestOptionsWithoutFrontendContext() {
+		JsonObject request = json("""
+				{"suiteId":"backpack-pickup","testId":"basic-pickup-allows-diamond",
+				"conformanceFailureAction":"backpack.configurePickup","actionFailureAfter":"fixture.itemEntity.spawn",
+				"preparationToken":"token'quoted","cleanupFailure":true}
+				""");
+
+		String command = RegressionEndpoints.rerunCommand(request, 49184);
+
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run"
+				+ " -Suite 'backpack-pickup' -Test 'basic-pickup-allows-diamond' -BaseUrl 'http://127.0.0.1:49184'"
+				+ " -ConformanceFailureAction 'backpack.configurePickup' -ActionFailureAfter 'fixture.itemEntity.spawn'"
+				+ " -PreparationToken 'token''quoted' -CleanupFailure", command);
+		assertEquals("pwsh -NoProfile -File scripts/dev-client/regression.ps1 -Command run -Suite 'test' -Test 'case' -BaseUrl 'http://127.0.0.1:1234'",
+				RegressionEndpoints.rerunCommand(json("{\"suiteId\":\"test\",\"testId\":\"case\"}"), 1234));
 	}
 
 	@Test
 	void idleStatusEndpointSerializationHasRunnerTimingFields() {
-		JsonObject result = json(RegressionEndpoints.statusJson(RegressionCoordinator.RunStatus.idle()));
-		assertEquals(0, result.get("durationMillis").getAsDouble());
-		assertEquals(0, result.get("testDurationMillis").getAsDouble());
+		var json = JsonParser.parseString(RegressionEndpoints.statusJson(RegressionResultModel.RunStatus.idle())).getAsJsonObject();
+		assertEquals(0, json.get("durationMillis").getAsDouble());
+		assertEquals(0, json.get("testDurationMillis").getAsDouble());
 	}
 
 	@Test
 	void qualifyKeepsMovingTestsRunnableAndSkipsOnlyMountedCreateTestsWithoutCreateIntegration() {
-		RegressionActionRegistry registry = new RegressionActionRegistry();
+		var registry = new RegressionActionRegistry();
 		RegressionTest moving = test("moving",
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"moving\",\"ref\":\"moving\",\"saveAs\":\"baseline\"}"), "moving"));
 		RegressionTest mounted = test("mounted",
 				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"mounted\",\"ref\":\"mounted\",\"saveAs\":\"baseline\"}"), "mounted"));
-		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client"), "testCell", List.of(moving, mounted));
-		List<RegressionCoordinator.ConformanceResult> movingResults = RegressionCoordinator.qualify(suite, List.of(), moving, "",
-				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
-		List<RegressionCoordinator.ConformanceResult> mountedResults = RegressionCoordinator.qualify(suite, List.of(), mounted, "",
-				dependency -> !dependency.equals("sophisticatedstoragecreateintegration"));
-		assertTrue(movingResults.stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
-		assertFalse(mountedResults.stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
-		assertEquals(List.of("sophisticatedstoragecreateintegration"),
-				mountedResults.stream().filter(result -> !result.passed()).map(RegressionCoordinator.ConformanceResult::dependency).toList());
+		var suite = new RegressionSuite(2, "linked", Set.of("minecraft:client"), "testCell", List.of(moving, mounted));
+		var available = (java.util.function.Predicate<String>) dependency -> !dependency.equals("sophisticatedstoragecreateintegration");
+		assertTrue(RegressionCoordinator.qualify(suite, moving, "", available).stream().allMatch(RegressionResultModel.ConformanceResult::passed));
+		assertEquals(List.of("sophisticatedstoragecreateintegration"), RegressionCoordinator.qualify(suite, mounted, "", available).stream()
+				.filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
-	private static JsonObject linkedMenuArguments(String kind, String actionId) {
-		String common = "\"kind\":\"" + kind + "\"" + (kind.equals("moving") || kind.equals("mounted") ? ",\"ref\":\"linked\"" : "");
-		return actionId.equals("menu.captureLinkedRevision")
-				? json("{" + common + ",\"saveAs\":\"baseline\"}")
-				: json("{" + common + ",\"baseline\":\"baseline\",\"item\":\"minecraft:stone\",\"count\":1}");
+	@Test
+	void qualifyDelegatesModCapabilitiesToTheSuppliedAvailabilityLookup() {
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		RegressionTest storage = test("storage",
+				registry.require("menu.captureLinkedRevision").bind(json("{\"kind\":\"storageBlock\",\"saveAs\":\"baseline\"}"), "storage"));
+		RegressionSuite suite = new RegressionSuite(2, "linked", Set.of("minecraft:client", "sophisticatedbackpacks"), "testCell", List.of(storage));
+
+		List<RegressionResultModel.ConformanceResult> results = RegressionCoordinator.qualify(suite, storage, "",
+				dependency -> dependency.equals("minecraft:client"));
+
+		assertEquals(List.of("sophisticatedbackpacks", "sophisticatedstorage"),
+				results.stream().filter(result -> !result.passed()).map(RegressionResultModel.ConformanceResult::dependency).toList());
 	}
 
 	private static RegressionTest test(String id, RegressionActionInvocation invocation) {
@@ -388,19 +330,13 @@ class SharedJvmContractTest {
 		return JsonParser.parseString(value).getAsJsonObject();
 	}
 
-	private static Map<String, List<String>> suiteTests(String contract) {
-		Map<String, List<String>> result = new LinkedHashMap<>();
-		for (String line : contract.strip().split("\\R")) {
-			String[] suite = line.split(":", 2);
-			result.put(suite[0], List.of(suite[1].split(",")));
+	private static void assertCatalogActionMetadata(JsonObject actions) {
+		for (String entry : CANONICAL_ACTION_METADATA.strip().split("\\R")) {
+			String[] metadata = entry.split("\\|", 3);
+			JsonObject serialized = actions.getAsJsonObject(metadata[0]);
+			assertEquals(metadata[1], serialized.get("revision").getAsString());
+			assertEquals(List.of(metadata[2].split(",")),
+					serialized.getAsJsonArray("dependencies").asList().stream().map(element -> element.getAsString()).sorted().toList());
 		}
-		return result;
-	}
-
-	private static Map<String, List<String>> suiteTests(JsonObject suites) {
-		Map<String, List<String>> result = new LinkedHashMap<>();
-		suites.entrySet().forEach(
-				entry -> result.put(entry.getKey(), entry.getValue().getAsJsonArray().asList().stream().map(element -> element.getAsString()).toList()));
-		return result;
 	}
 }

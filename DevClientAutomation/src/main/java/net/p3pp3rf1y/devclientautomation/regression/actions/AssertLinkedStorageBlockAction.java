@@ -39,7 +39,7 @@ public final class AssertLinkedStorageBlockAction extends TypedRegressionAction<
 				future = context.onServer(player -> {
 					ServerLevel level = (ServerLevel) player.level();
 					if (!(level.getBlockEntity(context.target()) instanceof StorageBlockEntity block) || !block.isLinkedStorage()) {
-						throw new IllegalStateException("Expected a placed linked storage endpoint");
+						throw RegressionActionFailure.infrastructure("Expected a placed linked storage endpoint");
 					}
 					var endpoint = block.getLinkedStorageEndpointData();
 					var manager = LinkedStorageGroupsSavedData.get(level).manager();
@@ -47,13 +47,13 @@ public final class AssertLinkedStorageBlockAction extends TypedRegressionAction<
 					context.putDiagnostic("placedEndpointRegistered", endpoint != null && manager.isEndpointMember(endpoint.groupId(), endpoint.endpointId()));
 					if (endpoint == null || !manager.isEndpointMember(endpoint.groupId(), endpoint.endpointId())
 							|| !endpoint.groupId().toString().equals(context.getDiagnostic("linkedGroup"))) {
-						throw new IllegalStateException("Placed storage lost its registered moving endpoint identity");
+						throw RegressionActionFailure.assertion("Placed storage lost its registered moving endpoint identity");
 					}
 					if (block.getStorageWrapper().getInventoryHandler().getStackInSlot(0).getCount() != arguments.count()) {
-						throw new IllegalStateException("Placed storage did not resolve canonical moving contents");
+						throw RegressionActionFailure.assertion("Placed storage did not resolve canonical moving contents");
 					}
 					if (arguments.presentation() && !AssertMovingStoragePresentationAction.hasPresentation(block.getStorageWrapper())) {
-						throw new IllegalStateException("Placed storage did not resolve canonical moving upgrades, memory and display settings");
+						throw RegressionActionFailure.assertion("Placed storage did not resolve canonical moving upgrades, memory and display settings");
 					}
 				});
 			}

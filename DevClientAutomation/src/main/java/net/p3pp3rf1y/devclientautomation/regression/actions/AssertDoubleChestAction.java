@@ -12,8 +12,10 @@ import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlockEntity;
 import javax.annotation.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AssertDoubleChestAction extends TypedRegressionAction<AssertDoubleChestAction.Arguments> {
 	public record Arguments(boolean controller) {
@@ -32,6 +34,7 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
+			private final Map<String, Object> observations = new ConcurrentHashMap<>();
 			@Nullable
 			private CompletableFuture<Void> future;
 
@@ -41,36 +44,47 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 					future = context.onServer(player -> {
 						ServerLevel level = player.level();
 						BlockState first = level.getBlockState(context.target());
+						observations.put("atAssertion", snapshot(level, context.target()));
 						if (!(first.getBlock() instanceof ChestBlock chest) || first.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
-							throw new IllegalStateException("First ordinary chest did not join its neighbor");
+							throw RegressionActionFailure.assertion("First ordinary chest did not join its neighbor");
 						}
 						BlockPos otherPos = context.target().relative(ChestBlock.getConnectedDirection(first));
 						BlockState second = level.getBlockState(otherPos);
 						if (second.getBlock() != chest || second.getValue(ChestBlock.TYPE) != first.getValue(ChestBlock.TYPE).getOpposite()
 								|| second.getValue(ChestBlock.FACING) != first.getValue(ChestBlock.FACING)
 								|| !otherPos.relative(ChestBlock.getConnectedDirection(second)).equals(context.target())) {
-							throw new IllegalStateException("Ordinary chest blocks do not form a matching double chest");
+							throw RegressionActionFailure.assertion("Ordinary chest blocks do not form a matching double chest");
 						}
 						if (!(level.getBlockEntity(context.target()) instanceof ChestBlockEntity firstEntity)
 								|| !(level.getBlockEntity(otherPos) instanceof ChestBlockEntity secondEntity)
 								|| !firstEntity.getMainPos().equals(secondEntity.getMainPos())
 								|| !(level.getBlockEntity(firstEntity.getMainPos()) instanceof ChestBlockEntity main)
 								|| main.getStorageWrapper().getInventoryHandler().size() != chest.getNumberOfInventorySlots() * 2) {
-							throw new IllegalStateException("Naturally joined chest did not acquire shared double capacity");
+							throw RegressionActionFailure.assertion("Naturally joined chest did not acquire shared double capacity");
 						}
 						if (arguments.controller()) {
 							BlockPos controllerPos = main.getControllerPos()
-									.orElseThrow(() -> new IllegalStateException("Double chest did not connect to its controller"));
+									.orElseThrow(() -> RegressionActionFailure.assertion("Double chest did not connect to its controller"));
 							if (!(level.getBlockEntity(controllerPos) instanceof ControllerBlockEntityBase controller)
 									|| !controller.getStoragePositions().equals(List.of(main.getBlockPos()))
 									|| controller.size() != main.getStorageWrapper().getInventoryForInputOutput().size()) {
-								throw new IllegalStateException("Controller did not expose exactly the shared double-chest inventory");
+								throw RegressionActionFailure.assertion("Controller did not expose exactly the shared double-chest inventory");
 							}
 						}
 					});
 				}
-				return await(future);
+				RegressionActionProgress result = await(future);
+				if (result == RegressionActionProgress.FAILED && !observations.isEmpty()) {
+					observe("joined double chest", observations);
+				}
+				return result;
 			}
 		};
+	}
+
+	private static Map<String, String> snapshot(ServerLevel level, BlockPos pos) {
+		return Map.of("first", level.getBlockState(pos).toString(), "north", level.getBlockState(pos.north()).toString(), "south",
+				level.getBlockState(pos.south()).toString(), "east", level.getBlockState(pos.east()).toString(), "west",
+				level.getBlockState(pos.west()).toString());
 	}
 }

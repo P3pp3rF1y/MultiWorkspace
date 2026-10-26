@@ -23,6 +23,11 @@ public final class UseMovingStorageAction extends TypedRegressionAction<UseMovin
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
@@ -70,11 +75,9 @@ public final class UseMovingStorageAction extends TypedRegressionAction<UseMovin
 					return releaseShiftThenFail(minecraft, failureMessage(e));
 				}
 			}
-			if (minecraft.player.tickCount >= deadline) {
-				minecraft.options.keyShift.setDown(false);
-				return fail("Moving entity " + arguments.ref() + " did not synchronize to the client");
-			}
-			return RegressionActionProgress.WAITING;
+			return minecraft.player.tickCount >= deadline
+					? releaseShiftThenFail(minecraft, "Moving entity " + arguments.ref() + " did not synchronize to the client")
+					: RegressionActionProgress.WAITING;
 		}
 
 		private RegressionActionProgress releaseShiftThenFail(Minecraft minecraft, String message) {

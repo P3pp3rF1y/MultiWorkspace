@@ -50,30 +50,30 @@ public final class AssertCanonicalBackpackTemplateAction extends TypedRegression
 						var template = BackpackTemplates.getBackpackTemplate(Identifier.parse(arguments.template()));
 						if (arguments.expectation().equals("absent")) {
 							if (template.isPresent()) {
-								throw new IllegalStateException("Unsupported native host unexpectedly exported a template");
+								throw RegressionActionFailure.assertion("Unsupported native host unexpectedly exported a template");
 							}
 							return;
 						}
 						IBackpackWrapper wrapper = BackpackWrapper.fromStack(player.getMainHandItem());
 						LinkedStorageEndpointData endpoint = player.getMainHandItem().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 						if (endpoint == null) {
-							throw new IllegalStateException("Held Backpack lost its linked endpoint");
+							throw RegressionActionFailure.assertion("Held Backpack lost its linked endpoint");
 						}
-						var contents = wrapper.getCanonicalBackpackContents()
-								.orElseThrow(() -> new IllegalStateException("Canonical Backpack contents unavailable from " + wrapper.getClass().getName()));
+						var contents = wrapper.getCanonicalBackpackContents().orElseThrow(
+								() -> RegressionActionFailure.assertion("Canonical Backpack contents unavailable from " + wrapper.getClass().getName()));
 						var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
 						if (template.isEmpty()) {
-							throw new IllegalStateException(
-									"Template did not capture the canonical Backpack root: template " + arguments.template() + " is absent");
+							throw RegressionActionFailure
+									.assertion("Template did not capture the canonical Backpack root: template " + arguments.template() + " is absent");
 						}
 						var templateRoot = ContainerContents.CODEC.encodeStart(ops, template.orElseThrow().contents()).getOrThrow();
 						var canonicalRoot = ContainerContents.CODEC.encodeStart(ops, contents).getOrThrow();
 						if (!templateRoot.equals(canonicalRoot)) {
-							throw new IllegalStateException(
+							throw RegressionActionFailure.assertion(
 									"Template did not capture the canonical Backpack root: template=" + templateRoot + "; canonical=" + canonicalRoot);
 						}
 						if (BackpackStorage.get().getBackpackContents(endpoint.groupId()).isPresent()) {
-							throw new IllegalStateException("Group UUID leaked into ordinary BackpackStorage");
+							throw RegressionActionFailure.assertion("Group UUID leaked into ordinary BackpackStorage");
 						}
 					});
 				}

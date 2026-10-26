@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import net.p3pp3rf1y.sophisticatedcore.inventory.ContainerContents;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.ClientLinkedStorageContents;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -24,10 +25,17 @@ public final class AssertLinkedMenuSettingsAction extends TypedRegressionAction<
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE)
+				.and(RegressionValueContract.consuming(arguments.baseline(), RegressionValueTypes.MENU_BASELINE));
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private final CaptureLinkedMenuRevisionAction.Baseline baseline = context.values().require(arguments.baseline(),
 					CaptureLinkedMenuRevisionAction.Baseline.class);
+			@Nullable
 			private CompletableFuture<Void> serverAssertion;
 			private ContainerContents.SettingsData expectedSettings;
 			private int deadline = -1;
@@ -42,7 +50,7 @@ public final class AssertLinkedMenuSettingsAction extends TypedRegressionAction<
 						MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 						if (!(player.containerMenu instanceof MovingStorageContainerMenu<?> menu)
 								|| menu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
-							throw new IllegalStateException("Expected linked moving settings menu closed on server");
+							throw RegressionActionFailure.infrastructure("Expected linked moving settings menu closed on server");
 						}
 						expectedSettings = menu.getStorageWrapper().getSettingsHandler().getSettingsData().copy();
 					});
@@ -53,10 +61,10 @@ public final class AssertLinkedMenuSettingsAction extends TypedRegressionAction<
 					return progress;
 				}
 				if (expectedSettings.categories().isEmpty()) {
-					return fail("Server linked settings mutation produced no settings");
+					return failAssertion("Server linked settings mutation produced no settings");
 				}
 				if (ClientLinkedStorageContents.getRevision(baseline.groupId()).orElse(-1L) != baseline.revision()) {
-					return fail("Linked settings change sent a full inventory snapshot");
+					return failAssertion("Linked settings change sent a full inventory snapshot");
 				}
 				MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 				if (!(context.minecraft().player.containerMenu instanceof MovingStorageContainerMenu<?> menu)
@@ -66,7 +74,7 @@ public final class AssertLinkedMenuSettingsAction extends TypedRegressionAction<
 				return expectedSettings.equals(menu.getStorageWrapper().getSettingsHandler().getSettingsData())
 						? RegressionActionProgress.PASSED
 						: context.minecraft().player.tickCount >= deadline
-								? fail("Client linked menu settings did not synchronize")
+								? failAssertion("Client linked menu settings did not synchronize")
 								: RegressionActionProgress.WAITING;
 			}
 		};

@@ -50,7 +50,11 @@ final class RegressionJsonObject {
 		if (!object.has(name) || !object.get(name).isJsonPrimitive() || !object.get(name).getAsJsonPrimitive().isNumber()) {
 			throw new IllegalArgumentException("Missing numeric " + name + " on " + description);
 		}
-		return RegressionJsonNumbers.integer(object.get(name));
+		try {
+			return RegressionJsonNumbers.integer(object.get(name));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Expected integer " + name + " on " + description, e);
+		}
 	}
 
 	boolean optionalBoolean(String name, boolean defaultValue) {
@@ -93,6 +97,16 @@ final class RegressionJsonObject {
 			}
 		}
 		return Set.copyOf(result);
+	}
+
+	Set<String> modIds(String name, boolean optional) {
+		Set<String> ids = optional && !has(name) ? Set.of() : stringSet(name);
+		for (String id : ids) {
+			if (!id.matches("[a-z][a-z0-9_]{1,63}") || id.startsWith("sophisticated") || id.equals("devclientautomation")) {
+				throw new IllegalArgumentException(description + " " + name + " must contain optional external mod IDs: " + id);
+			}
+		}
+		return ids;
 	}
 
 	private JsonArray array(String name) {

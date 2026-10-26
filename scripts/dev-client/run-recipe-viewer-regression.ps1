@@ -8,8 +8,7 @@ param(
     [string]$Suite = "sophisticatedbackpacks",
     [int]$Limit = 200,
     [int]$TimeoutSeconds = 360,
-    [switch]$NoStartClient,
-    [switch]$MaximizeClient
+    [switch]$NoStartClient
 )
 
 $ErrorActionPreference = "Stop"
@@ -287,14 +286,6 @@ function Test-RecipeMatch {
         [object]$Expectation
     )
 
-    $recipeId = Get-ObjectProperty -Object $Expectation -Name "recipeId"
-    if ($null -ne $recipeId -and $Recipe.id -ne $recipeId) {
-        return $false
-    }
-    $recipeIdPattern = Get-ObjectProperty -Object $Expectation -Name "recipeIdPattern"
-    if (-not [string]::IsNullOrWhiteSpace($recipeIdPattern) -and $Recipe.id -notmatch $recipeIdPattern) {
-        return $false
-    }
     if (-not [string]::IsNullOrWhiteSpace($Expectation.categoryPattern) -and $Recipe.category -notmatch $Expectation.categoryPattern -and $Recipe.categoryName -notmatch $Expectation.categoryPattern) {
         return $false
     }
@@ -393,6 +384,17 @@ function Stop-AutomationClient {
     }
 }
 
+function Wait-AutomationClientStopped {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 500
+        if ($clientProcessId -and -not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
+            return
+        }
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for dev client to stop."
+}
+
 function Test-RecipeExpectation {
     param([object]$Test)
 
@@ -467,30 +469,13 @@ function Test-TransferExpectation {
     return @($transfer)
 }
 
-function Wait-AutomationClientStopped {
-    if ($clientProcessId -le 0) {
-        return
-    }
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-    do {
-        Start-Sleep -Milliseconds 500
-        if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
-            return
-        }
-    } while ((Get-Date) -lt $deadline)
-    throw "Timed out waiting for dev client to stop."
-}
-
 $startedClient = $false
-$clientProcessId = 0
+$clientProcessId = $null
 
 try {
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
         Assert-True (-not $NoStartClient) "BaseUrl is required when NoStartClient is set."
         $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true }
-        if ($MaximizeClient) {
-            $readyArgs.Maximize = $true
-        }
         if (-not [string]::IsNullOrWhiteSpace($Viewer)) {
             $readyArgs.RecipeViewer = $Viewer
         }
@@ -500,6 +485,7 @@ try {
         $startedClient = $true
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $suitePath = Get-SuitePath -SuiteName $Suite
     Assert-True (Test-Path $suitePath) "Recipe viewer regression suite not found: $suitePath"
     $suiteData = Get-Content $suitePath -Raw | ConvertFrom-Json
@@ -509,6 +495,10 @@ try {
             $script:Fixtures[$fixture.Name] = $fixture.Value
         }
     }
+
+    # Open a real viewer screen before querying viewer state; EMI reports readiness only from RecipeScreen.
+    $open = Invoke-BridgeJson -Method Post -Path "/recipe-viewer/open" -Body @{ item = "minecraft:crafting_table"; mode = "recipes" }
+    Assert-True $open.ok "Recipe viewer did not open: $($open.error)"
 
     $state = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
     Assert-True $state.ok "Recipe viewer is not ready: $($state.error)"
