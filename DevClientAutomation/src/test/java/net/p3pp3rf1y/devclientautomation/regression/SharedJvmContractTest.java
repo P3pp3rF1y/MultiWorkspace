@@ -48,6 +48,7 @@ class SharedJvmContractTest {
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
 			assert.settingsSelection|2|minecraft:client,sophisticatedcore
+			assert.sortMode|1|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
@@ -103,6 +104,7 @@ class SharedJvmContractTest {
 			menu.clickPlayerInventorySlot|1|minecraft:client
 			menu.clickSettingsControl|1|minecraft:client,sophisticatedcore
 			menu.clickSlot|1|minecraft:client,sophisticatedbackpacks
+			menu.clickSortControl|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSettings|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
 			menu.close|1|minecraft:client
@@ -150,7 +152,7 @@ class SharedJvmContractTest {
 			controller-manual-deposit:contents-item-filter-manual-deposit-conformance,contents-mod-filter-double-click-preserves-items
 			linked-storage-action-conformance:empty-crafting-times-out-with-slot-diagnostics,missing-and-out-of-range-entity-handles-fail-deterministically,missing-mob-index-and-menu-fail-deterministically,missing-controller-and-capabilities-fail-deterministically,inventory-mutation-is-journal-owned,qualification-and-cleanup-consumer
 			linked-storage-resources:placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
-			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
+			linked-storage-menu:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel,double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
 			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
 			linked-storage-restart:prepare-canonical-mob-and-stashed-items,verify-canonical-mob-and-stashed-items-after-server-restart
 			linked-storage-inception:canonical-installed-inception-rejects-disabled-and-enabled-child
@@ -160,6 +162,7 @@ class SharedJvmContractTest {
 			linked-storage-settings:settings-edit-actions-reject-missing-screen,barrel-primary-backpack-settings,chest-primary-backpack-settings,shulker-primary-backpack-settings,backpack-primary-barrel-settings,backpack-primary-chest-settings,backpack-primary-shulker-settings,backpack-primary-boat-settings,backpack-primary-minecart-settings,backpack-primary-llama-settings
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
+			menu.clickSortControl assert.sortMode
 			menu.clickStorageSettings menu.clickSettingsControl recipeviewer.dropSettingsGhost assert.settingsSelection assert.linkedSettings
 			fixture.entity.spawnPig player.sneakUseFixtureEntity assert.canonicalCapturedMobs menu.clickCapturedMob player.useHeldItemOnTarget
 			capability.storageResourceCache fixture.linked.replaceRoot fixture.backpack.setUpgrade capability.transferStorageResource assert.storageResources
@@ -191,8 +194,8 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(119, all.size());
-		assertEquals(119, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(121, all.size());
+		assertEquals(121, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -236,11 +239,11 @@ class SharedJvmContractTest {
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
 		assertEquals(23, suites.size());
-		assertEquals(110, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(113, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(119, actions.size());
+		assertEquals(121, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(10, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog
