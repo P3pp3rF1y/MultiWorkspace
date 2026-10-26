@@ -62,10 +62,10 @@ class RegressionSuiteParserTest {
 					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "vanilla-double-chest-upgrade.json",
 					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
 					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
-					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+					"linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
 					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(24, indexedPaths.size());
+			assertEquals(25, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
@@ -74,7 +74,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(25, physicalJson.size());
+				assertEquals(26, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 
@@ -101,7 +101,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(116, testCount);
+			assertEquals(119, testCount);
 			assertEquals(19, fixtureCount);
 		}
 	}
@@ -264,7 +264,8 @@ class RegressionSuiteParserTest {
 							assertTrue(
 									Set.of("player.createMainHandItem", "player.clearMainHand", "fixture.moving.holdRecoveredInner", "player.placeHeldBlock",
 											"player.useTargetBlock", "await.storageBlock", "assert.linkedStorageBlock", "menu.close", "await.menuClosed",
-											"assert.movingStorageCompatibilityProfile", "fixture.player.setGameMode").contains(bound.action().metadata().id()),
+											"assert.movingStorageCompatibilityProfile", "fixture.player.setGameMode", "menu.clickSortControl",
+											"assert.sortMode").contains(bound.action().metadata().id()),
 									"Unexpected moving-suite arguments " + arguments.getClass().getName() + " on " + test.id() + "/" + step.id());
 							yield null;
 						}
@@ -289,13 +290,13 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredSevenExpandedSteps() throws IOException {
+	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredThirtyExpandedSteps() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 
 			assertEquals(25, suite.tests().size());
-			assertEquals(307, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(330, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
 		}
 	}
 

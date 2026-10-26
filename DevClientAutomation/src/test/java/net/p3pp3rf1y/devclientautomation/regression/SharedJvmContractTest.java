@@ -52,6 +52,7 @@ class SharedJvmContractTest {
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
 			assert.settingsSelection|2|minecraft:client,sophisticatedcore
+			assert.sortMode|1|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
@@ -108,6 +109,7 @@ class SharedJvmContractTest {
 			menu.clickPlayerInventorySlot|1|minecraft:client
 			menu.clickSettingsControl|1|minecraft:client,sophisticatedcore
 			menu.clickSlot|1|minecraft:client,sophisticatedbackpacks
+			menu.clickSortControl|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSettings|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
 			menu.clickUpgradeSlot|1|minecraft:client,sophisticatedcore
@@ -143,6 +145,8 @@ class SharedJvmContractTest {
 			storage.setBlockSlot|1|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
+			menu.clickSortControl
+			assert.sortMode
 			menu.clickStorageSettings
 			menu.clickSettingsControl
 			recipeviewer.dropSettingsGhost
@@ -285,6 +289,7 @@ class SharedJvmContractTest {
 			linked-storage-action-conformance:empty-crafting-times-out-with-slot-diagnostics,missing-and-out-of-range-entity-handles-fail-deterministically,missing-mob-index-and-menu-fail-deterministically,missing-controller-and-capabilities-fail-deterministically,inventory-mutation-is-journal-owned,qualification-and-cleanup-consumer
 			linked-storage-resources:placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
 			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
+			linked-storage-sorting:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel
 			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
 			linked-storage-restart:prepare-canonical-mob-and-stashed-items,verify-canonical-mob-and-stashed-items-after-server-restart
 			linked-storage-inception:canonical-installed-inception-rejects-disabled-and-enabled-child
@@ -301,7 +306,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(123, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(125, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -341,13 +346,13 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(24, suites.size());
-		assertEquals(116, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(25, suites.size());
+		assertEquals(119, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(123, actions.size());
+		assertEquals(125, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 
