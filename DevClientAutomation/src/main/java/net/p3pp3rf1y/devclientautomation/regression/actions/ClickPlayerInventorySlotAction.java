@@ -3,6 +3,7 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.inventory.Slot;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 
 import java.util.Set;
 
@@ -48,9 +49,10 @@ public final class ClickPlayerInventorySlotAction extends TypedRegressionAction<
 						: screen.getMenu().getSlot(arguments.area().equals("result") ? 0 : arguments.slot() + 1);
 				double x = screen.getGuiLeft() + slot.x + 8;
 				double y = screen.getGuiTop() + slot.y + 8;
-				screen.mouseMoved(x, y);
-				screen.mouseClicked(x, y, arguments.button());
-				screen.mouseReleased(x, y, arguments.button());
+				VirtualInput.moveToSlot(screen, slot.index);
+				if (!VirtualInput.click(screen, x, y, arguments.button(), 0)) {
+					return fail("Player inventory click was not handled by the screen");
+				}
 				return RegressionActionProgress.PASSED;
 			}
 		};
