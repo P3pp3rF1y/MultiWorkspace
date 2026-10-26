@@ -63,17 +63,17 @@ class RegressionSuiteParserTest {
 					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "vanilla-double-chest-upgrade.json",
 					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
 					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
-					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+					"linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
 					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(23, indexedPaths.size());
+			assertEquals(24, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			try (var resources = Files.list(Path.of("src", "main", "resources", "devclientautomation", "regressions"))) {
 				List<String> physicalJson = resources.filter(path -> path.getFileName().toString().endsWith(".json")).map(path -> path.getFileName().toString())
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(24, physicalJson.size());
+				assertEquals(25, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -98,7 +98,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(110, testCount);
+			assertEquals(113, testCount);
 			assertEquals(19, fixtureCount);
 		}
 	}
@@ -212,12 +212,12 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredSevenExpandedSteps() throws IOException {
+	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredThirtyExpandedSteps() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 			assertEquals(25, suite.tests().size());
-			assertEquals(307, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(330, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
 		}
 	}
 

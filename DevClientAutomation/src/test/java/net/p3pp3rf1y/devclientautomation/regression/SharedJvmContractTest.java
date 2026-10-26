@@ -55,6 +55,7 @@ class SharedJvmContractTest {
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
 			assert.settingsSelection|2|minecraft:client,sophisticatedcore
+			assert.sortMode|1|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
@@ -110,6 +111,7 @@ class SharedJvmContractTest {
 			menu.clickPlayerInventorySlot|1|minecraft:client
 			menu.clickSettingsControl|1|minecraft:client,sophisticatedcore
 			menu.clickSlot|1|minecraft:client,sophisticatedbackpacks
+			menu.clickSortControl|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSettings|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
 			menu.close|1|minecraft:client
@@ -142,6 +144,8 @@ class SharedJvmContractTest {
 			storage.setBlockSlot|1|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
+			menu.clickSortControl
+			assert.sortMode
 			menu.clickStorageSettings
 			menu.clickSettingsControl
 			recipeviewer.dropSettingsGhost
@@ -282,6 +286,7 @@ class SharedJvmContractTest {
 			linked-storage-action-conformance:empty-crafting-times-out-with-slot-diagnostics,missing-and-out-of-range-entity-handles-fail-deterministically,missing-mob-index-and-menu-fail-deterministically,missing-controller-and-capabilities-fail-deterministically,inventory-mutation-is-journal-owned,qualification-and-cleanup-consumer
 			linked-storage-resources:placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
 			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
+			linked-storage-sorting:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel
 			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
 			linked-storage-restart:prepare-canonical-mob-and-stashed-items,verify-canonical-mob-and-stashed-items-after-server-restart
 			linked-storage-inception:canonical-installed-inception-rejects-disabled-and-enabled-child
@@ -294,11 +299,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(119, actions.size());
+		assertEquals(121, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(119, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(121, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -350,10 +355,10 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(23, suites.size());
-		assertEquals(110, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(24, suites.size());
+		assertEquals(113, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(119, catalog.getAsJsonObject("actions").size());
+		assertEquals(121, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());
