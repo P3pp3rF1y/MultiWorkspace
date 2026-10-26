@@ -5,6 +5,7 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointRole;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageLinkedStorageHostWrapper;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.client.gui.MovingStorageScreen;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -28,12 +29,18 @@ public final class AssertMovingMenuPresentationAction extends TypedRegressionAct
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new Execution(context, arguments);
 	}
 
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
+		@Nullable
 		private CompletableFuture<Void> serverAssertion;
 		private String groupTitle;
 		private int deadline = -1;
@@ -50,7 +57,7 @@ public final class AssertMovingMenuPresentationAction extends TypedRegressionAct
 					var entity = context.values().require(arguments.ref(), MovingStorageEntityHandle.class).requireServer(player);
 					if (!(player.containerMenu instanceof MovingStorageContainerMenu<?> menu) || menu.getStorageEntity().filter(entity::equals).isEmpty()
 							|| !(menu.getStorageWrapper() instanceof StorageLinkedStorageHostWrapper host)) {
-						throw new IllegalStateException("Expected linked moving menu for exact referenced entity");
+						throw RegressionActionFailure.infrastructure("Expected linked moving menu for exact referenced entity");
 					}
 					groupTitle = host.getDisplayName().getString();
 				});
@@ -60,16 +67,18 @@ public final class AssertMovingMenuPresentationAction extends TypedRegressionAct
 			if (serverProgress != RegressionActionProgress.PASSED) {
 				return serverProgress;
 			}
-			if (context.minecraft().gui.screen() instanceof MovingStorageScreen screen && context.isExpectedMenu("moving", arguments.ref())) {
+			if (context.minecraft().gui.screen() instanceof MovingStorageScreen screen && context.isExpectedMenu(MenuKind.MOVING, arguments.ref())) {
 				LinkedStorageEndpointRole expectedRole = arguments.role().equals("primary")
 						? LinkedStorageEndpointRole.PRIMARY
 						: LinkedStorageEndpointRole.SECONDARY;
 				if (!groupTitle.equals(screen.getTitle().getString()) || !screen.getLinkedStorageEndpointRole().filter(expectedRole::equals).isPresent()) {
-					return fail("Moving menu title or endpoint icon does not match the canonical group and installed role");
+					return failAssertion("Moving menu title or endpoint icon does not match the canonical group and installed role");
 				}
 				return RegressionActionProgress.PASSED;
 			}
-			return context.minecraft().player.tickCount >= deadline ? fail("Moving linked screen did not synchronize") : RegressionActionProgress.WAITING;
+			return context.minecraft().player.tickCount >= deadline
+					? failAssertion("Moving linked screen did not synchronize")
+					: RegressionActionProgress.WAITING;
 		}
 	}
 }

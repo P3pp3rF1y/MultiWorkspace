@@ -6,7 +6,6 @@ param(
     [string]$Suite = "sophisticatedbackpacks",
     [int]$TimeoutSeconds = 360,
     [switch]$NoStartClient,
-    [switch]$MaximizeClient,
     [switch]$MinimalRuntime
 )
 
@@ -59,9 +58,6 @@ function Stop-AutomationClient {
 
 function Start-AutomationClient {
     $readyArgs = @{ WorkspaceRoot = $WorkspaceRoot; Loader = $Loader; TimeoutSeconds = $TimeoutSeconds; CloseOnExit = $true; SkipRecipeViewerReady = $true }
-    if ($MaximizeClient) {
-        $readyArgs.Maximize = $true
-    }
     if ($MinimalRuntime) {
         $readyArgs.MinimalRuntime = $true
     }
@@ -90,6 +86,10 @@ function Run-InceptionMagnetPersistenceRegression {
     Assert-True (-not $setup.nestedHasUuid) "Nested backpack must start without a UUID."
 
     $screen = Invoke-BridgeJson -Method Post -Path "/wait" -Body @{ condition = "screen"; screen = "BackpackScreen"; timeoutMs = 30000 }
+    if (-not $screen.ok) {
+        Invoke-BridgeJson -Method Post -Path "/backpack/open-main" | Out-Null
+        $screen = Invoke-BridgeJson -Method Post -Path "/wait" -Body @{ condition = "screen"; screen = "BackpackScreen"; timeoutMs = 10000 }
+    }
     Assert-True $screen.ok "Backpack GUI did not open before magnet pickup."
 
     $pickup = Invoke-BridgeJson -Method Post -Path "/backpack/inception-magnet-persistence/pickup"
@@ -138,6 +138,26 @@ function Run-LinkedStorageReloadPersistenceRegression {
     return $status
 }
 
+function Run-MountedLinkedStorageReloadRegression {
+    Assert-True $startedClient "The mounted linked storage reload regression must start and own the dev client."
+
+    $setup = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/setup"
+    Assert-True $setup.ok "Failed to set up mounted linked storage reload regression: $($setup | ConvertTo-Json -Compress)"
+
+    $shutdown = Invoke-BridgeJson -Method Post -Path "/client/shutdown-world" -Body @{}
+    Assert-True $shutdown.ok "Integrated server did not shut down cleanly."
+    Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    Wait-AutomationClientStopped
+    Start-AutomationClient
+
+    $status = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/status" -Body @{ groupId = $setup.groupId }
+    Assert-True $status.ok "Mounted linked Backpack did not synchronize after restart: $($status | ConvertTo-Json -Compress)"
+    Assert-True ($status.groupId -eq $setup.groupId) "Mounted linked Backpack group changed after restart."
+    Assert-True ($status.mainColor -eq $setup.mainColor -and $status.accentColor -eq $setup.accentColor) "Mounted linked Backpack colors did not survive restart."
+    Assert-True $status.hasDisplayItem "Mounted linked Backpack display item was missing after restart."
+    return $status
+}
+
 $startedClient = $false
 
 try {
@@ -146,6 +166,7 @@ try {
         Start-AutomationClient
     }
 
+    & "$PSScriptRoot\assert-background-input.ps1" -BaseUrl $BaseUrl
     $suitePath = Get-SuitePath -SuiteName $Suite
     Assert-True (Test-Path $suitePath) "Backpack regression suite not found: $suitePath"
     $suiteData = Get-Content $suitePath -Raw | ConvertFrom-Json
@@ -161,6 +182,15 @@ try {
             }
             "linkedStorageReloadPersistence" {
                 $result = Run-LinkedStorageReloadPersistenceRegression
+            }
+            "mountedLinkedStorageReload" {
+                $result = Run-MountedLinkedStorageReloadRegression
+            }
+            "mountedLinkedStorageRegression" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-regression"
+            }
+            "mountedStorageRegression" {
+                $result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-storage-regression"
             }
             "storageGuiRegressionSuite" {
                 $result = Invoke-BridgeJson -Method Post -Path "/backpack/storage-gui-regressions"

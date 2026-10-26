@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "suiteId": "controller-manual-deposit",
-  "requires": ["minecraft:client", "sophisticatedstorage"],
+  "requires": [],
   "isolation": "testCell",
   "fixtures": {
     "barrel-and-controller": [

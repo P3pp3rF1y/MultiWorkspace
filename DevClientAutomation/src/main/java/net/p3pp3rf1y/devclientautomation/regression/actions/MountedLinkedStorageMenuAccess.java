@@ -35,7 +35,7 @@ final class MountedLinkedStorageMenuAccess {
 		return storageMenu;
 	}
 
-	private static boolean hasMountedIdentity(RegressionExecutionContext context, String ref, Object menu) {
+	static boolean hasMountedIdentity(RegressionExecutionContext context, String ref, Object menu) {
 		if (!isInstance(MENU_CLASS, menu)) {
 			return false;
 		}

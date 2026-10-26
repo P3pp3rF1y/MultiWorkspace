@@ -40,6 +40,13 @@ public final class StorageResourceCacheAction extends TypedRegressionAction<Stor
 	}
 
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return arguments.operation().equals("capture")
+				? RegressionValueContract.producing(arguments.ref(), RegressionValueTypes.RESOURCE_PROBE)
+				: RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.RESOURCE_PROBE);
+	}
+
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			@Nullable

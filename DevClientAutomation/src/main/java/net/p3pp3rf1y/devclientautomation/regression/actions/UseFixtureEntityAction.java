@@ -24,6 +24,10 @@ public final class UseFixtureEntityAction extends TypedRegressionAction<UseFixtu
 		return new Arguments(requireString(args, "ref", description));
 	}
 	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.UUID);
+	}
+	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private int deadline = -1;

@@ -23,10 +23,10 @@ class RegressionCoordinatorTest {
 		RegressionTest movingTest = test(suite, "boat-link-through-entity-interaction");
 		RegressionTest mountedTest = test(suite, "mounted-open-menu-receives-live-slot-delta");
 
-		List<RegressionCoordinator.ConformanceResult> moving = RegressionCoordinator.qualify(suite, List.of(), movingTest, "", capabilities);
-		List<RegressionCoordinator.ConformanceResult> mounted = RegressionCoordinator.qualify(suite, List.of(), mountedTest, "", capabilities);
+		List<RegressionResultModel.ConformanceResult> moving = RegressionCoordinator.qualify(suite, movingTest, "", capabilities::contains);
+		List<RegressionResultModel.ConformanceResult> mounted = RegressionCoordinator.qualify(suite, mountedTest, "", capabilities::contains);
 
-		assertTrue(moving.stream().allMatch(RegressionCoordinator.ConformanceResult::passed));
+		assertTrue(moving.stream().allMatch(RegressionResultModel.ConformanceResult::passed));
 		assertTrue(mounted.stream().anyMatch(result -> result.dependency().equals("sophisticatedstoragecreateintegration") && !result.passed()));
 		assertFalse(mounted.stream().anyMatch(result -> result.dependency().equals("sophisticatedstorageinmotion") && !result.passed()));
 	}

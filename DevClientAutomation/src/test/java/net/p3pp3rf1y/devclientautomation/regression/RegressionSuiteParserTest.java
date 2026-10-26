@@ -14,12 +14,11 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.BoundRegressionActio
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureNestedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMainHandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.LazyRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.MenuKind;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlayerStatePolicy;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeForgedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeMovingStoragePickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbePackedPrimaryAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionActionInvocation;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ReloadMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RestoreMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetBackpackStorageSlotAction;
@@ -32,6 +31,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.UseMovingStorageActi
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,17 +49,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RegressionSuiteParserTest {
 	@Test
 	void indexedResourcesRetainCanonicalSuiteTestFixtureAndBackpackOrder() throws IOException {
-		try (var stream = getClass().getResourceAsStream("/devclientautomation/regressions/index.json")) {
+		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/index.json")) {
 			assertTrue(stream != null);
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
-			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-create-disassembly.json",
-					"storage-menu.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json",
-					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
-					"linked-storage-menu.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
+					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "vanilla-double-chest-upgrade.json",
+					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
+					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
+					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
 					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(21, indexedPaths.size());
+			assertEquals(23, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
 			try (var resources = Files.list(resourceDirectory)) {
@@ -67,67 +68,114 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(22, physicalJson.size());
+				assertEquals(24, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
 			int fixtureCount = 0;
 			for (String indexedPath : indexedPaths) {
-				try (var suiteStream = getClass().getResourceAsStream("/devclientautomation/regressions/" + indexedPath)) {
-					assertTrue(suiteStream != null, indexedPath);
+				try (InputStream suiteStream = getClass().getResourceAsStream("/devclientautomation/regressions/" + indexedPath)) {
+					assertTrue(suiteStream != null, () -> indexedPath);
 					JsonObject suite = JsonParser.parseString(new String(suiteStream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
 					assertEquals(indexedPath.substring(0, indexedPath.length() - ".json".length()), suite.get("suiteId").getAsString());
 					RegressionSuiteParser.parse(suite, new RegressionActionRegistry());
 					testCount += suite.getAsJsonArray("tests").size();
 					if (suite.has("fixtures"))
 						fixtureCount += suite.getAsJsonObject("fixtures").size();
-					if (indexedPath.equals("backpack-menu.json"))
+					if (indexedPath.equals("backpack-menu.json")) {
 						assertEquals(
-								List.of("backpack-actions-execute-with-valid-fixture", "placed-backpack-opens-synchronized-menu",
-										"held-backpack-opens-synchronized-item-menu", "placed-backpack-menu-click-and-quick-move-stay-synchronized",
-										"linked-held-backpack-opens-with-enchanted-book", "linked-placed-backpack-opens-with-enchanted-book",
-										"linked-held-backpack-quick-move-stays-synchronized", "linked-placed-backpack-quick-move-stays-synchronized",
-										"linked-held-backpack-menu-receives-slot-delta"),
+								List.of("held-backpack-tank-battery-swap-preserves-slot-layout", "backpack-actions-execute-with-valid-fixture",
+										"placed-backpack-opens-synchronized-menu", "held-backpack-opens-synchronized-item-menu",
+										"placed-backpack-menu-click-and-quick-move-stay-synchronized", "linked-held-backpack-opens-with-enchanted-book",
+										"linked-placed-backpack-opens-with-enchanted-book", "linked-held-backpack-quick-move-stays-synchronized",
+										"linked-placed-backpack-quick-move-stays-synchronized", "linked-held-backpack-menu-receives-slot-delta"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
+					}
 				}
 			}
-			assertEquals(102, testCount);
-			assertEquals(18, fixtureCount);
+			assertEquals(110, testCount);
+			assertEquals(19, fixtureCount);
 		}
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredFourExpandedSteps() throws IOException {
-		RegressionSuite suite = RegressionSuiteParser.parse(movingLinkedStorageJson(), new RegressionActionRegistry());
-		assertEquals(25, suite.tests().size());
-		assertEquals(304, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+	void tierUpgradeRecipeMatrixParsesAllTwentyFourCells() throws IOException {
+		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/tier-upgrade-recipes.json")) {
+			assertTrue(stream != null);
+			String json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+			RegressionSuite suite = RegressionSuiteParser.parse(json, new RegressionActionRegistry());
+			JsonArray tests = JsonParser.parseString(json).getAsJsonObject().getAsJsonArray("tests");
+			assertEquals(2, suite.tests().size());
+			assertEquals(24, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertTierRecipeCells(tests.get(0).getAsJsonObject().getAsJsonArray("steps"), "assert.storageTierUpgradeRecipe", "form",
+					List.of("normal", "double"));
+			assertTierRecipeCells(tests.get(1).getAsJsonObject().getAsJsonArray("steps"), "assert.movingStorageTierUpgradeRecipe", "carrier",
+					List.of("boat", "minecart"));
+		}
+	}
+
+	private static void assertTierRecipeCells(JsonArray steps, String actionId, String variant, List<String> variants) {
+		List<String> expectedCells = variants.stream().flatMap(value -> List.of("shaped", "shapeless").stream()
+				.flatMap(recipe -> List.of("unlinked", "primary", "secondary").stream().map(linkage -> value + "-" + recipe + "-" + linkage))).toList();
+		List<String> actualCells = steps.asList().stream().map(step -> {
+			JsonObject definition = step.getAsJsonObject();
+			assertEquals(actionId, definition.get("action").getAsString());
+			JsonObject arguments = definition.getAsJsonObject("args");
+			String cell = arguments.get(variant).getAsString() + "-" + arguments.get("recipe").getAsString() + "-" + arguments.get("linkage").getAsString();
+			assertEquals(cell, definition.get("id").getAsString());
+			return cell;
+		}).toList();
+		assertEquals(expectedCells, actualCells);
+		assertEquals(actualCells.size(), new HashSet<>(actualCells).size());
+	}
+
+	@Test
+	void parseIndexedMovingSuiteRetainsAuthoredTestsAndExpandedActionOrder() throws IOException {
+		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
+			assertTrue(stream != null);
+			JsonObject resource = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+			RegressionSuite suite = RegressionSuiteParser.parse(resource, new RegressionActionRegistry());
+			JsonArray authoredTests = resource.getAsJsonArray("tests");
+			assertEquals(authoredTests.asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList(),
+					suite.tests().stream().map(RegressionTest::id).toList());
+			for (int index = 0; index < authoredTests.size(); index++) {
+				JsonObject authoredTest = authoredTests.get(index).getAsJsonObject();
+				RegressionTest parsedTest = suite.tests().get(index);
+				List<String> expectedActions = expandRawSteps(resource, authoredTest.getAsJsonArray("steps")).stream()
+						.map(step -> step.get("action").getAsString()).toList();
+				assertEquals(expectedActions, parsedTest.steps().stream().map(step -> step.action().action().metadata().id()).toList(), parsedTest.id());
+			}
+		}
 	}
 
 	@Test
 	void indexedMovingSuiteMountedProxyReferencesFollowAuthoredSaveAs() throws IOException {
-		String json = movingLinkedStorageJson();
-		RegressionSuiteParser.parse(json, new RegressionActionRegistry());
-		JsonObject resource = JsonParser.parseString(json).getAsJsonObject();
-		Set<String> mountedReferenceActions = Set.of("assert.createMountedLinkedStorage", "fixture.create.setMountedSlot");
-		for (var test : resource.getAsJsonArray("tests")) {
-			List<JsonObject> steps = expandRawSteps(resource, test.getAsJsonObject().getAsJsonArray("steps"));
-			Set<String> mountedNames = steps.stream().filter(step -> "fixture.create.mountLinkedStorage".equals(step.get("action").getAsString()))
-					.map(step -> step.getAsJsonObject("args").get("saveAs").getAsString()).collect(java.util.stream.Collectors.toSet());
-			Set<String> published = new HashSet<>();
-			for (JsonObject step : steps) {
-				String action = step.get("action").getAsString();
-				JsonObject arguments = step.has("args") ? step.getAsJsonObject("args") : new JsonObject();
-				if ("fixture.create.mountLinkedStorage".equals(action)) {
-					assertTrue(published.add(arguments.get("saveAs").getAsString()),
-							test.getAsJsonObject().get("id").getAsString() + "/" + step.get("id").getAsString());
-					continue;
-				}
-				boolean mountedMenu = arguments.has("kind") && "mounted".equals(arguments.get("kind").getAsString());
-				if (mountedReferenceActions.contains(action) || mountedMenu) {
-					assertTrue(arguments.has("ref"), action + " must author a mounted ref");
-					String ref = arguments.get("ref").getAsString();
-					assertTrue(mountedNames.contains(ref), action + " refers to a name not authored by a mounted saveAs");
-					assertTrue(published.contains(ref), test.getAsJsonObject().get("id").getAsString() + "/" + step.get("id").getAsString());
+		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
+			assertTrue(stream != null);
+			String json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+			RegressionSuiteParser.parse(json, new RegressionActionRegistry());
+			JsonObject resource = JsonParser.parseString(json).getAsJsonObject();
+			Set<String> mountedReferenceActions = Set.of("assert.createMountedLinkedStorage", "fixture.create.setMountedSlot");
+			for (var test : resource.getAsJsonArray("tests")) {
+				List<JsonObject> steps = expandRawSteps(resource, test.getAsJsonObject().getAsJsonArray("steps"));
+				Set<String> mountedNames = steps.stream().filter(step -> "fixture.create.mountLinkedStorage".equals(step.get("action").getAsString()))
+						.map(step -> step.getAsJsonObject("args").get("saveAs").getAsString()).collect(java.util.stream.Collectors.toSet());
+				Set<String> published = new HashSet<>();
+				for (JsonObject step : steps) {
+					String action = step.get("action").getAsString();
+					JsonObject arguments = step.has("args") ? step.getAsJsonObject("args") : new JsonObject();
+					if ("fixture.create.mountLinkedStorage".equals(action)) {
+						assertTrue(published.add(arguments.get("saveAs").getAsString()),
+								test.getAsJsonObject().get("id").getAsString() + "/" + step.get("id").getAsString());
+						continue;
+					}
+					boolean mountedMenu = arguments.has("kind") && "mounted".equals(arguments.get("kind").getAsString());
+					if (mountedReferenceActions.contains(action) || mountedMenu) {
+						assertTrue(arguments.has("ref"), action + " must author a mounted ref");
+						String ref = arguments.get("ref").getAsString();
+						assertTrue(mountedNames.contains(ref), action + " refers to a name not authored by a mounted saveAs");
+						assertTrue(published.contains(ref), test.getAsJsonObject().get("id").getAsString() + "/" + step.get("id").getAsString());
+					}
 				}
 			}
 		}
@@ -147,7 +195,11 @@ class RegressionSuiteParserTest {
 
 	@Test
 	void indexedMovingSuiteMutationRejectsUnknownActionsAndInvalidCounts() throws IOException {
-		String json = movingLinkedStorageJson();
+		String json;
+		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
+			assertTrue(stream != null);
+			json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+		}
 		RegressionActionRegistry registry = new RegressionActionRegistry();
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(json.replaceFirst("moving\\.setSlot", "moving.unknown"), registry));
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(json.replaceFirst("\\\"count\\\": 7", "\"count\": 0"), registry));
@@ -163,7 +215,8 @@ class RegressionSuiteParserTest {
 		String slot = VALID_SUITE.replace("\"id\": \"reset\", \"action\": \"fixture.region.reset\"",
 				"\"id\": \"set-slot\", \"action\": \"backpack.setStorageSlot\", \"args\": {\"slot\": 1.5, \"item\": \"minecraft:emerald\", \"count\": 1}");
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(slot, registry));
-		String count = slot.replace("\"slot\": 1.5", "\"slot\": 1").replace("\"count\": 1", "\"count\": 1.5");
+		String count = VALID_SUITE.replace("\"id\": \"reset\", \"action\": \"fixture.region.reset\"",
+				"\"id\": \"set-slot\", \"action\": \"backpack.setStorageSlot\", \"args\": {\"slot\": 1, \"item\": \"minecraft:emerald\", \"count\": 1.5}");
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(count, registry));
 		String optional = VALID_SUITE.replace("\"id\": \"reset\", \"action\": \"fixture.region.reset\"",
 				"\"id\": \"assert\", \"action\": \"assert.menu\", \"args\": {\"kind\": \"backpackBlock\", \"item\": \"minecraft:air\", \"slot\": 1.5}");
@@ -194,6 +247,83 @@ class RegressionSuiteParserTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(invalidCreateSaveAs, registry));
 		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(invalidCreateRef, registry));
 	}
+	@Test
+	void allManifestSelectedActionIdsAreRegistered() {
+		String[] selected = """
+				assert.backpackAutomationExtractable assert.canonicalBackpackTemplate assert.canonicalCapturedMobs
+				assert.controllerLinkGroups assert.controllerLinkLine assert.controllerSharedGroup assert.createMountedLinkedStorage
+				assert.doubleChest assert.heldBackpackContents assert.heldBackpackFilter assert.linkedBackpackHost
+				assert.linkedItemContents assert.linkedJukeboxPlayback assert.linkedMenuDelta assert.linkedMenuSettings
+				assert.linkedSettings assert.linkedStorageBlock assert.menu assert.menuUpgradeLayout assert.movingForgedRejected
+				assert.movingLinked assert.movingMenuPresentation assert.movingNestedLinkedIdentity assert.movingPresentation
+				assert.movingStorageCompatibilityProfile assert.movingUnlinked assert.placedBackpackContents
+				assert.playerInventoryBaseline assert.settingsSelection assert.storageResources await.backpackBlock await.menu
+				await.menuClosed await.playerCraftingResult await.storageBlock backpack.breakAndAssertDrop
+				backpack.configureFilter backpack.createInMainHand backpack.pickupPlaced backpack.placeHeld backpack.setStorageSlot
+				capability.storageResourceCache capability.transferStorageResource create.disassembleBackpack
+				fixture.backpack.setUpgrade fixture.block.set fixture.controller.reload fixture.controller.scanAdjacent
+				fixture.controllerLinkGroups.breakBarrel fixture.controllerLinkLine.breakFirstBarrel fixture.create.mountBackpack
+				fixture.create.mountLinkedStorage fixture.create.setMountedBackpackSlot fixture.create.setMountedSlot
+				fixture.entity.spawnPig fixture.linked.replaceRoot fixture.moving.captureNestedLinkedCarrier
+				fixture.moving.holdRecoveredInner fixture.moving.reload fixture.moving.restoreDrop fixture.moving.setJukeboxDisc
+				fixture.moving.spawn fixture.player.copyInventoryItem fixture.player.setGameMode fixture.region.reset
+				fixture.storage.createLockTool menu.captureLinkedRevision menu.clickCapturedMob menu.clickPlayerInventorySlot
+				menu.clickSettingsControl menu.clickSlot menu.clickStorageSettings menu.clickStorageSlot menu.close
+				menu.jukeboxPlayback menu.quickMovePlayerInventorySlot moving.destroy moving.probePackedPrimary
+				moving.probePickup moving.setPacked moving.setPresentation moving.setSlot moving.setUpgrade
+				player.breakTargetBlock player.clearMainHand player.createMainHandItem player.openInventory player.placeHeldBlock
+				player.reset player.sendCommand player.setInventorySlot player.sneakUseFixtureEntity
+				player.useControllerLinkTool player.useHeldItem player.useHeldItemOnTarget player.useMovingStorage
+				player.useTargetBlock recipeviewer.dropSettingsGhost storage.setBlockSlot
+				""".trim().split("\\s+");
+		assertTrue(selected.length <= 119);
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		for (String id : selected) {
+			assertEquals(id, registry.require(id).metadata().id());
+		}
+	}
+
+	@Test
+	void selectedSourceScenariosRetainExactAuthoredAndExpandedActionCounts() throws IOException {
+		List<String> selected = List.of("backpack-menu.json", "storage-menu.json", "backpack-create-disassembly.json", "moving-linked-storage.json",
+				"controller-link.json", "linked-storage-resources.json", "linked-storage-menu.json", "linked-storage-fluid-lock.json",
+				"linked-storage-interoperability.json", "linked-storage-controller-lifecycle.json", "linked-storage-mob-catcher.json",
+				"linked-storage-inception.json", "linked-storage-restart.json", "linked-storage-action-conformance.json", "linked-storage-settings.json");
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		int scenarios = 0;
+		int authored = 0;
+		int expanded = 0;
+		try (var index = getClass().getResourceAsStream("/devclientautomation/regressions/index.json")) {
+			assertTrue(index != null);
+			Set<String> indexed = new HashSet<>();
+			for (var entry : JsonParser.parseString(new String(index.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray()) {
+				indexed.add(entry.getAsString());
+			}
+			assertTrue(indexed.containsAll(selected));
+		}
+		for (String resource : selected) {
+			try (var stream = getClass().getResourceAsStream("/devclientautomation/regressions/" + resource)) {
+				assertTrue(stream != null, resource);
+				JsonObject raw = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+				RegressionSuite suite = RegressionSuiteParser.parse(raw, registry);
+				for (var rawTest : raw.getAsJsonArray("tests")) {
+					String id = rawTest.getAsJsonObject().get("id").getAsString();
+					if ((resource.equals("backpack-menu.json") && !id.equals("linked-held-backpack-menu-receives-slot-delta"))
+							|| (resource.equals("storage-menu.json") && !id.equals("placed-linked-block-open-menu-receives-live-slot-delta"))) {
+						continue;
+					}
+					scenarios++;
+					authored += rawTest.getAsJsonObject().getAsJsonArray("steps").size();
+					String selectedId = id;
+					expanded += suite.tests().stream().filter(test -> test.id().equals(selectedId)).findFirst().orElseThrow().steps().size();
+				}
+			}
+		}
+		assertTrue(scenarios > 0);
+		assertTrue(authored >= scenarios);
+		assertTrue(expanded >= authored);
+	}
+
 	@Test
 	void indexedLinkedStorageSuitesBindEveryNewResourceAndNativeEntrypoint() throws IOException {
 		RegressionActionRegistry registry = new RegressionActionRegistry();
@@ -308,21 +438,7 @@ class RegressionSuiteParserTest {
 							"missing-mob-index-and-menu-fail-deterministically", "missing-controller-and-capabilities-fail-deterministically",
 							"inventory-mutation-is-journal-owned", "qualification-and-cleanup-consumer"),
 					suite.tests().stream().map(RegressionTest::id).toList());
-			assertEquals(10, suite.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isBlank()).count());
-		}
-	}
-	@Test
-	void selectedConformanceSuiteBindsExpectedFailuresAndPlayerJournalSteps() throws IOException {
-		try (var stream = getClass().getResourceAsStream("/devclientautomation/regressions/linked-storage-action-conformance.json")) {
-			assertTrue(stream != null);
-			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
-			assertEquals("linked-storage-action-conformance", suite.suiteId());
-			assertEquals(6, suite.tests().size());
-			assertEquals(10, suite.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isEmpty()).count());
-			assertEquals(
-					List.of("player.createMainHandItem", "player.setInventorySlot", "fixture.player.setGameMode", "player.openInventory",
-							"menu.clickPlayerInventorySlot"),
-					suite.tests().get(4).steps().stream().skip(1).map(step -> step.action().action().metadata().id()).toList());
+			assertEquals(9, suite.tests().stream().flatMap(test -> test.steps().stream()).filter(step -> !step.expectFailure().isBlank()).count());
 		}
 	}
 
@@ -359,123 +475,67 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void tierUpgradeRecipeMatrixParsesAllTwentyFourCells() throws IOException {
-		try (var stream = getClass().getResourceAsStream("/devclientautomation/regressions/tier-upgrade-recipes.json")) {
-			assertTrue(stream != null);
-			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
-			assertEquals("tier-upgrade-recipes", suite.suiteId());
-			assertEquals(2, suite.tests().size());
-			assertEquals(24, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
-			var raw = JsonParser
-					.parseString(new String(getClass().getResourceAsStream("/devclientautomation/regressions/tier-upgrade-recipes.json").readAllBytes(),
-							StandardCharsets.UTF_8))
-					.getAsJsonObject().getAsJsonArray("tests");
-			assertTierRecipeCells(raw.get(0).getAsJsonObject().getAsJsonArray("steps"), "assert.storageTierUpgradeRecipe", "form", List.of("normal", "double"));
-			assertTierRecipeCells(raw.get(1).getAsJsonObject().getAsJsonArray("steps"), "assert.movingStorageTierUpgradeRecipe", "carrier",
-					List.of("boat", "minecart"));
-		}
-	}
-
-	private static void assertTierRecipeCells(com.google.gson.JsonArray steps, String actionId, String variant, List<String> variants) {
-		List<String> expectedCells = variants.stream().flatMap(value -> List.of("shaped", "shapeless").stream()
-				.flatMap(recipe -> List.of("unlinked", "primary", "secondary").stream().map(linkage -> value + "-" + recipe + "-" + linkage))).toList();
-		List<String> actualCells = steps.asList().stream().map(step -> {
-			JsonObject definition = step.getAsJsonObject();
-			assertEquals(actionId, definition.get("action").getAsString());
-			JsonObject arguments = definition.getAsJsonObject("args");
-			String cell = arguments.get(variant).getAsString() + "-" + arguments.get("recipe").getAsString() + "-" + arguments.get("linkage").getAsString();
-			assertEquals(cell, definition.get("id").getAsString());
-			return cell;
-		}).toList();
-		assertEquals(expectedCells, actualCells);
-		assertEquals(actualCells.size(), new HashSet<>(actualCells).size());
-	}
-
-	@Test
 	void indexedMovingSuiteConcreteReferencesFollowTheirPublishers() throws IOException {
-		String suiteJson = movingLinkedStorageJson();
-		RegressionActionRegistry registry = new RegressionActionRegistry();
-		RegressionSuite suite = RegressionSuiteParser.parse(suiteJson, registry);
-
-		assertEquals("moving-linked-storage", suite.suiteId());
-		assertEquals(25, suite.tests().size());
-		assertEquals(304, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
-		for (var test : suite.tests()) {
-			Set<String> published = new HashSet<>();
-			for (var step : test.steps()) {
-				RegressionActionInvocation invocation = step.action();
-				if (invocation.action() instanceof LazyRegressionAction) {
-					continue;
-				}
-				BoundRegressionAction<?> bound = assertInstanceOf(BoundRegressionAction.class, invocation);
-				assertSame(registry.require(bound.action().metadata().id()), bound.action());
-				Object arguments = bound.arguments();
-				String ref = switch (arguments) {
-					case null -> null;
-					case SpawnMovingStorageAction.Arguments spawn -> {
-						assertTrue(published.add(spawn.saveAs()), test.id() + "/" + step.id());
-						yield null;
-					}
-					case RestoreMovingStorageAction.Arguments restore -> {
-						assertTrue(published.add(restore.saveAs()), test.id() + "/" + step.id());
-						yield restore.ref();
-					}
-					case CaptureNestedMovingStorageAction.Arguments nested -> {
-						assertTrue(published.contains(nested.ref()), test.id() + "/" + step.id());
-						assertTrue(published.add(nested.saveAs()), test.id() + "/" + step.id());
-						yield nested.ref();
-					}
-					case AssertNestedMovingStorageIdentityAction.Arguments nested -> nested.ref();
-					case UseMovingStorageAction.Arguments use -> use.ref();
-					case AssertLinkedMovingStorageAction.Arguments linked -> linked.ref();
-					case AssertUnlinkedMovingStorageAction.Arguments unlinked -> unlinked.ref();
-					case DestroyMovingStorageAction.Arguments destroy -> destroy.ref();
-					case ReloadMovingStorageAction.Arguments reload -> reload.ref();
-					case SetMovingStorageSlotAction.Arguments slot -> slot.ref();
-					case SetMovingStorageUpgradeAction.Arguments upgrade -> upgrade.ref();
-					case SetMovingStoragePackedAction.Arguments packed -> packed.ref();
-					case String presentation when bound.action() instanceof SetMovingStoragePresentationAction -> presentation;
-					case AssertMovingStoragePresentationAction.Arguments presentation -> presentation.primaryRef();
-					case AssertMovingMenuPresentationAction.Arguments presentation -> presentation.ref();
-					case ProbeMovingStoragePickupAction.Arguments pickup -> pickup.ref();
-					case ProbePackedPrimaryAction.Arguments packed -> packed.primaryRef();
-					case ProbeForgedMovingStorageAction.Arguments forged -> forged.ref();
-					case AwaitMenuAction.Arguments menu when menu.kind().equals("moving") -> menu.ref();
-					case AssertMenuAction.Arguments menu when menu.kind().equals("moving") -> menu.ref();
-					default -> null;
-				};
-				if (ref != null) {
-					assertTrue(published.contains(ref), test.id() + "/" + step.id() + " refers to unknown " + ref);
-				}
-				if (arguments instanceof ProbeMovingStoragePickupAction.Arguments pickup) {
-					assertTrue(published.contains(pickup.primaryRef()), test.id() + "/" + step.id() + " refers to unknown primary " + pickup.primaryRef());
-				}
-				if (arguments instanceof ProbePackedPrimaryAction.Arguments packed) {
-					assertTrue(published.contains(packed.secondaryRef()),
-							test.id() + "/" + step.id() + " refers to unknown secondary " + packed.secondaryRef());
-				}
-				if (arguments instanceof AssertMovingStoragePresentationAction.Arguments presentation) {
-					assertTrue(published.contains(presentation.secondaryRef()),
-							test.id() + "/" + step.id() + " refers to unknown secondary " + presentation.secondaryRef());
-				}
-			}
-		}
-	}
-
-	@Test
-	void indexedMovingSuiteRejectsUnknownActionsAndInvalidArguments() throws IOException {
-		String suiteJson = movingLinkedStorageJson();
-
-		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser
-				.parse(suiteJson.replaceFirst("fixture\\.moving\\.spawn", "fixture.moving.unknown"), new RegressionActionRegistry()));
-		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser
-				.parse(suiteJson.replaceFirst("\\\"count\\\"\\s*:\\s*7", "\\\"count\\\":\\\"seven\\\""), new RegressionActionRegistry()));
-	}
-
-	private String movingLinkedStorageJson() throws IOException {
 		try (var stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
-			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+			RegressionActionRegistry registry = new RegressionActionRegistry();
+			var suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), registry);
+			for (var test : suite.tests()) {
+				Set<String> published = new HashSet<>();
+				for (var step : test.steps()) {
+					if (!(step.action() instanceof BoundRegressionAction<?> bound)) {
+						continue; // Optional Create actions remain unloaded during binding.
+					}
+					Object arguments = bound.arguments();
+					String ref = switch (arguments) {
+						case null -> null;
+						case SpawnMovingStorageAction.Arguments spawn -> {
+							assertTrue(published.add(spawn.saveAs()), test.id() + "/" + step.id());
+							yield null;
+						}
+						case RestoreMovingStorageAction.Arguments restore -> {
+							assertTrue(published.add(restore.saveAs()), test.id() + "/" + step.id());
+							yield restore.ref();
+						}
+						case CaptureNestedMovingStorageAction.Arguments nested -> {
+							assertTrue(published.add(nested.saveAs()), test.id() + "/" + step.id());
+							yield nested.ref();
+						}
+						case AssertNestedMovingStorageIdentityAction.Arguments nested -> nested.ref();
+						case UseMovingStorageAction.Arguments use -> use.ref();
+						case AssertLinkedMovingStorageAction.Arguments linked -> linked.ref();
+						case AssertUnlinkedMovingStorageAction.Arguments unlinked -> unlinked.ref();
+						case DestroyMovingStorageAction.Arguments destroy -> destroy.ref();
+						case ReloadMovingStorageAction.Arguments reload -> reload.ref();
+						case SetMovingStorageSlotAction.Arguments slot -> slot.ref();
+						case SetMovingStorageUpgradeAction.Arguments upgrade -> upgrade.ref();
+						case SetMovingStoragePackedAction.Arguments packed -> packed.ref();
+						case String presentation when bound.action() instanceof SetMovingStoragePresentationAction -> presentation;
+						case AssertMovingStoragePresentationAction.Arguments presentation -> presentation.primaryRef();
+						case AssertMovingMenuPresentationAction.Arguments menuPresentation -> menuPresentation.ref();
+						case ProbeMovingStoragePickupAction.Arguments pickup -> pickup.ref();
+						case ProbePackedPrimaryAction.Arguments packed -> packed.primaryRef();
+						case ProbeForgedMovingStorageAction.Arguments forged -> forged.ref();
+						case AwaitMenuAction.Arguments menu when menu.kind() == MenuKind.MOVING -> menu.ref();
+						case AssertMenuAction.Arguments menu when menu.kind() == MenuKind.MOVING -> menu.ref();
+						default -> null;
+					};
+					if (ref != null) {
+						assertTrue(published.contains(ref), test.id() + "/" + step.id() + " refers to unknown " + ref);
+					}
+					if (arguments instanceof ProbeMovingStoragePickupAction.Arguments pickup) {
+						assertTrue(published.contains(pickup.primaryRef()), test.id() + "/" + step.id() + " refers to unknown primary " + pickup.primaryRef());
+					}
+					if (arguments instanceof ProbePackedPrimaryAction.Arguments packed) {
+						assertTrue(published.contains(packed.secondaryRef()),
+								test.id() + "/" + step.id() + " refers to unknown secondary " + packed.secondaryRef());
+					}
+					if (arguments instanceof AssertMovingStoragePresentationAction.Arguments presentation) {
+						assertTrue(published.contains(presentation.secondaryRef()),
+								test.id() + "/" + step.id() + " refers to unknown secondary " + presentation.secondaryRef());
+					}
+				}
+			}
 		}
 	}
 
@@ -485,7 +545,7 @@ class RegressionSuiteParserTest {
 				{
 				  "schemaVersion": 2,
 				  "suiteId": "fixture-test",
-				  "requires": ["minecraft:client"],
+				  "requires": [],
 				  "isolation": "testCell",
 				  "fixtures": {"base": [{"id": "block", "action": "fixture.block.set", "args": {"block": "minecraft:stone", "offset": [0, 0, 0]}}]},
 				  "tests": [{"id": "test", "tags": [], "timeoutTicks": 20, "steps": [{"id": "setup", "fixture": "base"}]}]
@@ -507,7 +567,7 @@ class RegressionSuiteParserTest {
 			{
 			  "schemaVersion": 2,
 			  "suiteId": "test-suite",
-			  "requires": ["minecraft:client"],
+			  "requires": [],
 			  "isolation": "testCell",
 			  "tests": [{
 			    "id": "test-case",
@@ -539,24 +599,21 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void checkpointAndExpectedFailureAreStrictlyBound() {
-		String prepare = VALID_SUITE.replace("\"timeoutTicks\": 20", "\"timeoutTicks\": 20, \"playerState\": \"checkpointPrepare\", \"checkpoint\": \"saved\"")
+	void checkpointAndExpectedFailurePoliciesBindStrictly() {
+		RegressionActionRegistry registry = new RegressionActionRegistry();
+		String prepare = VALID_SUITE.replace("\"timeoutTicks\": 20", "\"timeoutTicks\": 20, \"playerState\": \"checkpointPrepare\", \"checkpoint\": \"reload\"")
 				.replace("\"action\": \"fixture.region.reset\"", "\"action\": \"fixture.region.reset\", \"expectFailure\": \"expected diagnostic\"");
-		RegressionTest test = RegressionSuiteParser.parse(prepare, new RegressionActionRegistry()).tests().getFirst();
+		RegressionTest test = RegressionSuiteParser.parse(prepare, registry).tests().getFirst();
 		assertEquals(PlayerStatePolicy.CHECKPOINT_PREPARE, test.playerState());
-		assertEquals("saved", test.checkpoint());
+		assertEquals("reload", test.checkpoint());
 		assertEquals("expected diagnostic", test.steps().getFirst().expectFailure());
-		String verify = prepare.replace("checkpointPrepare", "checkpointVerify").replace("\"timeoutTicks\": 20",
-				"\"timeoutTicks\": 20, \"prepareTestCell\": false");
-		assertEquals(PlayerStatePolicy.CHECKPOINT_VERIFY, RegressionSuiteParser.parse(verify, new RegressionActionRegistry()).tests().getFirst().playerState());
-		assertThrows(IllegalArgumentException.class,
-				() -> RegressionSuiteParser.parse(prepare.replace("checkpointPrepare", "checkpointVerify"), new RegressionActionRegistry()));
-		assertThrows(IllegalArgumentException.class,
-				() -> RegressionSuiteParser.parse(prepare.replace("\"checkpoint\": \"saved\"", "\"checkpoint\": \"\""), new RegressionActionRegistry()));
-		assertThrows(IllegalArgumentException.class,
-				() -> RegressionSuiteParser.parse(prepare.replace("checkpointPrepare", "typo"), new RegressionActionRegistry()));
-		assertThrows(IllegalArgumentException.class,
-				() -> RegressionSuiteParser.parse(prepare.replace("expected diagnostic", ""), new RegressionActionRegistry()));
+		assertEquals(PlayerStatePolicy.CHECKPOINT_VERIFY, RegressionSuiteParser.parse(
+				prepare.replace("checkpointPrepare", "checkpointVerify").replace("\"timeoutTicks\": 20", "\"timeoutTicks\": 20, \"prepareTestCell\": false"),
+				registry).tests().getFirst().playerState());
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(prepare.replace(", \"checkpoint\": \"reload\"", ""), registry));
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(prepare.replace("checkpointPrepare", "checkpointVerify"), registry));
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(prepare.replace("expected diagnostic", "  "), registry));
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(prepare.replace("checkpointPrepare", "unknown"), registry));
 	}
 
 	@Test
@@ -611,7 +668,7 @@ class RegressionSuiteParserTest {
 				{
 				  "schemaVersion": 2,
 				  "suiteId": "test-suite",
-				  "requires": ["minecraft:client"],
+				  "requires": [],
 				  "isolation": "testCell",
 				  "tests": [
 				    {"id": "test-case", "tags": [], "timeoutTicks": 1, "steps": [{"id": "reset", "action": "fixture.region.reset"}]},

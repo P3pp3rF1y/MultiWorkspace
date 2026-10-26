@@ -1,9 +1,44 @@
 {
   "schemaVersion": 2,
   "suiteId": "backpack-menu",
-  "requires": ["minecraft:client", "sophisticatedbackpacks"],
+  "requires": [],
   "isolation": "testCell",
   "tests": [
+    {
+      "id": "held-backpack-tank-battery-swap-preserves-slot-layout",
+      "tags": ["menu", "upgrade", "sync", "tank", "battery"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "stored-marker", "action": "backpack.setStorageSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "tank", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "sophisticatedbackpacks:tank_upgrade", "count": 1}},
+        {"id": "battery", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "sophisticatedbackpacks:battery_upgrade", "count": 1}},
+        {"id": "player-marker", "action": "player.setInventorySlot", "args": {"slot": 11, "item": "minecraft:cobblestone", "count": 13}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "pickup-tank", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 9, "click": "pickup"}},
+        {"id": "install-tank-first-slot", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 0, "click": "pickup"}},
+        {"id": "tank-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "pickup-battery", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 10, "click": "pickup"}},
+        {"id": "swap-tank-for-battery", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 0, "click": "pickup"}},
+        {"id": "battery-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 2, "controls": 1, "contents": true}},
+        {"id": "install-carried-tank-second-slot", "action": "menu.clickStorageSlot", "args": {"area": "upgrade", "slot": 1, "click": "pickup"}},
+        {"id": "both-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "stored-marker-preserved", "action": "assert.menu", "args": {"kind": "backpackItem", "item": "minecraft:diamond", "count": 7}},
+        {"id": "player-marker-preserved", "action": "assert.menu", "args": {"kind": "backpackItem", "playerInventory": true, "slot": 11, "item": "minecraft:cobblestone", "count": 13}},
+        {"id": "pickup-marker", "action": "menu.clickStorageSlot", "args": {"area": "player", "slot": 11, "click": "pickup"}},
+        {"id": "store-marker", "action": "menu.clickStorageSlot", "args": {"area": "storage", "slot": 1, "click": "pickup"}},
+        {"id": "marker-transfer", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 1, "item": "minecraft:cobblestone", "count": 13, "stableTicks": 20}},
+        {"id": "final-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-closed", "action": "await.menuClosed"},
+        {"id": "reopen", "action": "player.useHeldItem"},
+        {"id": "await-reopened", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "persisted-layout", "action": "assert.menuUpgradeLayout", "args": {"columns": 4, "controls": 2, "contents": true}},
+        {"id": "persisted-marker", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 1, "item": "minecraft:cobblestone", "count": 13}}
+      ]
+    },
     {
       "id": "backpack-actions-execute-with-valid-fixture",
       "tags": ["runtimeConformance", "action-conformance"],
@@ -117,7 +152,7 @@
         {"id": "assert-stick", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 0, "item": "minecraft:stick", "count": 1, "stableTicks": 20}},
         {"id": "quick-move-out", "action": "menu.quickMoveBackpackStorageSlot", "args": {"slot": 0}},
         {"id": "assert-storage-empty", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 0, "item": "minecraft:stick", "count": 0}},
-        {"id": "assert-player-stick", "action": "assert.menu", "args": {"kind": "backpackItem", "item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
+        {"id": "assert-player-stick", "action": "assert.menu", "args": {"kind": "backpackItem", "slot": 8, "item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
         {"id": "close-menu", "action": "menu.close"},
         {"id": "await-closed", "action": "await.menuClosed"}
       ]
@@ -139,7 +174,7 @@
         {"id": "assert-stick", "action": "assert.menu", "args": {"slot": 0, "item": "minecraft:stick", "count": 1, "stableTicks": 20}},
         {"id": "quick-move-out", "action": "menu.quickMoveBackpackStorageSlot", "args": {"slot": 0}},
         {"id": "assert-storage-empty", "action": "assert.menu", "args": {"slot": 0, "item": "minecraft:stick", "count": 0}},
-        {"id": "assert-player-stick", "action": "assert.menu", "args": {"item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
+        {"id": "assert-player-stick", "action": "assert.menu", "args": {"slot": 8, "item": "minecraft:stick", "count": 1, "playerInventory": true, "stableTicks": 20}},
         {"id": "close-menu", "action": "menu.close"},
         {"id": "await-closed", "action": "await.menuClosed"}
       ]

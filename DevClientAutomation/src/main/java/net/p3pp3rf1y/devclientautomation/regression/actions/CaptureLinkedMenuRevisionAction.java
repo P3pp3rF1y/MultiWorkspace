@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class CaptureLinkedMenuRevisionAction extends TypedRegressionAction<CaptureLinkedMenuRevisionAction.Arguments> {
-	public record Arguments(String kind, String ref, String saveAs) {
+	public record Arguments(MenuKind kind, String ref, String saveAs) {
 	}
 
 	public record Baseline(UUID groupId, long revision) {
@@ -25,13 +25,25 @@ public final class CaptureLinkedMenuRevisionAction extends TypedRegressionAction
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args, Set.of("kind", "ref", "saveAs"), description);
-		String kind = requireString(args, "kind", description);
-		if (!Set.of("moving", "mounted", "storageBlock", "backpackItem").contains(kind)) {
+		MenuKind kind = MenuKind.parse(requireString(args, "kind", description));
+		if (kind == MenuKind.BACKPACK_BLOCK) {
 			throw new IllegalArgumentException("Argument kind on " + description + " must be moving, mounted, storageBlock or backpackItem");
 		}
 		return new Arguments(kind,
-				Set.of("storageBlock", "backpackItem").contains(kind) ? "" : RegressionValueStore.requireName(requireString(args, "ref", description)),
+				kind == MenuKind.STORAGE_BLOCK || kind == MenuKind.BACKPACK_ITEM
+						? ""
+						: RegressionValueStore.requireName(requireString(args, "ref", description)),
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)));
+	}
+
+	@Override
+	protected RegressionValueContract values(Arguments arguments) {
+		RegressionValueContract inputs = switch (arguments.kind()) {
+			case MOVING -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOVING_STORAGE);
+			case MOUNTED -> RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.MOUNTED_STORAGE);
+			default -> RegressionValueContract.EMPTY;
+		};
+		return inputs.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.MENU_BASELINE));
 	}
 
 	@Override
@@ -40,32 +52,30 @@ public final class CaptureLinkedMenuRevisionAction extends TypedRegressionAction
 			@Override
 			public RegressionActionProgress tick() {
 				UUID groupId;
-				if (arguments.kind().equals("moving")) {
+				if (arguments.kind() == MenuKind.MOVING) {
 					MovingStorageEntityHandle handle = context.values().require(arguments.ref(), MovingStorageEntityHandle.class);
 					if (!(context.minecraft().player.containerMenu instanceof MovingStorageContainerMenu<?> menu)
-							|| menu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()
-							|| !context.isExpectedMenu("moving", arguments.ref())) {
+							|| menu.getStorageEntity().filter(entity -> entity.getUUID().equals(handle.id())).isEmpty()) {
 						return fail("Expected linked moving menu is not open");
 					}
 					groupId = menu.getStorageEntity().orElseThrow().getStorageItem().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT).groupId();
-				} else if (arguments.kind().equals("mounted")) {
+				} else if (arguments.kind() == MenuKind.MOUNTED) {
 					if (!MountedLinkedStorageMenuAccess.isMountedMenu(context, arguments.ref(), context.minecraft().player.containerMenu,
 							context.minecraft().gui.screen())) {
 						return fail("Expected linked mounted menu is not open");
 					}
 					groupId = MountedLinkedStorageMenuAccess.groupId(context, arguments.ref());
-				} else if (arguments.kind().equals("storageBlock")) {
+				} else if (arguments.kind() == MenuKind.STORAGE_BLOCK) {
 					if (!(context.minecraft().player.containerMenu instanceof StorageContainerMenu menu)
 							|| !menu.getStorageBlockEntity().getBlockPos().equals(context.target())
-							|| menu.getStorageBlockEntity().getLinkedStorageEndpointData() == null || !context.isExpectedMenu("storageBlock")) {
+							|| menu.getStorageBlockEntity().getLinkedStorageEndpointData() == null) {
 						return fail("Expected linked storage block menu is not open");
 					}
 					groupId = menu.getStorageBlockEntity().getLinkedStorageEndpointData().groupId();
 				} else {
 					if (!(context.minecraft().player.containerMenu instanceof BackpackContainer menu)
 							|| menu.getBackpackContext().getType() != BackpackContext.ContextType.ITEM_BACKPACK
-							|| menu.getStorageWrapper().getBackpack().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT) == null
-							|| !context.isExpectedMenu("backpackItem")) {
+							|| menu.getStorageWrapper().getBackpack().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT) == null) {
 						return fail("Expected linked held backpack menu is not open");
 					}
 					groupId = menu.getStorageWrapper().getBackpack().get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT).groupId();
@@ -80,13 +90,12 @@ public final class CaptureLinkedMenuRevisionAction extends TypedRegressionAction
 
 	@Override
 	protected Set<String> dependencies(Arguments arguments) {
-		return Set.of("minecraft:client", switch (arguments.kind()) {
-			case "moving" -> "sophisticatedstorageinmotion";
-			case "mounted" -> "sophisticatedstoragecreateintegration";
-			case "storageBlock" -> "sophisticatedstorage";
-			case "backpackItem" -> "sophisticatedbackpacks";
-			default -> throw new IllegalStateException("Unsupported linked menu kind " + arguments.kind());
-		});
+		return switch (arguments.kind()) {
+			case MOVING -> Set.of("minecraft:client", "sophisticatedstorageinmotion");
+			case MOUNTED -> Set.of("minecraft:client", "sophisticatedstoragecreateintegration");
+			case STORAGE_BLOCK -> Set.of("minecraft:client", "sophisticatedstorage");
+			case BACKPACK_ITEM -> Set.of("minecraft:client", "sophisticatedbackpacks");
+			case BACKPACK_BLOCK -> throw new IllegalArgumentException("Unsupported linked menu kind");
+		};
 	}
-
 }

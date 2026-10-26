@@ -54,14 +54,14 @@ public final class AssertCanonicalCapturedMobsAction extends TypedRegressionActi
 						IBackpackWrapper wrapper = (IBackpackWrapper) LinkedStorageGroupsSavedData.get(player.level()).manager().resolveVirtualHost(groupId)
 								.orElseThrow();
 						if (MobCatcherStorage.getCapturedMobs(wrapper).size() != arguments.count()) {
-							throw new IllegalStateException("Canonical captured mob count differs: actual=" + MobCatcherStorage.getCapturedMobs(wrapper).size()
-									+ ", wrapper=" + wrapper.getClass().getName() + ", upgrades=" + wrapper.getUpgradeHandler().getStackInSlot(0) + ", player="
-									+ player.position() + ", catcher=" + MobCatcherHandler.getBestUpgrade(wrapper).isPresent() + ", primaryProcessor="
-									+ BackpackLinkedStorageResolver.resolveForGlobalUpgradeProcessing(player.level(), player.getMainHandItem()).getClass()
-											.getName());
+							throw RegressionActionFailure.assertion("Canonical captured mob count differs: actual="
+									+ MobCatcherStorage.getCapturedMobs(wrapper).size() + ", wrapper=" + wrapper.getClass().getName() + ", upgrades="
+									+ wrapper.getUpgradeHandler().getStackInSlot(0) + ", player=" + player.position() + ", catcher="
+									+ MobCatcherHandler.getBestUpgrade(wrapper).isPresent() + ", primaryProcessor=" + BackpackLinkedStorageResolver
+											.resolveForGlobalUpgradeProcessing(player.level(), player.getMainHandItem()).getClass().getName());
 						}
 						if (BackpackStorage.get().getBackpackContents(groupId).isPresent()) {
-							throw new IllegalStateException("Mob data leaked into ordinary group-UUID backend");
+							throw RegressionActionFailure.assertion("Mob data leaked into ordinary group-UUID backend");
 						}
 					});
 				}
@@ -72,7 +72,7 @@ public final class AssertCanonicalCapturedMobsAction extends TypedRegressionActi
 				if (context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> menu
 						&& menu.getStorageWrapper() instanceof IBackpackWrapper wrapper
 						&& MobCatcherStorage.getCapturedMobs(wrapper).size() != arguments.count()) {
-					return fail("Open client menu did not refresh captured mobs");
+					return failAssertion("Open client menu did not refresh captured mobs");
 				}
 				if (arguments.render()) {
 					if (!(context.minecraft().gui.screen() instanceof StorageScreenBase<?> screen)) {
@@ -81,12 +81,12 @@ public final class AssertCanonicalCapturedMobsAction extends TypedRegressionActi
 					Optional<IBackpackWrapper> host = screen.getMenu().getStorageWrapper().getUpgradeHandler().getTypeWrappers(MobCatcherUpgradeItem.TYPE)
 							.stream().map(MobCatcherUpgradeWrapper::getBackpackWrapper).flatMap(Optional::stream).findFirst();
 					if (host.isEmpty() || MobCatcherStorage.getCapturedMobs(host.get()).size() != arguments.count()) {
-						return fail("Secondary menu did not expose canonical captured mobs");
+						return failAssertion("Secondary menu did not expose canonical captured mobs");
 					}
 					Map<UpgradeType<?>, UpgradeInventoryControlBase> controls = UpgradeGuiManager.getStorageUpgradeInventoryControls(screen);
 					for (CapturedMob mob : MobCatcherStorage.getCapturedMobs(host.get())) {
 						if (controls.values().stream().noneMatch(control -> control.replacesSlotRender(mob.slot()))) {
-							return fail("Captured mob renderer does not replace its occupied slot");
+							return failAssertion("Captured mob renderer does not replace its occupied slot");
 						}
 					}
 				}

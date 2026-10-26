@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import net.minecraft.client.Minecraft;
 import net.p3pp3rf1y.devclientautomation.bridge.AutomationBridge;
 import net.p3pp3rf1y.devclientautomation.bridge.EndpointRegistry;
+import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.backpacks.BackpackEndpoints;
 import net.p3pp3rf1y.devclientautomation.scenarios.core.ClientControlEndpoints;
@@ -21,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 
 public final class DevClientAutomation {
 	public static final String MOD_ID = "devclientautomation";
+	public static final String LOADER = "neoforge";
+	public static final String MINECRAFT_VERSION = "26.2";
 	private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	private static AutomationServer server;
 
@@ -67,7 +70,8 @@ public final class DevClientAutomation {
 				}
 				throw new IllegalStateException("Method not allowed");
 			}
-			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"neoforge\",\"minecraftVersion\":\"26.2\","
+			byte[] response = ("{\"ok\":true,\"protocolVersion\":1,\"loader\":\"" + LOADER + "\",\"minecraftVersion\":\"" + MINECRAFT_VERSION + "\","
+					+ "\"backgroundInput\":" + BackgroundInputPolicy.enabled() + ","
 					+ "\"features\":[\"state\",\"world-load\",\"screenshot\",\"recipe-viewer\",\"backpacks\",\"storage\",\"inventory-interactions\",\"regression-schema-v2\"]}")
 					.getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");

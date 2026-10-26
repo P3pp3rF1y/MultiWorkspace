@@ -48,7 +48,7 @@ public final class AssertPlacedBackpackContentsAction extends TypedRegressionAct
 				if (future == null) {
 					future = context.onServer(player -> {
 						if (!(player.level().getBlockEntity(context.target()) instanceof BackpackBlockEntity block)) {
-							throw new IllegalStateException("Expected the restored backpack block at the original position");
+							throw RegressionActionFailure.infrastructure("Expected the restored backpack block at the original position");
 						}
 						Item expected = BuiltInRegistries.ITEM.getOptional(Identifier.parse(arguments.item()))
 								.orElseThrow(() -> new IllegalArgumentException("Unknown item " + arguments.item()));
@@ -66,7 +66,7 @@ public final class AssertPlacedBackpackContentsAction extends TypedRegressionAct
 						if (!backpack.is(ModItems.IRON_BACKPACK.get()) || !contents.is(expected) || contents.getCount() != arguments.count()
 								|| !packedContents.is(expected) || packedContents.getCount() != arguments.count() || arguments.filterUpgrade()
 										&& (!upgrade.is(ModItems.FILTER_UPGRADE.get()) || !packedUpgrade.is(ModItems.FILTER_UPGRADE.get()))) {
-							throw new IllegalStateException("Placed backpack lost its tier, upgrade, or stored contents");
+							throw RegressionActionFailure.assertion("Placed backpack lost its tier, upgrade, or stored contents");
 						}
 					});
 				}
@@ -88,7 +88,7 @@ public final class AssertPlacedBackpackContentsAction extends TypedRegressionAct
 					}
 				}
 				return context.minecraft().player.tickCount >= deadline
-						? fail("Restored backpack block contents did not synchronize to the client")
+						? failAssertion("Restored backpack block contents did not synchronize to the client")
 						: RegressionActionProgress.WAITING;
 			}
 		};

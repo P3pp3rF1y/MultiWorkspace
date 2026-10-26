@@ -8,18 +8,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
-import net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper;
 import net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.crafting.MovingStorageTierUpgradeShapedRecipe;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.crafting.MovingStorageTierUpgradeShapelessRecipe;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.init.ModItems;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.item.MovingStorageItem;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,14 +54,16 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
+			@Nullable
 			private CompletableFuture<Void> future;
+
 			@Override
 			public RegressionActionProgress tick() {
 				if (future == null) {
-					future = context.onServer(player -> assertRecipe(player.level(), player.getUUID(), arguments));
+					future = context.onServer(player -> assertRecipe((ServerLevel) player.level(), player.getUUID(), arguments));
 					return RegressionActionProgress.WAITING;
 				}
-				return await(future);
+				return future.isDone() ? await(future) : RegressionActionProgress.WAITING;
 			}
 		};
 	}
@@ -71,32 +73,32 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 		LinkedStorageEndpointData primary = null;
 		try {
 			if (!arguments.linkage().equals("unlinked")) {
-				ItemStack linker = new ItemStack(BuiltInRegistries.ITEM.get(Identifier.parse("sophisticatedcore:ender_linker")).orElseThrow().value());
+				ItemStack linker = new ItemStack(BuiltInRegistries.ITEM.getOptional(Identifier.parse("sophisticatedcore:ender_linker"))
+						.orElseThrow(() -> new IllegalStateException("Ender linker item is unavailable")));
 				if (LinkedStorageService.linkWithResult(level, playerId, linker, storage) != LinkedStorageService.LinkResult.SUCCESS)
-					throw new IllegalStateException("Could not create linked moving storage recipe fixture");
+					throw RegressionActionFailure.infrastructure("Could not create linked moving storage recipe fixture");
 				primary = storage.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT);
 				if (arguments.linkage().equals("secondary"))
 					storage = LinkedStorageService.createSecondaryEndpointCopy(level, storage)
-							.orElseThrow(() -> new IllegalStateException("Could not create secondary moving storage recipe fixture"));
+							.orElseThrow(() -> RegressionActionFailure.infrastructure("Could not create secondary moving storage recipe fixture"));
 			}
 			ItemStack moving = MovingStorageItem.createWithStorage(new ItemStack(carrier(arguments)), storage);
 			moving.set(DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("moving recipe fixture"));
-			Identifier id = Identifier.parse("sophisticatedstorageinmotion:storage_" + arguments.carrier() + "_with_"
-					+ (arguments.recipe().equals("shaped") ? "gold_chest_to_diamond_chest" : "diamond_chest_to_netherite_chest"));
-			RecipeHolder<?> holder = RecipeHelper.getRecipe(level, id).orElseThrow(() -> new IllegalStateException("Missing registered recipe " + id));
+			RecipeHolder<?> holder = net.p3pp3rf1y.sophisticatedcore.util.RecipeHelper.getRecipe(level, recipeId(arguments))
+					.orElseThrow(() -> RegressionActionFailure.infrastructure("Missing registered recipe " + recipeId(arguments)));
 			Class<?> expectedClass = arguments.recipe().equals("shaped")
 					? MovingStorageTierUpgradeShapedRecipe.class
 					: MovingStorageTierUpgradeShapelessRecipe.class;
 			if (holder.value().getClass() != expectedClass)
-				throw new IllegalStateException("Registered recipe has class " + holder.value().getClass().getName() + ", expected " + expectedClass.getName());
+				throw RegressionActionFailure
+						.assertion("Registered recipe has class " + holder.value().getClass().getName() + ", expected " + expectedClass.getName());
 			CraftingInput input = input(moving, arguments);
-			@SuppressWarnings("unchecked")
-			Recipe<CraftingInput> recipe = (Recipe<CraftingInput>) holder.value();
+			CraftingRecipe recipe = (CraftingRecipe) holder.value();
 			boolean expected = !arguments.linkage().equals("secondary");
 			if (recipe.matches(input, level) != expected || recipe.assemble(input).isEmpty() != !expected)
-				throw new IllegalStateException("Moving storage tier upgrade " + arguments + " eligibility differed from contract");
+				throw RegressionActionFailure.assertion("Moving storage tier upgrade " + arguments + " eligibility differed from contract");
 			if (recipe.matches(CraftingInput.of(1, 1, List.of(moving)), level))
-				throw new IllegalStateException("Moving storage tier upgrade accepted malformed input");
+				throw RegressionActionFailure.assertion("Moving storage tier upgrade accepted malformed input");
 			if (expected)
 				assertOutput(recipe.assemble(input), moving, storage, arguments);
 		} finally {
@@ -116,6 +118,11 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 
 	private static MovingStorageItem carrier(Arguments arguments) {
 		return arguments.carrier().equals("boat") ? ModItems.STORAGE_BOAT.get() : ModItems.STORAGE_MINECART.get();
+	}
+
+	private static Identifier recipeId(Arguments arguments) {
+		return Identifier.fromNamespaceAndPath("sophisticatedstorageinmotion", "storage_" + arguments.carrier() + "_with_"
+				+ (arguments.recipe().equals("shaped") ? "gold_chest_to_diamond_chest" : "diamond_chest_to_netherite_chest"));
 	}
 
 	private static CraftingInput input(ItemStack moving, Arguments arguments) {
@@ -141,6 +148,6 @@ public final class AssertMovingStorageTierUpgradeRecipeAction extends TypedRegre
 				|| !Objects.equals(nested.get(ModCoreDataComponents.STORAGE_UUID), storage.get(ModCoreDataComponents.STORAGE_UUID))
 				|| !Objects.equals(nested.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT), storage.get(ModCoreDataComponents.LINKED_STORAGE_ENDPOINT))
 				|| nested.has(ModCoreDataComponents.LINKED_STORAGE_PRIMARY_ENDPOINT) != storage.has(ModCoreDataComponents.LINKED_STORAGE_PRIMARY_ENDPOINT))
-			throw new IllegalStateException("Moving storage tier upgrade did not preserve expected outer and nested storage identity");
+			throw RegressionActionFailure.assertion("Moving storage tier upgrade did not preserve expected outer and nested storage identity");
 	}
 }

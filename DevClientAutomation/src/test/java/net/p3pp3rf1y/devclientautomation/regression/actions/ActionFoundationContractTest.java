@@ -127,6 +127,40 @@ class ActionFoundationContractTest {
 	}
 
 	@Test
+	void inventoryClickServerConfirmationIsOptInAndBounded() {
+		ClickPlayerInventorySlotAction action = new ClickPlayerInventorySlotAction();
+		var legacy = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":10}"),
+				ClickPlayerInventorySlotAction.Arguments.class);
+		var confirmed = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(action, "{\"area\":\"result\",\"slot\":0,\"awaitServer\":true,\"timeoutTicks\":25}"),
+				ClickPlayerInventorySlotAction.Arguments.class);
+		assertEquals(false, legacy.awaitServer());
+		assertEquals(40, legacy.timeoutTicks());
+		assertEquals(true, confirmed.awaitServer());
+		assertEquals(25, confirmed.timeoutTicks());
+		assertEquals("1", action.metadata().revision());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"awaitServer\":\"true\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"awaitServer\":true,\"timeoutTicks\":0}"));
+	}
+	@Test
+	void linkedItemCanonicalConfirmationIsOptInAndBounded() {
+		AssertLinkedItemContentsAction action = new AssertLinkedItemContentsAction();
+		assertEquals("1", action.metadata().revision());
+		assertEquals(0,
+				RegressionActionTestSupport
+						.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":0,\"count\":7}"), AssertLinkedItemContentsAction.Arguments.class)
+						.timeoutTicks());
+		var bounded = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":0,\"count\":7,\"timeoutTicks\":40}"),
+				AssertLinkedItemContentsAction.Arguments.class);
+		assertEquals(7, bounded.count());
+		assertEquals(40, bounded.timeoutTicks());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":-1}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":1.5}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":\"40\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"timeoutTicks\":40,\"extra\":true}"));
+	}
+
+	@Test
 	void clickAndQuickMoveUseStableSlotSemantics() {
 		ClickMenuSlotAction click = new ClickMenuSlotAction();
 		assertEquals(0, RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(click, "{}"), ClickMenuSlotAction.Arguments.class).slot());

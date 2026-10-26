@@ -125,7 +125,10 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+configurations { regressionResultRuntime }
+
 dependencies {
+    regressionResultRuntime 'com.google.code.gson:gson:2.10.1'
     compileOnly project(':SophisticatedCore')
     compileOnly project(':SophisticatedBackpacks')
     compileOnly project(':SophisticatedStorage')
@@ -148,6 +151,7 @@ dependencies {
     testRuntimeOnly(project(':SophisticatedCore')) { transitive = false }
     testRuntimeOnly(project(':SophisticatedBackpacks')) { transitive = false }
     testRuntimeOnly(project(':SophisticatedStorage')) { transitive = false }
+    testRuntimeOnly("net.neoforged:neoforge:${neo_version}") { transitive = false }
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.+'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.+'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.+'
@@ -158,4 +162,17 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
     }
+}
+
+// Offline result serializer: excludes Minecraft and action implementations.
+tasks.register('regressionResultTool', Jar) {
+    dependsOn tasks.named('classes')
+    archiveFileName = 'regression-result-tool.jar'
+    destinationDirectory = layout.buildDirectory.dir('tools')
+    manifest { attributes 'Main-Class': 'net.p3pp3rf1y.devclientautomation.regression.RegressionResultTool' }
+    from(sourceSets.main.output.classesDirs) {
+        include '**/RegressionResultModel*.class', '**/RegressionResultTool*.class', '**/RegressionStepProvenance.class'
+    }
+    from { configurations.regressionResultRuntime.collect { zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA'
 }
