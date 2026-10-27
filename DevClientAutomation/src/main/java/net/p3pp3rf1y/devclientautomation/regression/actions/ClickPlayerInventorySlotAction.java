@@ -3,10 +3,9 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -112,11 +111,10 @@ public final class ClickPlayerInventorySlotAction extends TypedRegressionAction<
 				}
 				double x = screen.getLeftPos() + slot.x + 8;
 				double y = screen.getTopPos() + slot.y + 8;
-				screen.mouseMoved(x, y);
-				MouseButtonEvent event = new MouseButtonEvent(x, y,
-						new MouseButtonInfo(arguments.button() == 0 ? InputConstants.MOUSE_BUTTON_LEFT : InputConstants.MOUSE_BUTTON_RIGHT, 0));
-				screen.mouseClicked(event, false);
-				screen.mouseReleased(event);
+				VirtualInput.moveToSlot(screen, slot.index);
+				if (!VirtualInput.click(screen, x, y, arguments.button() == 0 ? InputConstants.MOUSE_BUTTON_LEFT : InputConstants.MOUSE_BUTTON_RIGHT, 0)) {
+					return fail("Player inventory click was not handled by the screen");
+				}
 				if (arguments.awaitServer()) {
 					predictedCarried = screen.getMenu().getCarried().copy();
 					predictedSlot = slot.getItem().copy();

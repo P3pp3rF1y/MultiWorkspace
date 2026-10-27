@@ -117,20 +117,26 @@ if ($LoadWorld -and -not $state.playerLoaded) {
     Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 } | Out-Null
 }
 
+$ready = $false
 do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
         if (-not $LoadWorld -or ($state.playerLoaded -and $state.screenSimpleName -ne "ReceivingLevelScreen")) {
+            $ready = $true
             break
         }
         continue
     }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
     if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
+        $ready = $true
         break
     }
 } while ((Get-Date) -lt $deadline)
+if (-not $ready) {
+    throw "Timed out waiting for dev-client world/player or recipe-viewer readiness."
+}
 
 $bridgeUri = [uri]$ownership.baseUrl
 [pscustomobject]@{
