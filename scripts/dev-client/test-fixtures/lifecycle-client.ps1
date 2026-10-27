@@ -83,8 +83,9 @@ try {
             }
             default { $exchange.Response.StatusCode = 404; @{ message = 'Unexpected fixture request' } }
         }
-        @{ path = $path; outcome = $outcome; at = [datetime]::UtcNow.ToString('o'); ownershipBeforeCase = $(if ($path -eq '/regression/run' -and $env:DCA_LIFECYCLE_REPORT_PATH) {
-                    Test-Path -LiteralPath (Join-Path (Split-Path -Parent $env:DCA_LIFECYCLE_REPORT_PATH) 'client-ownership.json') -PathType Leaf
+        @{ path = $path; suiteId = $(if ($body) { $body.suiteId } else { $null }); outcome = $outcome; at = [datetime]::UtcNow.ToString('o'); ownershipBeforeCase = $(if ($path -eq '/regression/run' -and $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY) {
+                    (Test-Path -LiteralPath $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY -PathType Container) -and
+                        [IO.Directory]::GetFiles($env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY, 'client-ownership.json', [IO.SearchOption]::AllDirectories).Count -eq 1
                 } else { $null }) } | ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $Directory 'requests.jsonl')
         $bytes = [Text.Encoding]::UTF8.GetBytes(($response | ConvertTo-Json -Depth 32 -Compress))
         $exchange.Response.ContentType = 'application/json'

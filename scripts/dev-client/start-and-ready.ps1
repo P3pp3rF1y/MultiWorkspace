@@ -73,6 +73,7 @@ function Invoke-BridgeJson {
 }
 
 try {
+$ready = $false
 do {
     Start-Sleep -Seconds 2
     try {
@@ -122,15 +123,18 @@ do {
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
         if (-not $LoadWorld -or ($state.playerLoaded -and $state.screenSimpleName -ne "ReceivingLevelScreen")) {
+            $ready = $true
             break
         }
         continue
     }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
     if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
+        $ready = $true
         break
     }
 } while ((Get-Date) -lt $deadline)
+if (-not $ready) { throw 'Timed out waiting for dev-client world/player or recipe-viewer readiness.' }
 
 $bridgeUri = [uri]$ownership.baseUrl
 [pscustomobject]@{

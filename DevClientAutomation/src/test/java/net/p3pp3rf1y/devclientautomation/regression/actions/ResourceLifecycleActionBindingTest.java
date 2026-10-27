@@ -23,9 +23,9 @@ class ResourceLifecycleActionBindingTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(cache, "{\"operation\":\"inspect\",\"ref\":\"probe\"}"));
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(cache, "{\"operation\":\"capture\",\"ref\":\"probe\",\"replaced\":1}"));
-		assertEquals(new TransferStorageResourceAction.Arguments("", "fill", 1000, 1000, "water", false),
+		assertEquals(new TransferStorageResourceAction.Arguments("", "fill", 1000, 1000, "water", false, -1),
 				((BoundRegressionAction<?>) RegressionActionTestSupport.bind(transfer, "{\"operation\":\"fill\",\"amount\":1000}")).arguments());
-		assertEquals(new TransferStorageResourceAction.Arguments("moving", "extract", 200, 0, "lava", true),
+		assertEquals(new TransferStorageResourceAction.Arguments("moving", "extract", 200, 0, "lava", true, -1),
 				((BoundRegressionAction<?>) RegressionActionTestSupport.bind(transfer,
 						"{\"ref\":\"moving\",\"operation\":\"extract\",\"amount\":200,\"expected\":0,\"fluid\":\"lava\",\"simulate\":true}")).arguments());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(transfer, "{\"operation\":\"fill\",\"amount\":0}"));

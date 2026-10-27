@@ -61,6 +61,9 @@ public final class UseHeldBackpackOnStorageAction extends TypedRegressionAction<
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress enabled = await(enableSneaking);
+			if (enabled == RegressionActionProgress.WAITING) {
+				return RegressionActionProgress.WAITING;
+			}
 			if (enabled != RegressionActionProgress.PASSED) {
 				return beginTerminalFailure();
 			}
@@ -79,6 +82,9 @@ public final class UseHeldBackpackOnStorageAction extends TypedRegressionAction<
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress snapshot = await(snapshotTarget);
+			if (snapshot == RegressionActionProgress.WAITING) {
+				return RegressionActionProgress.WAITING;
+			}
 			if (snapshot != RegressionActionProgress.PASSED) {
 				return beginTerminalFailure();
 			}
