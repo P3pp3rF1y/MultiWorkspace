@@ -66,7 +66,10 @@ public final class UseHeldBackpackOnStorageAction extends TypedRegressionAction<
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress enabled = await(enableSneaking);
-			if (enabled != RegressionActionProgress.PASSED) {
+			if (enabled == RegressionActionProgress.WAITING) {
+				return enabled;
+			}
+			if (enabled == RegressionActionProgress.FAILED) {
 				return disableSneakingThenFail(failure());
 			}
 			if (sent) {
@@ -84,7 +87,10 @@ public final class UseHeldBackpackOnStorageAction extends TypedRegressionAction<
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress snapshot = await(snapshotTarget);
-			if (snapshot != RegressionActionProgress.PASSED) {
+			if (snapshot == RegressionActionProgress.WAITING) {
+				return snapshot;
+			}
+			if (snapshot == RegressionActionProgress.FAILED) {
 				return disableSneakingThenFail(failure());
 			}
 			if (minecraft.player.blockPosition().equals(context.standingPosition()) && minecraft.player.onGround()

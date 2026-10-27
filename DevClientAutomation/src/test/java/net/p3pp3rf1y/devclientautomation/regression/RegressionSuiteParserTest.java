@@ -101,7 +101,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(119, testCount);
+			assertEquals(120, testCount);
 			assertEquals(19, fixtureCount);
 		}
 	}
@@ -290,13 +290,13 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredThirtyExpandedSteps() throws IOException {
+	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredFortyFiveExpandedSteps() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 
 			assertEquals(25, suite.tests().size());
-			assertEquals(330, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(345, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
 		}
 	}
 

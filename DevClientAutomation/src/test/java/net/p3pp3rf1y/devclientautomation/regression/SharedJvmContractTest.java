@@ -287,7 +287,7 @@ class SharedJvmContractTest {
 			controller-deposit:deposit-actions-conformance,deposit-after-chest-chunk-lifecycle,deposit-after-placed-backpack-chunk-lifecycle
 			controller-manual-deposit:contents-item-filter-manual-deposit-conformance,contents-mod-filter-double-click-preserves-items
 			linked-storage-action-conformance:empty-crafting-times-out-with-slot-diagnostics,missing-and-out-of-range-entity-handles-fail-deterministically,missing-mob-index-and-menu-fail-deterministically,missing-controller-and-capabilities-fail-deterministically,inventory-mutation-is-journal-owned,qualification-and-cleanup-consumer
-			linked-storage-resources:placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
+			linked-storage-resources:item-fluid-transfer-retains-linked-endpoint-with-own-group-pump,placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
 			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
 			linked-storage-sorting:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel
 			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
@@ -347,7 +347,7 @@ class SharedJvmContractTest {
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
 		assertEquals(25, suites.size());
-		assertEquals(119, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(120, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
