@@ -34,6 +34,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSettingsSelect
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertSortModeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertStorageResourcesAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUnlinkedMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUpgradeSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitBackpackBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuAction;
@@ -55,6 +56,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ClickSettingsControl
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickSortControlAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageMenuSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageSettingsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ClickUpgradeSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CloseMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackDepositAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackFilterAction;
@@ -73,6 +75,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressi
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.OpenUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PickupPlacedBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlaceHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlaceHeldBlockAction;
@@ -97,6 +100,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.RestoreMovingStorage
 import net.p3pp3rf1y.devclientautomation.regression.actions.ScanFixtureControllerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SendPlayerCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetBackpackStorageSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetCraftingRefillAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetFixtureBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetHeldBackpackUpgradeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingJukeboxDiscAction;
@@ -266,6 +270,10 @@ public final class RegressionActionRegistry {
 		register(new SetPlayerGameModeAction());
 		register(new ClickPlayerInventorySlotAction());
 		register(new ClickStorageMenuSlotAction());
+		register(new ClickUpgradeSlotAction());
+		register(new OpenUpgradeTabAction());
+		register(new SetCraftingRefillAction());
+		register(new AssertUpgradeSlotAction());
 		register(new AssertMovingMenuPresentationAction());
 		register(new ClickMenuSlotAction());
 		register(new QuickMovePlayerInventorySlotAction());
