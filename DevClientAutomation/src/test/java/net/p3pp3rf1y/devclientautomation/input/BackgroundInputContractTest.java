@@ -72,6 +72,17 @@ class BackgroundInputContractTest {
 	}
 
 	@Test
+	void regressionActionsCannotBypassScreenInventoryClicks() throws IOException {
+		Pattern bypass = Pattern.compile(
+				"\\b(?:handleInventoryMouseClick|handleContainerInput)\\s*\\(|\\bServerboundContainerClickPacket\\b|\\.(?:clicked|quickMoveStack)\\s*\\(");
+		try (var paths = Files.walk(Path.of("src/main/java/net/p3pp3rf1y/devclientautomation/regression/actions"))) {
+			for (Path path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
+				assertFalse(bypass.matcher(Files.readString(path)).find(), "Regression action bypasses player screen input: " + path);
+			}
+		}
+	}
+
+	@Test
 	void ordinarySourcesCannotIntroduceNativeCursorOrWindowOperations() throws IOException {
 		Pattern nativeOperation = Pattern.compile(
 				"glfw(?:SetCursorPos|SetInputMode|FocusWindow|MaximizeWindow|RestoreWindow|SetWindow\\w*|ShowWindow|IconifyWindow)\\s*\\(|grabOrReleaseMouse\\s*\\(|new\\s+Robot\\s*\\(|(?:SetCursorPos|ClipCursor|SetForegroundWindow)\\s*\\(");
