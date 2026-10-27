@@ -59,21 +59,21 @@ class RegressionSuiteParserTest {
 			assertTrue(stream != null);
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
-			assertEquals(List.of("backpack-menu.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
+			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
 					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "vanilla-double-chest-upgrade.json",
 					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
 					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
 					"linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
-					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json",
-					"linked-storage-settings.json"), indexedPaths);
-			assertEquals(24, indexedPaths.size());
+					"linked-storage-fluid-lock.json", "linked-pump-fluid-transfer.json", "linked-storage-interoperability.json",
+					"linked-storage-mob-catcher.json", "linked-storage-settings.json"), indexedPaths);
+			assertEquals(26, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			try (var resources = Files.list(Path.of("src", "main", "resources", "devclientautomation", "regressions"))) {
 				List<String> physicalJson = resources.filter(path -> path.getFileName().toString().endsWith(".json")).map(path -> path.getFileName().toString())
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(25, physicalJson.size());
+				assertEquals(27, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -98,7 +98,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(113, testCount);
+			assertEquals(124, testCount);
 			assertEquals(19, fixtureCount);
 		}
 	}
@@ -212,12 +212,12 @@ class RegressionSuiteParserTest {
 	}
 
 	@Test
-	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredThirtyExpandedSteps() throws IOException {
+	void indexedMovingSuiteRetainsExactlyTwentyFiveTestsAndThreeHundredFortyFiveExpandedSteps() throws IOException {
 		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/moving-linked-storage.json")) {
 			assertTrue(stream != null);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 			assertEquals(25, suite.tests().size());
-			assertEquals(330, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(345, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
 		}
 	}
 

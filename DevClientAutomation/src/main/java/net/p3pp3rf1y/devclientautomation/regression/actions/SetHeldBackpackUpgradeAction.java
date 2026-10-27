@@ -51,6 +51,8 @@ public final class SetHeldBackpackUpgradeAction extends TypedRegressionAction<Se
 						wrapper.getInventoryHandler();
 						wrapper.getUpgradeHandler().setStackInSlot(arguments.slot(), new ItemStack(item));
 						wrapper.getUpgradeHandler().getSlotWrappers().get(arguments.slot()).setEnabled(arguments.enabled());
+						player.getInventory().setItem(arguments.inventorySlot(), backpack.copy());
+						player.getInventory().setChanged();
 						player.inventoryMenu.broadcastFullState();
 					});
 				}

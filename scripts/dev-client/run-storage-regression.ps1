@@ -75,12 +75,6 @@ function Wait-AutomationClientStopped {
         }
     } while ((Get-Date) -lt $deadline)
 
-    # The bridge accepted /client/stop; terminate only the launcher owned by this runner if FML leaves the JVM alive.
-    Stop-Process -Id $clientProcessId -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 1
-    if (-not (Get-Process -Id $clientProcessId -ErrorAction SilentlyContinue)) {
-        return
-    }
     throw "Timed out waiting for dev client to stop."
 }
 

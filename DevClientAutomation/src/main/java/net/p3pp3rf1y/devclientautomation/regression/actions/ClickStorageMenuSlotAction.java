@@ -1,7 +1,9 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase;
 
 import java.util.Map;
@@ -32,7 +34,8 @@ public final class ClickStorageMenuSlotAction extends TypedRegressionAction<Clic
 		return new TickRegressionActionExecution(context) {
 			@Override
 			public RegressionActionProgress tick() {
-				if (!(context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> menu) || context.minecraft().gameMode == null) {
+				if (!(context.minecraft().screen instanceof StorageScreenBase<?> screen)
+						|| !(context.minecraft().player.containerMenu instanceof StorageContainerMenuBase<?> menu) || screen.getMenu() != menu) {
 					return fail("Storage menu is not active");
 				}
 				int slot = switch (arguments.area()) {
@@ -40,14 +43,18 @@ public final class ClickStorageMenuSlotAction extends TypedRegressionAction<Clic
 					case "upgrade" -> menu.getInventorySlotsSize() + arguments.slot();
 					default -> arguments.slot();
 				};
-				if (arguments.area().equals("upgrade") && arguments.slot() >= menu.getStorageWrapper().getUpgradeHandler().getSlots()
+				if (arguments.area().equals("upgrade") && arguments.slot() >= menu.getNumberOfUpgradeSlots()
 						|| arguments.area().equals("storage") && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
 					return fail("Storage menu has no requested slot");
 				}
 				String slotBefore = menu.getSlot(slot).getItem().toString();
 				String cursorBefore = menu.getCarried().toString();
-				context.minecraft().gameMode.handleInventoryMouseClick(menu.containerId, slot, 0,
-						arguments.click().equals("quickMove") ? ClickType.QUICK_MOVE : ClickType.PICKUP, context.minecraft().player);
+				Slot target = menu.getSlot(slot);
+				VirtualInput.moveToSlot(screen, slot);
+				if (!VirtualInput.click(screen, screen.getGuiLeft() + target.x + 8, screen.getGuiTop() + target.y + 8, 0,
+						arguments.click().equals("quickMove") ? 1 : 0)) {
+					return fail("Storage slot click was not handled by the screen");
+				}
 				observe(Map.of("menuId", menu.containerId, "slot", slot, "area", arguments.area(), "inventorySlot", arguments.slot(), "click",
 						arguments.click(), "slotBefore", slotBefore, "cursorBefore", cursorBefore),
 						Map.of("slotAfter", menu.getSlot(slot).getItem().toString(), "cursorAfter", menu.getCarried().toString()));

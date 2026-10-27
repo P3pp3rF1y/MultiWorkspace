@@ -126,6 +126,16 @@ class RegressionPreflightTest {
 	}
 
 	@Test
+	void suiteRequiresIsMandatoryWhileTestRequiresRemainsOptional() {
+		String json = """
+				{"schemaVersion":2,"suiteId":"test","requires":[],"isolation":"testCell","tests":[
+				{"id":"case","tags":[],"timeoutTicks":20,"steps":[{"id":"close","action":"menu.close"}]}]}
+				""";
+		assertEquals(Set.of(), RegressionSuiteParser.parse(json, new RegressionActionRegistry()).tests().get(0).requires());
+		assertThrows(IllegalArgumentException.class, () -> RegressionSuiteParser.parse(json.replace("\"requires\":[],", ""), new RegressionActionRegistry()));
+	}
+
+	@Test
 	void validateValuesRejectsMissingOutOfOrderDuplicateAndWrongTypeWithoutStartingActions() {
 		String spawn = "{\"id\":\"spawn\",\"action\":\"fixture.entity.spawnPig\",\"args\":{\"saveAs\":\"target\"}}";
 		String consume = "{\"id\":\"use\",\"action\":\"player.sneakUseFixtureEntity\",\"args\":{\"ref\":\"target\"}}";

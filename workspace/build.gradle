@@ -220,6 +220,9 @@ minecraft {
         regressionClient {
             parent minecraft.runs.client
             property 'devclientautomation.backgroundInput', 'true'
+            if (findProperty('dev_client_regression_game_directory')) {
+                workingDirectory file(findProperty('dev_client_regression_game_directory').toString())
+            }
         }
 
         server {

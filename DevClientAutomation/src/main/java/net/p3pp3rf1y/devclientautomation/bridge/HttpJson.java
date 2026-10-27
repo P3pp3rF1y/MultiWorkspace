@@ -1,6 +1,9 @@
 package net.p3pp3rf1y.devclientautomation.bridge;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import org.slf4j.Logger;
 
@@ -13,6 +16,33 @@ public final class HttpJson {
 	private static final Gson GSON = new Gson();
 
 	private HttpJson() {
+	}
+
+	public static String readBody(HttpExchange exchange) throws IOException {
+		return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+	}
+
+	public static JsonObject readObject(HttpExchange exchange) throws IOException {
+		String body = readBody(exchange);
+		if (body.isBlank()) {
+			return new JsonObject();
+		}
+		JsonElement element = JsonParser.parseString(body);
+		if (!element.isJsonObject()) {
+			throw new IllegalArgumentException("Expected a JSON object");
+		}
+		return element.getAsJsonObject();
+	}
+
+	public static String string(JsonObject request, String name, String defaultValue) {
+		if (!request.has(name)) {
+			return defaultValue;
+		}
+		JsonElement value = request.get(name);
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+			throw new IllegalArgumentException(name + " must be a string");
+		}
+		return value.getAsString();
 	}
 
 	public static void requireMethod(HttpExchange exchange, String method) throws IOException {

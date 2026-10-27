@@ -284,6 +284,9 @@ public class DevClientAutomationClient {
 				httpServer.createContext("/backpack/column-upgrade-regressions", this::backpackColumnUpgradeRegressions);
 				httpServer.createContext("/backpack/linked-storage-regression", BackpackLinkedStorageRegression::handle);
 				httpServer.createContext("/backpack/mounted-linked-storage-regression", MountedLinkedBackpackRegression::handle);
+				httpServer.createContext("/backpack/mounted-storage-regression", MountedLinkedBackpackRegression::handleOrdinary);
+				httpServer.createContext("/backpack/mounted-linked-storage-reload/setup", MountedLinkedBackpackRegression::setupReload);
+				httpServer.createContext("/backpack/mounted-linked-storage-reload/status", MountedLinkedBackpackRegression::reloadStatus);
 				httpServer.createContext("/backpack/linked-storage-performance", BackpackLinkedStoragePerformanceRegression::handle);
 				httpServer.createContext("/storage/controller-filter-regressions", this::storageControllerFilterRegressions);
 				httpServer.createContext("/storage/linked-storage-regression", StorageLinkedStorageRegression::handle);

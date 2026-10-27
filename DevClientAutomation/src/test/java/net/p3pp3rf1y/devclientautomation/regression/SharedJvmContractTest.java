@@ -58,6 +58,7 @@ class SharedJvmContractTest {
 			assert.sortMode|1|minecraft:client,sophisticatedcore
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
+			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
 			await.itemEntity|1|minecraft:client
 			await.menu|2|minecraft:client
@@ -79,6 +80,8 @@ class SharedJvmContractTest {
 			backpack.templateCommand|1|minecraft:client,sophisticatedbackpacks
 			backpack.useOnStorage|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			capability.storageResourceCache|1|minecraft:client,sophisticatedstorage
+			capability.transferLinkedBackpackFluid|1|minecraft:client,sophisticatedbackpacks
+			capability.transferLinkedPumpFluid|1|minecraft:client,sophisticatedbackpacks
 			capability.transferStorageResource|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			create.disassembleBackpack|1|minecraft:client,sophisticatedbackpackscreateintegration
 			fixture.backpack.setUpgrade|1|minecraft:client,sophisticatedbackpacks
@@ -114,10 +117,13 @@ class SharedJvmContractTest {
 			menu.clickSortControl|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSettings|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
+			menu.clickUpgradeSlot|1|minecraft:client,sophisticatedcore
 			menu.close|1|minecraft:client
 			menu.jukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
+			menu.openUpgradeTab|1|minecraft:client,sophisticatedcore
 			menu.quickMoveBackpackStorageSlot|1|minecraft:client,sophisticatedbackpacks
 			menu.quickMovePlayerInventorySlot|1|minecraft:client,sophisticatedbackpacks
+			menu.setCraftingRefill|1|minecraft:client,sophisticatedcore
 			moving.destroy|1|minecraft:client,sophisticatedstorageinmotion
 			moving.probePackedPrimary|1|minecraft:client,sophisticatedstorageinmotion
 			moving.probePickup|1|minecraft:client,sophisticatedstorageinmotion
@@ -160,6 +166,8 @@ class SharedJvmContractTest {
 			fixture.linked.replaceRoot
 			fixture.backpack.setUpgrade
 			capability.transferStorageResource
+			capability.transferLinkedBackpackFluid
+			capability.transferLinkedPumpFluid
 			assert.storageResources
 			assert.storageTierUpgradeRecipe
 			assert.movingStorageTierUpgradeRecipe
@@ -259,6 +267,10 @@ class SharedJvmContractTest {
 			fixture.player.setGameMode
 			menu.clickPlayerInventorySlot
 			menu.clickStorageSlot
+			menu.clickUpgradeSlot
+			menu.openUpgradeTab
+			menu.setCraftingRefill
+			assert.upgradeSlot
 			assert.movingMenuPresentation
 			menu.clickSlot
 			menu.quickMovePlayerInventorySlot
@@ -271,6 +283,7 @@ class SharedJvmContractTest {
 			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot");
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
@@ -284,13 +297,14 @@ class SharedJvmContractTest {
 			controller-deposit:deposit-actions-conformance,deposit-after-chest-chunk-lifecycle,deposit-after-placed-backpack-chunk-lifecycle
 			controller-manual-deposit:contents-item-filter-manual-deposit-conformance,contents-mod-filter-double-click-preserves-items
 			linked-storage-action-conformance:empty-crafting-times-out-with-slot-diagnostics,missing-and-out-of-range-entity-handles-fail-deterministically,missing-mob-index-and-menu-fail-deterministically,missing-controller-and-capabilities-fail-deterministically,inventory-mutation-is-journal-owned,qualification-and-cleanup-consumer
-			linked-storage-resources:placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
+			linked-storage-resources:item-fluid-transfer-retains-linked-endpoint-with-own-group-pump,placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
 			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
 			linked-storage-sorting:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel
 			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
 			linked-storage-restart:prepare-canonical-mob-and-stashed-items,verify-canonical-mob-and-stashed-items-after-server-restart
 			linked-storage-inception:canonical-installed-inception-rejects-disabled-and-enabled-child
 			linked-storage-fluid-lock:locked-barrel-filters-canonical-fluid,locked-chest-filters-canonical-fluid,locked-shulker-filters-canonical-fluid
+			linked-pump-fluid-transfer:input-from-other-linked-group,output-to-other-linked-group,input-from-ordinary-bucket,output-to-ordinary-bucket
 			linked-storage-interoperability:linked-shulker-stashes-into-backpack-canonical-inventory,storage-primary-crafts-backpack-secondary
 			linked-storage-mob-catcher:canonical-capture-and-menu-release,captured-mob-shows-in-barrel-secondary,captured-mob-shows-in-chest-secondary,captured-mob-shows-in-shulker-secondary
 			linked-storage-settings:settings-edit-actions-reject-missing-screen,barrel-primary-backpack-settings,chest-primary-backpack-settings,shulker-primary-backpack-settings,backpack-primary-barrel-settings,backpack-primary-chest-settings,backpack-primary-shulker-settings,backpack-primary-boat-settings,backpack-primary-minecart-settings,backpack-primary-llama-settings
@@ -299,11 +313,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(121, actions.size());
+		assertEquals(127, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(121, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(127, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -355,10 +369,10 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(24, suites.size());
-		assertEquals(113, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(26, suites.size());
+		assertEquals(124, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(121, catalog.getAsJsonObject("actions").size());
+		assertEquals(127, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());

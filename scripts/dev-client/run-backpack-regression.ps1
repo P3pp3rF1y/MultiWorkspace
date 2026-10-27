@@ -31,7 +31,7 @@ function Invoke-BridgeJson {
 
     $uri = "$BaseUrl$Path"
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec 10
+        return Invoke-RestMethod -Method $Method -Uri $uri -TimeoutSec $TimeoutSeconds
     }
     return Invoke-RestMethod -Method $Method -Uri $uri -ContentType 'application/json' -Body ($Body | ConvertTo-Json -Compress -Depth 16) -TimeoutSec $TimeoutSeconds
 }
@@ -138,6 +138,26 @@ function Run-LinkedStorageReloadPersistenceRegression {
     return $status
 }
 
+function Run-MountedLinkedStorageReloadRegression {
+    Assert-True $startedClient "The mounted linked storage reload regression must start and own the dev client."
+
+    $setup = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/setup"
+    Assert-True $setup.ok "Failed to set up mounted linked storage reload regression: $($setup | ConvertTo-Json -Compress)"
+
+    $shutdown = Invoke-BridgeJson -Method Post -Path "/client/shutdown-world" -Body @{}
+    Assert-True $shutdown.ok "Integrated server did not shut down cleanly."
+    Invoke-BridgeJson -Method Post -Path "/client/stop" | Out-Null
+    Wait-AutomationClientStopped
+    Start-AutomationClient
+
+    $status = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-reload/status" -Body @{ groupId = $setup.groupId }
+    Assert-True $status.ok "Mounted linked Backpack did not synchronize after restart: $($status | ConvertTo-Json -Compress)"
+    Assert-True ($status.groupId -eq $setup.groupId) "Mounted linked Backpack group changed after restart."
+    Assert-True ($status.mainColor -eq $setup.mainColor -and $status.accentColor -eq $setup.accentColor) "Mounted linked Backpack colors did not survive restart."
+    Assert-True $status.hasDisplayItem "Mounted linked Backpack display item was missing after restart."
+    return $status
+}
+
 $startedClient = $false
 
 try {
@@ -164,6 +184,10 @@ try {
 			$result = Invoke-BridgeJson -Method Post -Path "/backpack/linked-storage-regression"
 		} elseif ($test.type -eq "mountedLinkedStorageRegression") {
 			$result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-linked-storage-regression"
+		} elseif ($test.type -eq "mountedStorageRegression") {
+			$result = Invoke-BridgeJson -Method Post -Path "/backpack/mounted-storage-regression"
+		} elseif ($test.type -eq "mountedLinkedStorageReload") {
+			$result = Run-MountedLinkedStorageReloadRegression
 		} else {
 			$result = Invoke-BridgeJson -Method Post -Path "/backpack/gui-regression/run" -Body $test
 		}

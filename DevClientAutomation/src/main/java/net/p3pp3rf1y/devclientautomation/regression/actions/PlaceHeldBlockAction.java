@@ -6,9 +6,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -81,8 +83,11 @@ public final class PlaceHeldBlockAction extends TypedRegressionAction<PlaceHeldB
 					return ready;
 				}
 				BlockPos support = context.target().offset(arguments.x(), arguments.y(), arguments.z()).below();
-				minecraft.gameMode.useItemOn(minecraft.player, InteractionHand.MAIN_HAND,
+				String heldBefore = minecraft.player.getMainHandItem().toString();
+				InteractionResult result = minecraft.gameMode.useItemOn(minecraft.player, InteractionHand.MAIN_HAND,
 						new BlockHitResult(Vec3.atCenterOf(support), Direction.UP, support, false));
+				observe(Map.of("heldBefore", heldBefore, "support", support.toString()),
+						Map.of("interactionResult", result.toString(), "heldAfter", minecraft.player.getMainHandItem().toString()));
 				return RegressionActionProgress.PASSED;
 			}
 			return minecraft.player.tickCount >= deadline

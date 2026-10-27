@@ -1,5 +1,6 @@
 [
   "backpack-menu.json",
+  "backpack-crafting.json",
   "backpack-filters.json",
   "backpack-restock.json",
   "backpack-pickup.json",
@@ -20,6 +21,7 @@
   "linked-storage-restart.json",
   "linked-storage-inception.json",
   "linked-storage-fluid-lock.json",
+  "linked-pump-fluid-transfer.json",
   "linked-storage-interoperability.json",
   "linked-storage-mob-catcher.json",
   "linked-storage-settings.json"

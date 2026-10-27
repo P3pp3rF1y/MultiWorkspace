@@ -99,7 +99,7 @@ class LinkedStorageResourcesSuiteTest {
 	void parseIndexedResourcesSuiteBindsRegisteredProductionInteractionsAndCapabilityProbes() throws IOException {
 		var resources = suite("linked-storage-resources");
 		assertEquals("linked-storage-resources", resources.suiteId());
-		assertEquals(4, resources.tests().size());
+		assertEquals(5, resources.tests().size());
 		for (var test : resources.tests()) {
 			assertTrue(actions(test).contains("assert.storageResources"));
 			if (!test.id().equals("storage-main-has-no-resource-capabilities")) {

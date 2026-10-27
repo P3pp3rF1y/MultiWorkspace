@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "linked-pump-fluid-transfer",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "input-from-other-linked-group",
+      "tags": ["linked", "fluid", "pump", "input"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "host", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "host-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-host", "action": "backpack.linkHeld"},
+        {"id": "open-inventory", "action": "player.openInventory"},
+        {"id": "pickup-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+        {"id": "store-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 8}},
+        {"id": "close-inventory", "action": "menu.close"},
+        {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "other", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "other-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-other", "action": "backpack.linkHeld"},
+        {"id": "source-water", "action": "capability.transferLinkedBackpackFluid", "args": {"operation": "fill", "amount": 1000, "expected": 1000, "canonicalAmount": 1000}},
+        {"id": "pump", "action": "capability.transferLinkedPumpFluid", "args": {"direction": "input", "held": "otherGroup"}}
+      ]
+    },
+    {
+      "id": "output-to-other-linked-group",
+      "tags": ["linked", "fluid", "pump", "output"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "host", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "host-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-host", "action": "backpack.linkHeld"},
+        {"id": "host-water", "action": "capability.transferLinkedBackpackFluid", "args": {"operation": "fill", "amount": 1000, "expected": 1000, "canonicalAmount": 1000}},
+        {"id": "open-inventory", "action": "player.openInventory"},
+        {"id": "pickup-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+        {"id": "store-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 8}},
+        {"id": "close-inventory", "action": "menu.close"},
+        {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "other", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "other-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-other", "action": "backpack.linkHeld"},
+        {"id": "pump", "action": "capability.transferLinkedPumpFluid", "args": {"direction": "output", "held": "otherGroup"}}
+      ]
+    },
+    {
+      "id": "input-from-ordinary-bucket",
+      "tags": ["linked", "fluid", "pump", "input", "bucket"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "host", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "host-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-host", "action": "backpack.linkHeld"},
+        {"id": "open-inventory", "action": "player.openInventory"},
+        {"id": "pickup-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+        {"id": "store-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 8}},
+        {"id": "close-inventory", "action": "menu.close"},
+        {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "water-bucket", "action": "player.setInventorySlot", "args": {"slot": 0, "item": "minecraft:water_bucket", "count": 1}},
+        {"id": "pump", "action": "capability.transferLinkedPumpFluid", "args": {"direction": "input", "held": "bucket"}}
+      ]
+    },
+    {
+      "id": "output-to-ordinary-bucket",
+      "tags": ["linked", "fluid", "pump", "output", "bucket"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "host", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "host-tank", "action": "fixture.backpack.setUpgrade", "args": {"slot": 0, "item": "sophisticatedbackpacks:tank_upgrade"}},
+        {"id": "link-host", "action": "backpack.linkHeld"},
+        {"id": "host-water", "action": "capability.transferLinkedBackpackFluid", "args": {"operation": "fill", "amount": 1000, "expected": 1000, "canonicalAmount": 1000}},
+        {"id": "open-inventory", "action": "player.openInventory"},
+        {"id": "pickup-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 0}},
+        {"id": "store-host", "action": "menu.clickPlayerInventorySlot", "args": {"slot": 8}},
+        {"id": "close-inventory", "action": "menu.close"},
+        {"id": "await-inventory-closed", "action": "await.menuClosed"},
+        {"id": "empty-bucket", "action": "player.setInventorySlot", "args": {"slot": 0, "item": "minecraft:bucket", "count": 1}},
+        {"id": "pump", "action": "capability.transferLinkedPumpFluid", "args": {"direction": "output", "held": "bucket"}}
+      ]
+    }
+  ]
+}

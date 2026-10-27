@@ -37,6 +37,40 @@ class StorageResourcesActionContractTest {
 	}
 
 	@Test
+	void bindItemFluidTransfersRequireAnUnambiguousInventoryTarget() {
+		TransferStorageResourceAction action = new TransferStorageResourceAction();
+		assertEquals(0,
+				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":0}"),
+						TransferStorageResourceAction.Arguments.class).inventorySlot());
+		invalid(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":36}");
+		invalid(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":-1}");
+		invalid(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":0,\"ref\":\"boat\"}");
+		invalid(action, "{\"operation\":\"receive\",\"amount\":1000,\"inventorySlot\":0}");
+	}
+
+	@Test
+	void bindPhysicalLinkedBackpackFluidTransfersRejectInvalidArguments() {
+		TransferLinkedBackpackFluidAction action = new TransferLinkedBackpackFluidAction();
+		bind(action, "{\"slot\":8,\"operation\":\"fill\",\"amount\":250,\"expected\":250,\"canonicalAmount\":750}");
+		invalid(action, "{\"slot\":36,\"operation\":\"fill\",\"amount\":250,\"canonicalAmount\":750}");
+		invalid(action, "{\"operation\":\"extract\",\"amount\":250,\"canonicalAmount\":750}");
+		invalid(action, "{\"operation\":\"fill\",\"amount\":0,\"canonicalAmount\":750}");
+		invalid(action, "{\"operation\":\"fill\",\"amount\":250,\"canonicalAmount\":-1}");
+		invalid(action, "{\"operation\":\"fill\",\"amount\":250,\"canonicalAmount\":750,\"unknown\":true}");
+	}
+
+	@Test
+	void bindLinkedPumpFluidTransferRejectsInvalidArguments() {
+		TransferLinkedPumpFluidAction action = new TransferLinkedPumpFluidAction();
+		bind(action, "{\"hostSlot\":8,\"direction\":\"input\",\"held\":\"otherGroup\"}");
+		bind(action, "{\"direction\":\"output\",\"held\":\"bucket\"}");
+		invalid(action, "{\"hostSlot\":36,\"direction\":\"input\",\"held\":\"bucket\"}");
+		invalid(action, "{\"direction\":\"fill\",\"held\":\"bucket\"}");
+		invalid(action, "{\"direction\":\"input\",\"held\":\"sameGroup\"}");
+		invalid(action, "{\"direction\":\"input\",\"held\":\"bucket\",\"unknown\":true}");
+	}
+
+	@Test
 	void bindPlayerInventoryInteractionsRejectInvalidButtonsSlotsAndUnknownArguments() {
 		bind(new OpenPlayerInventoryAction(), "{}");
 		bind(new ClickPlayerInventorySlotAction(), "{\"slot\":9,\"button\":1}");

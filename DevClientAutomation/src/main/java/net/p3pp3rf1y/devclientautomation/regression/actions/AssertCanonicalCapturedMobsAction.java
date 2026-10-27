@@ -79,7 +79,7 @@ public final class AssertCanonicalCapturedMobsAction extends TypedRegressionActi
 				}
 				if (arguments.render()) {
 					if (!(context.minecraft().screen instanceof StorageScreenBase<?> screen)) {
-						return failAssertion("Storage screen is not open for captured mob rendering");
+						return fail("Storage screen is not open for captured mob rendering");
 					}
 					Optional<IBackpackWrapper> host = screen.getMenu().getStorageWrapper().getUpgradeHandler().getTypeWrappers(MobCatcherUpgradeItem.TYPE)
 							.stream().map(MobCatcherUpgradeWrapper::getBackpackWrapper).flatMap(Optional::stream).findFirst();
