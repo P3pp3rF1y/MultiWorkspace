@@ -1,9 +1,12 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
+import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 
 import java.util.Set;
 
@@ -41,11 +44,17 @@ public final class QuickMovePlayerInventorySlotAction extends TypedRegressionAct
 		@Override
 		public RegressionActionProgress tick() {
 			Minecraft minecraft = context.minecraft();
-			if (!(minecraft.player.containerMenu instanceof BackpackContainer menu) || minecraft.gameMode == null) {
+			if (!(minecraft.gui.screen() instanceof StorageScreenBase<?> screen) || !(minecraft.player.containerMenu instanceof BackpackContainer menu)
+					|| screen.getMenu() != menu) {
 				return fail("Backpack menu is not active for quick move");
 			}
 			int menuSlot = menu.getNumberOfStorageInventorySlots() + arguments.inventorySlot() - 9;
-			minecraft.gameMode.handleContainerInput(menu.containerId, menuSlot, 0, ContainerInput.QUICK_MOVE, minecraft.player);
+			Slot slot = menu.getSlot(menuSlot);
+			VirtualInput.moveToSlot(screen, menuSlot);
+			if (!VirtualInput.click(screen, screen.getLeftPos() + slot.x + 8, screen.getTopPos() + slot.y + 8, InputConstants.MOUSE_BUTTON_LEFT,
+					InputConstants.MOD_SHIFT)) {
+				return fail("Player inventory quick-move click was not handled by the screen");
+			}
 			return RegressionActionProgress.PASSED;
 		}
 	}

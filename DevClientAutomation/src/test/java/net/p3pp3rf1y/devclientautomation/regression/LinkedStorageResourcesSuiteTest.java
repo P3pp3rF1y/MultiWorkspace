@@ -104,30 +104,32 @@ class LinkedStorageResourcesSuiteTest {
 
 	@Test
 	void parseIndexedMenuSuiteLinksThroughClientClicksRatherThanServiceShortcuts() throws IOException {
-		try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/linked-storage-menu.json")) {
-			assertNotNull(stream);
-			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
-			Set<String> shortcuts = Set.of("backpack.linkHeld", "storage.linkBlock", "player.selectHeldLinkedEndpoint");
-			assertEquals(10, suite.tests().size());
-			for (RegressionTest test : suite.tests()) {
-				List<String> actions = test.steps().stream().map(step -> step.action().action().metadata().id()).toList();
-				assertTrue(actions.stream().noneMatch(shortcuts::contains));
-				if (test.id().equals("sort-actions-reject-missing-menu")) {
-					assertEquals(List.of("menu.clickSortControl", "assert.sortMode"), actions);
-					continue;
-				}
-				assertTrue(actions.contains("player.useHeldItemOnTarget"));
-				if (test.id().equals("double-chest-primary-backpack-secondary")) {
-					assertEquals(2, actions.stream().filter("player.placeHeldBlock"::equals).count());
-					assertTrue(actions.contains("assert.doubleChest"));
-					assertFalse(actions.contains("fixture.block.set"));
-					assertTrue(actions.contains("backpack.placeHeld"));
-					assertEquals(3, actions.stream().filter("player.useHeldItemOnTarget"::equals).count());
-				} else if (test.id().equals("linked-barrels-retain-sort-mode-on-reopen")) {
-					assertTrue(actions.contains("menu.clickSortControl"));
-					assertTrue(actions.contains("assert.sortMode"));
-				} else {
-					assertTrue(actions.contains("menu.clickPlayerInventorySlot"));
+		for (String resource : List.of("linked-storage-menu.json", "linked-storage-sorting.json")) {
+			try (InputStream stream = getClass().getResourceAsStream("/devclientautomation/regressions/" + resource)) {
+				assertNotNull(stream);
+				RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
+				Set<String> shortcuts = Set.of("backpack.linkHeld", "storage.linkBlock", "player.selectHeldLinkedEndpoint");
+				assertEquals(resource.equals("linked-storage-menu.json") ? 7 : 3, suite.tests().size());
+				for (RegressionTest test : suite.tests()) {
+					List<String> actions = test.steps().stream().map(step -> step.action().action().metadata().id()).toList();
+					assertTrue(actions.stream().noneMatch(shortcuts::contains));
+					if (test.id().equals("sort-actions-reject-missing-menu")) {
+						assertEquals(List.of("menu.clickSortControl", "assert.sortMode"), actions);
+						continue;
+					}
+					assertTrue(actions.contains("player.useHeldItemOnTarget"));
+					if (test.id().equals("double-chest-primary-backpack-secondary")) {
+						assertEquals(2, actions.stream().filter("player.placeHeldBlock"::equals).count());
+						assertTrue(actions.contains("assert.doubleChest"));
+						assertFalse(actions.contains("fixture.block.set"));
+						assertTrue(actions.contains("backpack.placeHeld"));
+						assertEquals(3, actions.stream().filter("player.useHeldItemOnTarget"::equals).count());
+					} else if (test.id().equals("linked-barrels-retain-sort-mode-on-reopen")) {
+						assertTrue(actions.contains("menu.clickSortControl"));
+						assertTrue(actions.contains("assert.sortMode"));
+					} else {
+						assertTrue(actions.contains("menu.clickPlayerInventorySlot"));
+					}
 				}
 			}
 		}
@@ -139,8 +141,12 @@ class LinkedStorageResourcesSuiteTest {
 			assertNotNull(stream);
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 			assertEquals("linked-storage-resources", suite.suiteId());
-			assertEquals(4, suite.tests().size());
+			assertEquals(5, suite.tests().size());
 			for (RegressionTest test : suite.tests()) {
+				if (test.id().equals("item-fluid-transfer-retains-linked-endpoint-with-own-group-pump")) {
+					assertEquals(4,
+							test.steps().stream().filter(step -> step.action().action().metadata().id().equals("capability.transferStorageResource")).count());
+				}
 				assertTrue(test.steps().stream().anyMatch(step -> step.action().action().metadata().id().equals("assert.storageResources")));
 				if (!test.id().equals("storage-main-has-no-resource-capabilities")) {
 					assertTrue(test.steps().stream().anyMatch(step -> step.action().action().metadata().id().equals("capability.transferStorageResource")));
