@@ -29,6 +29,7 @@
         {"id": "clear-hand", "action": "player.clearMainHand"},
         {"id": "open-primary", "action": "player.useTargetBlock"},
         {"id": "await-primary-menu", "action": "await.menu", "args": {"kind": "storageBlock"}},
+        {"id": "default-mode", "action": "assert.sortMode", "args": {"mode": "NAME"}},
         {"id": "mode-mod", "action": "menu.clickSortControl", "args": {"control": "mode"}},
         {"id": "await-mod", "action": "assert.sortMode", "args": {"mode": "MOD"}},
         {"id": "mode-count", "action": "menu.clickSortControl", "args": {"control": "mode"}},

@@ -11,6 +11,8 @@ param(
     [switch]$KeepClientOpen,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
+    [string]$GameDirectory = "",
+    [string]$OptionsSeed = "",
     [ValidateSet("", "emi", "jei", "rei", "none")]
     [string]$RecipeViewer = ""
 )
@@ -23,6 +25,26 @@ $discoveryPaths = @(
     (Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"),
     (Join-Path $WorkspaceRoot "workspace\run\client\dev-client-automation.json")
 )
+if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) {
+    $gamePath = [System.IO.Path]::GetFullPath($GameDirectory)
+    if (-not $gamePath.StartsWith(([System.IO.Path]::GetFullPath((Join-Path $WorkspaceRoot 'build')) + [System.IO.Path]::DirectorySeparatorChar),
+            [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Isolated game directory must be beneath workspace/build.'
+    }
+    if (-not (Test-Path -LiteralPath $gamePath)) {
+        $null = New-Item -ItemType Directory -Path $gamePath -Force
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) {
+        $seedPath = [System.IO.Path]::GetFullPath($OptionsSeed)
+        if (-not (Test-Path -LiteralPath $seedPath -PathType Leaf)) { throw "Options seed does not exist: $seedPath" }
+        $destination = Join-Path $gamePath 'options.txt'
+        if (Test-Path -LiteralPath $destination) { throw "Isolated options already exist; use a fresh game directory: $destination" }
+        Copy-Item -LiteralPath $seedPath -Destination $destination
+    }
+    $discoveryPaths = @((Join-Path $gamePath 'dev-client-automation.json'))
+} elseif (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) {
+    throw 'OptionsSeed requires an isolated GameDirectory.'
+}
 
 foreach ($discoveryPath in $discoveryPaths) {
     if (Test-Path $discoveryPath) {
@@ -33,6 +55,9 @@ foreach ($discoveryPath in $discoveryPaths) {
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
 $gradleCommand = "gradlew.bat :DevClientAutomation:jar :workspace:runRegressionClient --no-daemon"
+if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) {
+    $gradleCommand = "$gradleCommand -Pdev_client_regression_game_directory=`"$gamePath`""
+}
 if (-not [string]::IsNullOrWhiteSpace($RecipeViewer)) {
     $gradleCommand = "$gradleCommand -Precipe_viewer=$RecipeViewer -Pdev_client_minimal_runtime=true"
 } elseif ($MinimalRuntime) {
@@ -130,20 +155,27 @@ if ($LoadWorld -and -not $state.playerLoaded) {
     Invoke-BridgeJson -Method Post -Path "/world/load" -Body @{ worldName = $WorldName; autoConfirmExperimental = $true; timeoutMs = $TimeoutSeconds * 1000 } | Out-Null
 }
 
+$ready = $false
 do {
     Start-Sleep -Seconds 1
     $state = Invoke-BridgeJson -Method Get -Path "/state"
     if ($SkipRecipeViewerReady) {
         if (-not $LoadWorld -or ($state.playerLoaded -and $state.screenSimpleName -ne "ReceivingLevelScreen")) {
+            $ready = $true
             break
         }
         continue
     }
     $viewerState = Invoke-BridgeJson -Method Get -Path "/recipe-viewer/state"
     if ($viewerState.ok -and (-not $LoadWorld -or ($state.playerLoaded -and $viewerState.indexStackCount -gt 0))) {
+        $ready = $true
         break
     }
 } while ((Get-Date) -lt $deadline)
+
+if (-not $ready) {
+    throw "Timed out waiting for dev-client world/player or recipe-viewer readiness."
+}
 
 $bridgeUri = [uri]$ownership.baseUrl
 [pscustomobject]@{

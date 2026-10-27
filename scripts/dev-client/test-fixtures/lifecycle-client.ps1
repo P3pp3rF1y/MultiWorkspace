@@ -19,8 +19,15 @@ try {
     while ($true) {
         $exchange = $server.GetContext()
         $path = $exchange.Request.Url.AbsolutePath
+        $body = if ($path -eq '/regression/run') { [IO.StreamReader]::new($exchange.Request.InputStream).ReadToEnd() | ConvertFrom-Json } else { $null }
         $stop = $false
         $outcome = if ($Mode -in @('assertion', 'combined-failure')) { 'failed' } else { 'passed' }
+        if ($Mode -eq 'shared-cleanup-error' -and $body -and $body.suiteId -eq 'proof-second') { $outcome = 'error' }
+        if ($Mode -in @('shared-qualified-skip', 'shared-unqualified-skip') -and $body -and $body.suiteId -eq 'proof-second') { $outcome = 'skipped' }
+        if ($Mode -in @('shared-mixed-skip', 'shared-mixed-error') -and $body -and $body.suiteId -eq 'proof-second') {
+            if ($body.testId -eq 'two') { $outcome = 'skipped' }
+            if ($Mode -eq 'shared-mixed-error' -and $body.testId -eq 'three') { $outcome = 'error' }
+        }
         if ($Mode -in @('cancel', 'interrupted', 'teardown-poll', 'cleanup-timeout') -and $active) {
             $outcome = 'running'
             if ($cancelled -and $path -eq '/regression/status') {
@@ -29,8 +36,8 @@ try {
             }
         }
         $message = if ($outcome -eq 'failed') { 'Injected product assertion' } else { 'Fixture result' }
-        $category = if ($outcome -eq 'failed') { 'assertion' } elseif ($outcome -eq 'cancelled') { 'cancellation' } else { '' }
-        $junit = if ($outcome -eq 'failed') { 'failure' } elseif ($outcome -eq 'cancelled') { 'skipped' } else { '' }
+        $category = if ($outcome -eq 'error') { 'cleanup' } elseif ($outcome -eq 'failed') { 'assertion' } elseif ($outcome -eq 'cancelled') { 'cancellation' } elseif ($outcome -eq 'skipped') { $(if ($Mode -eq 'shared-unqualified-skip') { 'other' } else { 'expectedUnavailable' }) } else { '' }
+        $junit = if ($outcome -eq 'error') { 'error' } elseif ($outcome -eq 'failed') { 'failure' } elseif ($outcome -in 'cancelled','skipped') { 'skipped' } else { '' }
         $response = switch ($path) {
             '/state' {
                 $stateReads++
@@ -40,16 +47,17 @@ try {
                 @{ playerLoaded = $true; screenSimpleName = 'TitleScreen' }
             }
             '/capabilities' { @{ ok = ($Mode -ne 'invalid-startup'); protocolVersion = 1; loader = 'forge'; minecraftVersion = '1.20.1'; backgroundInput = $true } }
+            '/regression/catalog' { @{ suiteTests = @{ 'proof-first' = @('one'); 'proof-second' = $(if ($Mode -in 'shared-mixed-skip','shared-mixed-error') { @('one','two','three') } else { @('one') }); 'proof-third' = @('one') } } }
             '/regression/run' {
                 if ($Mode -in @('transport', 'teardown-poll', 'cleanup-timeout')) { $active = $true; $exchange.Response.StatusCode = 503; @{ message = 'Injected transport failure' }; break }
                 $active = $true
                 if ($Mode -in @('cancel', 'interrupted')) { @{ outcome = 'running' }; break }
-                $body = [IO.StreamReader]::new($exchange.Request.InputStream).ReadToEnd() | ConvertFrom-Json
-                @{ ok = ($outcome -eq 'passed'); runId = 'proof/one'; suiteId = 'proof'; testId = 'one'; outcome = $outcome; category = $category
-                    message = $message; durationMillis = 1; testDurationMillis = 1; outcomePriority = $(if ($outcome -eq 'failed') { 5 } else { 0 })
+                @{ ok = ($outcome -eq 'passed'); runId = "$($body.suiteId)/$($body.testId)"; suiteId = $body.suiteId; testId = $body.testId; outcome = $outcome; category = $category
+                    effectiveRequirements = $(if ($outcome -eq 'skipped') { @('external-mod') } else { @() }); missingRequirements = $(if ($outcome -eq 'skipped') { @('external-mod') } else { @() })
+                    message = $message; durationMillis = 1; testDurationMillis = 1; outcomePriority = $(if ($outcome -in 'failed','error') { 5 } elseif ($outcome -eq 'skipped') { 1 } else { 0 })
                     conformance = @(); runtimeConformance = @(); cleanup = @(); steps = @(); diagnostics = @{}
                     rerunCommand = $body.reportContext.rerunCommand; runtimeIdentity = $body.reportContext.runtimeIdentity; artifacts = $body.reportContext.artifacts
-                    reportCases = @(@{ testId = 'one'; classname = 'proof'; role = 'scenario'; outcome = $outcome; category = $category; message = $message; durationMillis = 1; junitElement = $junit; diagnostics = @{} }) }
+                    reportCases = @(@{ testId = $body.testId; classname = 'proof'; role = 'scenario'; outcome = $outcome; category = $category; message = $message; durationMillis = 1; junitElement = $junit; diagnostics = @{} }) }
             }
             '/regression/status' {
                 if ($Mode -eq 'teardown-poll' -and $cancelled -and $cleanupPolls -eq 1) {
@@ -75,7 +83,10 @@ try {
             }
             default { $exchange.Response.StatusCode = 404; @{ message = 'Unexpected fixture request' } }
         }
-        @{ path = $path; outcome = $outcome; at = [datetime]::UtcNow.ToString('o') } | ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $Directory 'requests.jsonl')
+        @{ path = $path; suiteId = $(if ($body) { $body.suiteId } else { $null }); outcome = $outcome; at = [datetime]::UtcNow.ToString('o'); ownershipBeforeCase = $(if ($path -eq '/regression/run' -and $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY) {
+                    (Test-Path -LiteralPath $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY -PathType Container) -and
+                        [IO.Directory]::GetFiles($env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY, 'client-ownership.json', [IO.SearchOption]::AllDirectories).Count -eq 1
+                } else { $null }) } | ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $Directory 'requests.jsonl')
         $bytes = [Text.Encoding]::UTF8.GetBytes(($response | ConvertTo-Json -Depth 32 -Compress))
         $exchange.Response.ContentType = 'application/json'
         $exchange.Response.ContentLength64 = $bytes.Length

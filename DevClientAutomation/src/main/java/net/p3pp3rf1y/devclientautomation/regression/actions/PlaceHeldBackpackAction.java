@@ -80,7 +80,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress sneaking = await(enableSneaking);
-			if (sneaking != RegressionActionProgress.PASSED) {
+			if (sneaking == RegressionActionProgress.WAITING) {
+				return sneaking;
+			}
+			if (sneaking == RegressionActionProgress.FAILED) {
 				return latchFailure(failure());
 			}
 			if (clientUseSent) {
@@ -95,7 +98,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress ready = await(snapshot);
-			if (ready != RegressionActionProgress.PASSED) {
+			if (ready == RegressionActionProgress.WAITING) {
+				return ready;
+			}
+			if (ready == RegressionActionProgress.FAILED) {
 				return latchFailure(failure());
 			}
 			BlockPos support = target.below();
@@ -130,7 +136,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress checked = await(checkPlacement);
-			if (checked != RegressionActionProgress.PASSED) {
+			if (checked == RegressionActionProgress.WAITING) {
+				return checked;
+			}
+			if (checked == RegressionActionProgress.FAILED) {
 				return latchFailure(failure());
 			}
 			if (serverPlaced) {

@@ -36,8 +36,7 @@ public final class RegressionSuiteParser {
 			throw new IllegalArgumentException("Unsupported regression schemaVersion " + schemaVersion + "; expected 2");
 		}
 		String suiteId = suite.id("suiteId");
-		// Legacy target suites retain platform and required-product capability declarations until their portable source revisions land.
-		Set<String> requires = suite.modIds("requires", true);
+		Set<String> requires = suite.modIds("requires", false);
 		String isolation = suite.string("isolation");
 		if (!"testCell".equals(isolation)) {
 			throw new IllegalArgumentException("Suite " + suiteId + " must use isolation testCell");

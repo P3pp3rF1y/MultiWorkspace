@@ -8,6 +8,8 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Test,
     [string]$BaseUrl,
+    [string]$GameDirectory = "",
+    [string]$OptionsSeed = "",
     [string]$ConformanceFailureAction,
     [string]$ActionFailureAfter,
     [string]$PreparationToken,
@@ -281,6 +283,8 @@ function New-RegressionReportContext {
         $rerun += " -BaseUrl '$($BaseUrl.Replace("'", "''"))'"
     }
     if ($KeepClientOpen) { $rerun += ' -KeepClientOpen' }
+    if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) { $rerun += " -GameDirectory '$($GameDirectory.Replace("'", "''"))'" }
+    if (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) { $rerun += " -OptionsSeed '$($OptionsSeed.Replace("'", "''"))'" }
     foreach ($option in @("ConformanceFailureAction", "ActionFailureAfter", "PreparationToken")) {
         $value = Get-Variable -Name $option -ValueOnly
         if (-not [string]::IsNullOrWhiteSpace($value)) { $rerun += " -$option '$($value.Replace("'", "''"))'" }
@@ -475,7 +479,11 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     try {
         $previousProgressPreference = $ProgressPreference
         $ProgressPreference = "SilentlyContinue"
-        $capturedLaunch = @(& (Join-Path $PSScriptRoot "start-and-ready.ps1") -WorkspaceRoot $WorkspaceRoot -MinimalRuntime -SkipRecipeViewerReady -CloseOnExit -KeepClientOpen:$KeepClientOpen -TimeoutSeconds $TimeoutSeconds *>&1)
+        $launchArguments = @{ WorkspaceRoot = $WorkspaceRoot; MinimalRuntime = $true; SkipRecipeViewerReady = $true;
+            CloseOnExit = $true; KeepClientOpen = [bool]$KeepClientOpen; TimeoutSeconds = $TimeoutSeconds }
+        if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) { $launchArguments.GameDirectory = $GameDirectory }
+        if (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) { $launchArguments.OptionsSeed = $OptionsSeed }
+        $capturedLaunch = @(& (Join-Path $PSScriptRoot "start-and-ready.ps1") @launchArguments *>&1)
         $launchDiagnostics = @($capturedLaunch | Where-Object { Test-PowerShellStreamRecord $_ } | ForEach-Object { ConvertTo-SanitizedStreamDiagnostic $_ })
         $launchRecords = @($capturedLaunch | Where-Object { -not (Test-PowerShellStreamRecord $_) })
         foreach ($diagnostic in $launchDiagnostics) {

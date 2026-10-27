@@ -2,7 +2,8 @@ param([string]$ReportPath)
 $ErrorActionPreference = "Stop"
 $tokens = $null
 $parseErrors = $null
-$ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot "regression.ps1"), [ref]$tokens, [ref]$parseErrors)
+foreach ($script in @('regression.ps1', 'run-regression.ps1')) {
+$ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $script), [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count -gt 0) { throw ($parseErrors | Out-String) }
 foreach ($name in @("Add-SensitiveValues", "ConvertTo-SanitizedText", "Copy-SanitizedTelemetry")) {
     $function = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
@@ -39,4 +40,5 @@ if ($ReportPath) {
     $timing = $watch.Elapsed.TotalMilliseconds
     if ($copy.suiteId -ne $report.suiteId -or $copy.result.outcome -ne $report.result.outcome) { throw "Saved report semantics changed" }
 }
-[pscustomobject]@{ ok = $true; redactionAndStructure = "passed"; reportPath = $ReportPath; reportSanitizationMillis = $timing }
+[pscustomobject]@{ ok = $true; script = $script; redactionAndStructure = "passed"; reportPath = $ReportPath; reportSanitizationMillis = $timing }
+}

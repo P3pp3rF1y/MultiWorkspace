@@ -31,12 +31,23 @@ function Set-OwnedClientDiscovery {
 
     $launcher = Get-OwnedClientProcess $Ownership.launcherProcessId $Ownership.launcherStartedAtUtc
     if (-not $launcher) { throw 'The owned launcher exited before client readiness.' }
-    $parents = @($launcher.Id)
+    $parents = @([pscustomobject]@{ id = $launcher.Id; started = $launcher.StartTime })
+    $visited = [System.Collections.Generic.HashSet[int]]::new()
+    $null = $visited.Add($launcher.Id)
     $descendants = @()
     while ($parents.Count -gt 0) {
-        $children = @($parents | ForEach-Object { Get-CimInstance Win32_Process -Filter "ParentProcessId = $_" })
-        $parents = @($children | ForEach-Object { [int]$_.ProcessId })
-        $descendants += $parents
+        $next = @()
+        foreach ($parent in $parents) {
+            foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($parent.id)")) {
+                $id = [int]$child.ProcessId
+                $started = [datetime]$child.CreationDate
+                # A child predating its live parent belongs to a recycled PID, not this launch.
+                if ($started.ToUniversalTime() -lt $parent.started.ToUniversalTime() -or -not $visited.Add($id)) { continue }
+                $next += [pscustomobject]@{ id = $id; started = $started }
+                $descendants += $id
+            }
+        }
+        $parents = $next
     }
     if ([int]$Discovery.processId -notin $descendants) {
         throw 'Bridge discovery does not belong to this launch; refusing to attach or stop it.'

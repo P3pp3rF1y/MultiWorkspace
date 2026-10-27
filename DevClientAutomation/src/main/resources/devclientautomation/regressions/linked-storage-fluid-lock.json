@@ -35,6 +35,8 @@
         {"id": "still-empty", "action": "assert.storageResources"},
         {"id": "unlock-for-initial-fluid", "action": "player.useHeldItemOnTarget"},
         {"id": "initial-fluid", "action": "capability.transferStorageResource", "args": {"operation": "fill", "amount": 500}},
+        {"id": "physical-endpoint-fill", "action": "capability.transferLinkedBackpackFluid", "args": {"slot": 8, "operation": "fill", "amount": 250, "expected": 250, "canonicalAmount": 750}},
+        {"id": "physical-endpoint-drain", "action": "capability.transferLinkedBackpackFluid", "args": {"slot": 8, "operation": "drain", "amount": 250, "expected": 250, "canonicalAmount": 500}},
         {"id": "lock-nonempty-storage", "action": "player.useHeldItemOnTarget"},
         {"id": "allow-matching-simulation", "action": "capability.transferStorageResource", "args": {"operation": "fill", "amount": 250, "simulate": true}},
         {"id": "simulation-retains-fluid", "action": "assert.storageResources", "args": {"fluid": 500}},

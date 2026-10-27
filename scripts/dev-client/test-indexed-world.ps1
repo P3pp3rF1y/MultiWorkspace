@@ -51,7 +51,7 @@ try {
     if (-not $ready.state.playerLoaded -or -not $ready.capabilities.backgroundInput) { throw 'Dedicated first boot is not ready.' }
     $catalog = & "$PSScriptRoot\regression.ps1" catalog -BaseUrl $ready.baseUrl
     $caseCount = @($catalog.suiteTests.PSObject.Properties | ForEach-Object { @($_.Value).Count } | Measure-Object -Sum)[0].Sum
-    if (@($catalog.suites).Count -ne 23 -or $caseCount -ne 109) {
+    if (@($catalog.suites).Count -ne 24 -or $caseCount -ne 113) {
         throw 'Unexpected indexed suite/case count.'
     }
     foreach ($suite in @($catalog.suites)) {
@@ -103,9 +103,9 @@ if ($total.passed -ne $caseCount) {
 } finally {
     if (-not (Test-Path -LiteralPath $ArtifactDirectory)) { New-Item -ItemType Directory -Path $ArtifactDirectory -Force | Out-Null }
     $receipt = [pscustomobject]@{ candidateIdentity = $CandidateIdentity; runtimeBuildIdentity = $RuntimeBuildIdentity;
-        world = $WorldName; suites = $(if ($catalog) { @($catalog.suites).Count } else { 0 }); expectedCases = 109;
+        world = $WorldName; suites = $(if ($catalog) { @($catalog.suites).Count } else { 0 }); expectedCases = 113;
         accounting = $total; entries = @($results); boots = @($boots); restartVerified = @($results | Where-Object { $_.suite -eq $restartSuite -and $_.test -eq $verify -and $_.ok }).Count -eq 1;
-        ok = ($null -eq $failure -and $total.selected -eq 109 -and $total.passed -eq 109 -and $total.failed -eq 0 -and $total.error -eq 0 -and
+        ok = ($null -eq $failure -and $total.selected -eq 113 -and $total.passed -eq 113 -and $total.failed -eq 0 -and $total.error -eq 0 -and
             @($results | Where-Object { -not $_.ok }).Count -eq 0 -and $boots.Count -eq 2 -and $boots[0].processId -ne $boots[1].processId -and
             @($boots | Where-Object { -not $_.teardown }).Count -eq 0);
         failure = $failure }

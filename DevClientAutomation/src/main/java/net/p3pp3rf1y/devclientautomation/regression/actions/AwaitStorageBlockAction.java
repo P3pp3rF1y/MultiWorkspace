@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 
+import javax.annotation.Nullable;
+
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,7 +31,9 @@ public final class AwaitStorageBlockAction extends TypedRegressionAction<AwaitSt
 	private static final class Execution extends TickRegressionActionExecution {
 		private final Arguments arguments;
 		private int deadline = -1;
+		@Nullable
 		private CompletableFuture<Void> serverBlock;
+		private volatile boolean serverStorageBlock;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
 			super(context);
@@ -44,13 +48,17 @@ public final class AwaitStorageBlockAction extends TypedRegressionAction<AwaitSt
 			}
 			if (minecraft.level.getBlockEntity(context.target()) instanceof StorageBlockEntity) {
 				if (serverBlock == null) {
-					serverBlock = context.onServer(player -> {
-						if (!(player.serverLevel().getBlockEntity(context.target()) instanceof StorageBlockEntity)) {
-							throw new IllegalStateException("Server did not place a storage block at the target");
-						}
-					});
+					serverBlock = context
+							.onServer(player -> serverStorageBlock = player.serverLevel().getBlockEntity(context.target()) instanceof StorageBlockEntity);
 				}
-				return await(serverBlock);
+				if (serverBlock.isDone()) {
+					RegressionActionProgress progress = await(serverBlock);
+					if (progress != RegressionActionProgress.PASSED || serverStorageBlock) {
+						return progress;
+					}
+					serverBlock = null;
+				}
+				return minecraft.player.tickCount >= deadline ? fail("Server did not place a storage block at the target") : RegressionActionProgress.WAITING;
 			}
 			return minecraft.player.tickCount >= deadline ? fail("Placed storage block did not synchronize to the client") : RegressionActionProgress.WAITING;
 		}
