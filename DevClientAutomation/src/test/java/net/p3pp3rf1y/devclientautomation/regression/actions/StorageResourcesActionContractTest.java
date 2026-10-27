@@ -6,6 +6,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class StorageResourcesActionContractTest {
 	@Test
+	void bindItemFluidTransfersRequireAnUnambiguousInventoryTarget() {
+		TransferStorageResourceAction action = new TransferStorageResourceAction();
+		TransferStorageResourceAction.Arguments args = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":0}"),
+				TransferStorageResourceAction.Arguments.class);
+		assertEquals(0, args.inventorySlot());
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":36}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":-1}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"operation\":\"fill\",\"amount\":1000,\"inventorySlot\":0,\"ref\":\"boat\"}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"operation\":\"receive\",\"amount\":1000,\"inventorySlot\":0}"));
+	}
+
+	@Test
 	void bindReverseLinkActionsRejectInvalidReferencesAndFixtureTypes() {
 		LinkHeldBackpackAction heldBackpack = new LinkHeldBackpackAction();
 		LinkTargetStorageBlockAction targetStorage = new LinkTargetStorageBlockAction();

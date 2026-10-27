@@ -9,7 +9,6 @@ param(
     [string]$BaseUrl,
     [switch]$KeepClientOpen,
     [string]$ArtifactDirectory = (Join-Path $WorkspaceRoot "build/reports/dev-client-regression"),
-    [string]$ReportPath,
     [ValidateSet("fast", "full")]
     [string]$Tier = "fast",
     [int]$TimeoutSeconds = 360,
@@ -263,33 +262,10 @@ function Invoke-SharedRegression {
     if (@($RegressionSuite | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -or @($RegressionSuite | Select-Object -Unique).Count -ne $RegressionSuite.Count) {
         throw "RegressionSuite requires distinct nonempty runtime suite IDs."
     }
-    if ($scriptInvocation.BoundParameters.ContainsKey('ReportPath') -and [string]::IsNullOrWhiteSpace($ReportPath)) { throw 'ReportPath requires a nonempty file path.' }
     . "$PSScriptRoot/client-lifecycle.ps1"
-    $directory = if ($ReportPath) { Split-Path -Parent $ReportPath } else { Join-Path $ArtifactDirectory $runIdentity.controllerRunId }
-    if (-not $directory) { $directory = (Get-Location).Path }
+    $directory = Join-Path $ArtifactDirectory $runIdentity.controllerRunId
     $null = New-Item -ItemType Directory -Force -Path $directory
-    $jsonPath = if ($ReportPath) { $ReportPath } else { Join-Path $directory "run.json" }
-    $selection = [pscustomobject]@{ invocation = Get-InvocationProvenance; source = 'explicit-runtime-suites'; selectedSuites = @($RegressionSuite) }
-    $results = @(); $ownership = $null; $launchIdentity = $null; $failure = $null
-    function Save-SharedReport {
-        $accounting = [pscustomobject]@{
-            selected = $RegressionSuite.Count; attempted = $results.Count
-            passed = @($results | Where-Object outcome -EQ 'passed').Count
-            failed = @($results | Where-Object outcome -EQ 'failed').Count
-            skipped = @($results | Where-Object outcome -EQ 'skipped').Count
-            notRun = $RegressionSuite.Count - $results.Count
-        }
-        Assert-Accounting $accounting
-        $summary = Copy-SanitizedTelemetry ([pscustomobject]@{
-            ok = (-not $failure -and $accounting.failed -eq 0 -and $accounting.notRun -eq 0)
-            runner = $runner; runIdentity = $runIdentity; selection = $selection
-            bindings = [pscustomobject]@{ candidateIdentity = $CandidateIdentity; runtimeBuildIdentity = $RuntimeBuildIdentity }
-            launchIdentity = $launchIdentity; accounting = $accounting; results = @($results)
-            error = $failure; json = $jsonPath
-        })
-        $summary | ConvertTo-Json -Depth 64 | Set-Content -LiteralPath $jsonPath -Encoding utf8
-        return $summary
-    }
+    $results = @(); $ownership = $null; $failure = $null
     try {
         if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
             $captured = @(& "$PSScriptRoot/start-and-ready.ps1" -WorkspaceRoot $WorkspaceRoot -Loader $Loader -MinimalRuntime -SkipRecipeViewerReady -CloseOnExit -KeepClientOpen:$KeepClientOpen -TimeoutSeconds $TimeoutSeconds *>&1)
@@ -297,13 +273,10 @@ function Invoke-SharedRegression {
             $launchErrors = @($captured | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
             if ($launchErrors.Count -or $launchRecords.Count -ne 1) { throw "Shared-client launch failed or did not return exactly one launch record: $($launchErrors -join '; ')" }
             $launch = $launchRecords[0]; $ownership = $launch.ownership; $BaseUrl = $launch.baseUrl
-            $launchIdentity = [pscustomobject]@{ source = 'start-and-ready.ps1'; baseUrl = $BaseUrl; processId = $launch.processId }
             $ownership | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath (Join-Path $directory 'client-ownership.json') -Encoding utf8
-        } else {
-            $launchIdentity = [pscustomobject]@{ source = 'controller-supplied-baseUrl'; baseUrl = $BaseUrl; processId = $null }
         }
-        $null = Save-SharedReport
         foreach ($id in $RegressionSuite) {
+            Write-Host "Running suite $id"
             $suiteDirectory = Join-Path $directory ([guid]::NewGuid().ToString('N'))
             $casePath = Join-Path $suiteDirectory (($id -replace '[^A-Za-z0-9_.-]', '_') + '.json')
             $errorMessage = $null
@@ -345,9 +318,9 @@ function Invoke-SharedRegression {
                 }
             }
             $outcome = if ($qualifiedSkip) { 'skipped' } elseif ($errorMessage -or $null -eq $product -or -not $product.ok) { 'failed' } else { 'passed' }
-            $results += [pscustomobject]@{ id = $id; outcome = $outcome; json = $(if ($product) { $casePath } else { $null }); result = $product; error = $errorMessage }
+            $results += [pscustomobject]@{ id = $id; outcome = $outcome; json = $(if ($product) { $casePath } else { $null }); error = $errorMessage }
             # Framework terminal results already include journal cleanup. Do not inspect/reset its world here.
-            $null = Save-SharedReport
+            Write-Host "${id}: $outcome; report: $casePath"
             if ($outcome -eq 'failed' -and -not $ContinueOnFailure) { break }
         }
     } catch { $failure = ConvertTo-SanitizedText $_.Exception.Message }
@@ -359,18 +332,17 @@ function Invoke-SharedRegression {
                 if (-not $lifecycle.ok) { throw "Owned-client shutdown failed: $($lifecycle.errors -join '; ')" }
             } catch { $failure = @($failure, (ConvertTo-SanitizedText $_.Exception.Message)) | Where-Object { $_ } | Join-String -Separator '; ' }
         }
-        $runIdentity | Add-Member -NotePropertyName finishedAtUtc -NotePropertyValue ([datetime]::UtcNow.ToString('o')) -Force
-        $summary = Save-SharedReport
     }
-    $summary
-    if (-not $summary.ok) { throw "Regression run failed; see $jsonPath" }
+    $ok = -not $failure -and @($results | Where-Object outcome -EQ 'failed').Count -eq 0 -and $results.Count -eq $RegressionSuite.Count
+    [pscustomobject]@{ ok = $ok; baseUrl = ConvertTo-SanitizedText $BaseUrl; results = $results; error = $failure }
+    if (-not $ok) { throw "Regression batch failed; see individual suite reports under $directory. $failure" }
 }
 
 if ($RegressionSuite.Count) {
     Invoke-SharedRegression
     return
 }
-if ($BaseUrl -or $KeepClientOpen -or $scriptInvocation.BoundParameters.ContainsKey('ReportPath')) { throw "BaseUrl, KeepClientOpen and ReportPath require explicit RegressionSuite selection; manifest wrappers own their lifecycle." }
+if ($BaseUrl -or $KeepClientOpen) { throw "BaseUrl and KeepClientOpen require explicit RegressionSuite selection; manifest wrappers own their lifecycle." }
 
 $manifest = $null
 $matchingSuites = @()
