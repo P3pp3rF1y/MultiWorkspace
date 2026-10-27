@@ -82,7 +82,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress sneaking = await(enableSneaking);
-			if (sneaking != RegressionActionProgress.PASSED) {
+			if (sneaking == RegressionActionProgress.WAITING) {
+				return sneaking;
+			}
+			if (sneaking == RegressionActionProgress.FAILED) {
 				return disableSneakingThenFail(failure());
 			}
 			if (clientUseSent) {
@@ -93,7 +96,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress snapshot = await(snapshotTarget);
-			if (snapshot != RegressionActionProgress.PASSED) {
+			if (snapshot == RegressionActionProgress.WAITING) {
+				return snapshot;
+			}
+			if (snapshot == RegressionActionProgress.FAILED) {
 				return disableSneakingThenFail(failure());
 			}
 			BlockPos support = target.below();
@@ -124,7 +130,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 				return RegressionActionProgress.WAITING;
 			}
 			RegressionActionProgress checked = await(checkPlacement);
-			if (checked != RegressionActionProgress.PASSED) {
+			if (checked == RegressionActionProgress.WAITING) {
+				return checked;
+			}
+			if (checked == RegressionActionProgress.FAILED) {
 				return disableSneakingThenFail(failure());
 			}
 			if (serverPlaced) {
@@ -143,8 +152,10 @@ public final class PlaceHeldBackpackAction extends TypedRegressionAction<PlaceHe
 		}
 
 		private RegressionActionProgress disableSneakingThenFail(String message) {
-			terminalFailureLatched = true;
-			terminalFailure = message;
+			if (!terminalFailureLatched) {
+				terminalFailure = message;
+				terminalFailureLatched = true;
+			}
 			return disableSneakingThenFail();
 		}
 

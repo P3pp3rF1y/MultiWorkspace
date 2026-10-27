@@ -4,6 +4,11 @@ param(
     [string]$Loader = "neoforge",
     [string[]]$Group = @(),
     [string[]]$Suite = @(),
+    # Declarative runtime suites share one client; manifest wrappers retain their own lifecycle.
+    [string[]]$RegressionSuite = @(),
+    [string]$BaseUrl,
+    [switch]$KeepClientOpen,
+    [string]$ArtifactDirectory = (Join-Path $WorkspaceRoot "build/reports/dev-client-regression"),
     [ValidateSet("fast", "full")]
     [string]$Tier = "fast",
     [int]$TimeoutSeconds = 360,
@@ -239,6 +244,96 @@ function Wait-PreviousAutomationClientStopped {
         throw "Timed out waiting for prior dev client process $processId to stop."
     }
 }
+
+function Invoke-SharedRegression {
+    $runner.procedure = 'runtime-suite-shared-client-sequential-execution'
+    # Comma-separated IDs also work with pwsh -File, whose native CLI cannot bind array expressions.
+    $RegressionSuite = @($RegressionSuite | ForEach-Object { $_.Split(',') })
+    if ($Suite.Count -or $Group.Count -or $List) { throw "RegressionSuite cannot be combined with manifest Suite, Group or List selection." }
+    if (@($RegressionSuite | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -or @($RegressionSuite | Select-Object -Unique).Count -ne $RegressionSuite.Count) {
+        throw "RegressionSuite requires distinct nonempty runtime suite IDs."
+    }
+    . "$PSScriptRoot/client-lifecycle.ps1"
+    $directory = Join-Path $ArtifactDirectory $runIdentity.controllerRunId
+    $null = New-Item -ItemType Directory -Force -Path $directory
+    $results = @(); $ownership = $null; $failure = $null
+    try {
+        if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+            $captured = @(& "$PSScriptRoot/start-and-ready.ps1" -WorkspaceRoot $WorkspaceRoot -Loader $Loader -MinimalRuntime -SkipRecipeViewerReady -CloseOnExit -KeepClientOpen:$KeepClientOpen -TimeoutSeconds $TimeoutSeconds *>&1)
+            $launchRecords = @($captured | Where-Object { -not (Test-PowerShellStreamRecord $_) })
+            $launchErrors = @($captured | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            if ($launchErrors.Count -or $launchRecords.Count -ne 1) { throw "Shared-client launch failed or did not return exactly one launch record: $($launchErrors -join '; ')" }
+            $launch = $launchRecords[0]; $ownership = $launch.ownership; $BaseUrl = $launch.baseUrl
+            $ownership | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath (Join-Path $directory 'client-ownership.json') -Encoding utf8
+        }
+        foreach ($id in $RegressionSuite) {
+            Write-Host "Running suite $id"
+            $suiteDirectory = Join-Path $directory ([guid]::NewGuid().ToString('N'))
+            $casePath = Join-Path $suiteDirectory (($id -replace '[^A-Za-z0-9_.-]', '_') + '.json')
+            $errorMessage = $null
+            try {
+                $null = & "$PSScriptRoot/regression.ps1" -WorkspaceRoot $WorkspaceRoot -Suite $id -BaseUrl $BaseUrl -KeepClientOpen -TimeoutSeconds $TimeoutSeconds -ArtifactDirectory $suiteDirectory -CandidateIdentity $CandidateIdentity -RuntimeBuildIdentity $RuntimeBuildIdentity
+            } catch { $errorMessage = ConvertTo-SanitizedText $_.Exception.Message }
+            $product = if (Test-Path -LiteralPath $casePath) { Get-Content -LiteralPath $casePath -Raw | ConvertFrom-Json -Depth 64 } else { $null }
+            # A suite with only passed cases and qualified unavailable cases may continue; retain its native result unchanged.
+            $qualifiedSkip = $false
+            if ($null -ne $product -and $product.suiteId -eq $id -and $product.outcome -eq 'skipped') {
+                $counts = $product.accounting
+                $names = 'selected','attempted','passed','skipped','failed','error','blocked','cancelled','notRun'
+                $validCounts = @($names | Where-Object {
+                    $value = $counts.$_
+                    $null -eq $value -or $value -isnot [long] -or $value -lt 0
+                }).Count -eq 0
+                $selectedIds = @($product.selection.testIds)
+                $caseResults = @($product.results)
+                if ($validCounts -and $counts.selected -gt 0 -and $counts.skipped -gt 0 -and
+                    $counts.attempted -eq $counts.selected -and $counts.passed + $counts.skipped -eq $counts.selected -and
+                    $counts.failed -eq 0 -and $counts.error -eq 0 -and $counts.blocked -eq 0 -and
+                    $counts.cancelled -eq 0 -and $counts.notRun -eq 0 -and
+                    $selectedIds.Count -eq $counts.selected -and $caseResults.Count -eq $counts.selected -and
+                    @($selectedIds | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) }).Count -eq 0 -and
+                    @($selectedIds | Select-Object -Unique).Count -eq $counts.selected) {
+                    $passedCases = 0; $skippedCases = 0; $validCases = $true
+                    for ($index = 0; $index -lt $caseResults.Count; $index++) {
+                        $case = $caseResults[$index]
+                        if ($case.suiteId -ne $id -or $case.testId -ne $selectedIds[$index]) { $validCases = $false; break }
+                        if ($case.outcome -eq 'passed' -and $case.ok -eq $true) { $passedCases++; continue }
+                        if ($case.outcome -ne 'skipped' -or $case.category -ne 'expectedUnavailable' -or $case.ok -ne $false -or
+                            @($case.missingRequirements).Count -eq 0 -or
+                            @($case.missingRequirements | Where-Object {
+                                $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) -or $_ -notin @($case.effectiveRequirements)
+                            }).Count -gt 0) { $validCases = $false; break }
+                        $skippedCases++
+                    }
+                    $qualifiedSkip = $validCases -and $passedCases -eq $counts.passed -and $skippedCases -eq $counts.skipped
+                }
+            }
+            $outcome = if ($qualifiedSkip) { 'skipped' } elseif ($errorMessage -or $null -eq $product -or -not $product.ok) { 'failed' } else { 'passed' }
+            $results += [pscustomobject]@{ id = $id; outcome = $outcome; json = $(if ($product) { $casePath } else { $null }); error = $errorMessage }
+            # Framework terminal results already include journal cleanup. Do not inspect/reset its world here.
+            Write-Host "${id}: $outcome; report: $casePath"
+            if ($outcome -eq 'failed' -and -not $ContinueOnFailure) { break }
+        }
+    } catch { $failure = ConvertTo-SanitizedText $_.Exception.Message }
+    finally {
+        if ($null -ne $ownership) {
+            try {
+                $lifecycle = Stop-OwnedClient -Ownership $ownership -KeepClientOpen:$KeepClientOpen
+                $lifecycle | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath (Join-Path $directory 'client-lifecycle.json') -Encoding utf8
+                if (-not $lifecycle.ok) { throw "Owned-client shutdown failed: $($lifecycle.errors -join '; ')" }
+            } catch { $failure = @($failure, (ConvertTo-SanitizedText $_.Exception.Message)) | Where-Object { $_ } | Join-String -Separator '; ' }
+        }
+    }
+    $ok = -not $failure -and @($results | Where-Object outcome -EQ 'failed').Count -eq 0 -and $results.Count -eq $RegressionSuite.Count
+    [pscustomobject]@{ ok = $ok; baseUrl = ConvertTo-SanitizedText $BaseUrl; results = $results; error = $failure }
+    if (-not $ok) { throw "Regression batch failed; see individual suite reports under $directory. $failure" }
+}
+
+if ($RegressionSuite.Count) {
+    Invoke-SharedRegression
+    return
+}
+if ($BaseUrl -or $KeepClientOpen) { throw "BaseUrl and KeepClientOpen require explicit RegressionSuite selection; manifest wrappers own their lifecycle." }
 
 $manifest = $null
 $matchingSuites = @()

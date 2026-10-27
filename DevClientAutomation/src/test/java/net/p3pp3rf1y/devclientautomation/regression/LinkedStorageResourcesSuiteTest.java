@@ -139,7 +139,7 @@ class LinkedStorageResourcesSuiteTest {
 			RegressionSuite suite = RegressionSuiteParser.parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8), new RegressionActionRegistry());
 
 			assertEquals("linked-storage-resources", suite.suiteId());
-			assertEquals(4, suite.tests().size());
+			assertEquals(5, suite.tests().size());
 			for (RegressionTest test : suite.tests()) {
 				assertTrue(test.steps().stream().anyMatch(step -> step.action().action().metadata().id().equals("assert.storageResources")));
 				if (!test.id().equals("storage-main-has-no-resource-capabilities")) {
