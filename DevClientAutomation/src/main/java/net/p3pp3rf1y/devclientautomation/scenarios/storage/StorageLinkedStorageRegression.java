@@ -43,6 +43,7 @@ import net.p3pp3rf1y.sophisticatedcore.init.ModCoreDataComponents;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.inventory.ItemStackKey;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.*;
+import net.p3pp3rf1y.sophisticatedcore.network.ItemStackReference;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.PrimaryMatch;
@@ -1373,7 +1374,8 @@ public final class StorageLinkedStorageRegression {
 				StackStorageWrapper wrapper = StackStorageWrapper.fromStack(Minecraft.getInstance().level.registryAccess(), stack);
 				require(wrapper.getContentsUuid().filter(fixture.groupId()::equals).isPresent(),
 						"Linked storage tooltip stack did not use its group UUID for contents lookup");
-				PacketDistributor.sendToServer(new RequestLinkedStorageContentsPayload(fixture.groupId(), -1L));
+				PacketDistributor.sendToServer(new RequestLinkedStorageContentsPayload(fixture.groupId(), -1L,
+						new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, fixture.inventorySlot(), "", "")));
 				return "";
 			});
 			waitForClientLinkedStorageTooltipContents(fixture);
