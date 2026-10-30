@@ -15,6 +15,29 @@ public final class VirtualInput {
 	private VirtualInput() {
 	}
 
+	/** Press once and let Minecraft's ordinary held-button processing run until release. */
+	public static void pressMouseButton(int button) {
+		if (button < 0 || button > 2 || VirtualInputState.heldMouseButton() >= 0) {
+			throw new IllegalStateException("Virtual mouse button is invalid or another button is already held");
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		VirtualInputState.setHeldMouseButton(button);
+		((MouseHandlerAccess) minecraft.mouseHandler).pressVirtualButton(minecraft.getWindow().handle(), new MouseButtonInfo(button, 0), 1);
+	}
+
+	public static void releaseMouseButton() {
+		int button = VirtualInputState.heldMouseButton();
+		if (button < 0) {
+			return;
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		try {
+			((MouseHandlerAccess) minecraft.mouseHandler).pressVirtualButton(minecraft.getWindow().handle(), new MouseButtonInfo(button, 0), 0);
+		} finally {
+			VirtualInputState.setHeldMouseButton(-1);
+		}
+	}
+
 	public static void move(double x, double y) {
 		Minecraft minecraft = Minecraft.getInstance();
 		MouseHandlerAccess mouse = (MouseHandlerAccess) minecraft.mouseHandler;
