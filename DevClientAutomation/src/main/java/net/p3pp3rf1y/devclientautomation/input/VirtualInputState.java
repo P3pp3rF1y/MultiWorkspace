@@ -5,8 +5,17 @@ import java.util.function.Supplier;
 /** Minecraft-local coordinates and modifiers; never an operating-system input device. */
 public final class VirtualInputState {
 	private static final ThreadLocal<Integer> MODIFIERS = new ThreadLocal<>();
+	private static int heldMouseButton = -1;
 
 	private VirtualInputState() {
+	}
+
+	public static int heldMouseButton() {
+		return heldMouseButton;
+	}
+
+	public static void setHeldMouseButton(int button) {
+		heldMouseButton = button;
 	}
 
 	public static double toWindow(double guiCoordinate, int windowSize, int guiSize) {

@@ -1,5 +1,6 @@
 package net.p3pp3rf1y.devclientautomation.input;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -13,6 +14,29 @@ import net.p3pp3rf1y.devclientautomation.mixin.MouseHandlerAccess;
 /** Client-thread input through production screen handlers, independent of window focus. */
 public final class VirtualInput {
 	private VirtualInput() {
+	}
+
+	/** Press once and let Minecraft's ordinary held-button processing run until release. */
+	public static void pressMouseButton(int button) {
+		if (button < InputConstants.MOUSE_BUTTON_LEFT || button > InputConstants.MOUSE_BUTTON_RIGHT || VirtualInputState.heldMouseButton() >= 0) {
+			throw new IllegalStateException("Virtual mouse button is invalid or another button is already held");
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		VirtualInputState.setHeldMouseButton(button);
+		minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), new MouseButtonInfo(button, 0), 1);
+	}
+
+	public static void releaseMouseButton() {
+		int button = VirtualInputState.heldMouseButton();
+		if (button < 0) {
+			return;
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		try {
+			minecraft.mouseHandler.onButton(minecraft.getWindow().handle(), new MouseButtonInfo(button, 0), 0);
+		} finally {
+			VirtualInputState.setHeldMouseButton(-1);
+		}
 	}
 
 	public static void move(double x, double y) {
