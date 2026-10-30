@@ -31,6 +31,17 @@ class BackgroundInputContractTest {
 			};
 			onPress.invoke(mixin, 0L, 0, 1, 0, background);
 			assertTrue(background.isCancelled());
+			CallbackInfo virtual = new CallbackInfo("onPress", true);
+			VirtualInputState.withVirtualMousePress(() -> {
+				assertDoesNotThrow(() -> onPress.invoke(mixin, 0L, 0, 1, 0, virtual));
+				assertFalse(virtual.isCancelled());
+			});
+			assertFalse(VirtualInputState.virtualMousePress());
+			assertThrows(IllegalStateException.class, () -> VirtualInputState.withVirtualMousePress(() -> {
+				assertTrue(VirtualInputState.virtualMousePress());
+				throw new IllegalStateException("callback failure");
+			}));
+			assertFalse(VirtualInputState.virtualMousePress());
 			System.setProperty(BackgroundInputPolicy.PROPERTY, "false");
 			CallbackInfo manual = new CallbackInfo("onPress", true);
 			onPress.invoke(mixin, 0L, 0, 1, 0, manual);

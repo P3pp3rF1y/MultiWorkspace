@@ -8,6 +8,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.ModList;
 import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.CleanupResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ConformanceResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ReportContext;
@@ -492,6 +493,11 @@ public final class RegressionCoordinator {
 			primaryCategory = category;
 			primaryFailure = detail;
 			if (executionContext != null) {
+				VirtualInput.releaseMouseButton();
+				executionContext.minecraft().options.keyAttack.setDown(false);
+				if (executionContext.minecraft().gameMode != null) {
+					executionContext.minecraft().gameMode.stopDestroyBlock();
+				}
 				executionContext.minecraft().options.keyShift.setDown(false);
 			}
 			clearBackgroundAttack("termination");

@@ -2,14 +2,31 @@ package net.p3pp3rf1y.devclientautomation.mixin;
 
 import net.minecraft.client.MouseHandler;
 import net.p3pp3rf1y.devclientautomation.input.BackgroundInputPolicy;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInputState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Installed before the first screen transition, including world loading and cleanup. */
 @Mixin(MouseHandler.class)
 public abstract class BackgroundMouseHandlerMixin {
+	@Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
+	private void preventNativeButtonInput(long window, int button, int action, int modifiers, CallbackInfo callback) {
+		if (BackgroundInputPolicy.enabled() && !VirtualInputState.virtualMousePress()) {
+			callback.cancel();
+		}
+	}
+
+	/** Logical capture for held world input, without changing the native cursor mode. */
+	@Inject(method = "isMouseGrabbed", at = @At("HEAD"), cancellable = true)
+	private void reportVirtualCapture(CallbackInfoReturnable<Boolean> callback) {
+		if (BackgroundInputPolicy.enabled() && VirtualInputState.heldMouseButton() >= 0) {
+			callback.setReturnValue(true);
+		}
+	}
+
 	@Inject(method = {"grabMouse", "releaseMouse"}, at = @At("HEAD"), cancellable = true)
 	private void preventNativeCursorModeChange(CallbackInfo callback) {
 		if (BackgroundInputPolicy.enabled()) {
@@ -24,10 +41,4 @@ public abstract class BackgroundMouseHandlerMixin {
 		}
 	}
 
-	@Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
-	private void preventNativeButtonInput(long window, int button, int action, int modifiers, CallbackInfo callback) {
-		if (BackgroundInputPolicy.enabled()) {
-			callback.cancel();
-		}
-	}
 }

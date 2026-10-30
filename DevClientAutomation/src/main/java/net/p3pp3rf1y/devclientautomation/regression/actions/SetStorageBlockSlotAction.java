@@ -11,18 +11,22 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class SetStorageBlockSlotAction extends TypedRegressionAction<SetStorageBlockSlotAction.Arguments> {
-	public record Arguments(int slot, String item, int count) {
+	public record Arguments(int slot, String item, int count, boolean allSlots) {
 	}
 
 	public SetStorageBlockSlotAction() {
-		super("storage.setBlockSlot", "1", Set.of("minecraft:client", "sophisticatedstorage"));
+		super("storage.setBlockSlot", "2", Set.of("minecraft:client", "sophisticatedstorage"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("slot", "item", "count"), description);
+		requireOnly(args, Set.of("slot", "item", "count", "allSlots"), description);
+		boolean allSlots = optionalBoolean(args, "allSlots", false, description);
+		if (allSlots && args.has("slot")) {
+			throw new IllegalArgumentException("Cannot combine slot and allSlots on " + description);
+		}
 		return new Arguments(optionalNonNegativeInt(args, "slot", 0, description), requireString(args, "item", description),
-				requirePositiveInt(args, "count", description));
+				requirePositiveInt(args, "count", description), allSlots);
 	}
 
 	@Override
@@ -52,7 +56,13 @@ public final class SetStorageBlockSlotAction extends TypedRegressionAction<SetSt
 					Item item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(arguments.item()))
 							.orElseThrow(() -> new IllegalArgumentException("Unknown storage item " + arguments.item()));
 					context.journal().recordBlock(player.serverLevel(), context.target());
-					storage.getStorageWrapper().getInventoryHandler().setStackInSlot(arguments.slot(), new ItemStack(item, arguments.count()));
+					if (arguments.allSlots()) {
+						for (int slot = 0; slot < storage.getStorageWrapper().getInventoryHandler().getSlots(); slot++) {
+							storage.getStorageWrapper().getInventoryHandler().setStackInSlot(slot, new ItemStack(item, arguments.count()));
+						}
+					} else {
+						storage.getStorageWrapper().getInventoryHandler().setStackInSlot(arguments.slot(), new ItemStack(item, arguments.count()));
+					}
 					storage.getStorageWrapper().getInventoryHandler().saveInventory();
 					storage.setChanged();
 					player.serverLevel().sendBlockUpdated(context.target(), storage.getBlockState(), storage.getBlockState(), 3);
