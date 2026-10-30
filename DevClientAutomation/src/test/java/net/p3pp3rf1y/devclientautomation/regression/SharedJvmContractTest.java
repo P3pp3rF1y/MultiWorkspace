@@ -42,7 +42,7 @@ class SharedJvmContractTest {
 			assert.linkedStorageBlock|1|minecraft:client,sophisticatedstorage
 			assert.menu|2|minecraft:client
 			assert.menuUpgradeLayout|1|minecraft:client,sophisticatedcore
-			assert.movingForgedRejected|1|minecraft:client,sophisticatedstorageinmotion
+			assert.movingForgedRejected|2|minecraft:client,sophisticatedstorageinmotion
 			assert.movingLinked|1|minecraft:client,sophisticatedstorageinmotion
 			assert.movingMenuPresentation|1|minecraft:client,sophisticatedstorageinmotion
 			assert.movingNestedLinkedIdentity|1|minecraft:client,sophisticatedstorageinmotion
@@ -131,7 +131,7 @@ class SharedJvmContractTest {
 			moving.setPresentation|1|minecraft:client,sophisticatedstorageinmotion
 			moving.setSlot|1|minecraft:client,sophisticatedstorageinmotion
 			moving.setUpgrade|1|minecraft:client,sophisticatedstorageinmotion
-			player.breakTargetBlock|1|minecraft:client
+			player.breakTargetBlock|2|minecraft:client
 			player.clearMainHand|1|minecraft:client
 			player.createMainHandItem|1|minecraft:client
 			player.openInventory|1|minecraft:client
@@ -147,7 +147,7 @@ class SharedJvmContractTest {
 			player.useTargetBlock|1|minecraft:client
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
-			storage.setBlockSlot|1|minecraft:client,sophisticatedstorage
+			storage.setBlockSlot|2|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
 			menu.clickSortControl
@@ -280,7 +280,7 @@ class SharedJvmContractTest {
 			""";
 	private static final Set<String> REVISION_TWO = Set.of("assert.inventoryCount", "assert.doubleChest", "assert.menu", "assert.settingsSelection",
 			"assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage",
-			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot");
+			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected");
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
@@ -290,6 +290,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
+			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
 			moving-linked-storage:boat-link-through-entity-interaction,minecart-link-through-entity-interaction,primary-tier-migrates-once-secondary-rejected,recoverable-boat-destruction-reopens-same-group,recoverable-minecart-destruction-reopens-same-group,horse-attach-and-drop-preserves-linked-carrier,nonrecoverable-secondary-detaches-without-erasing-group,removed-primary-pauses-authority-but-secondary-remains-usable,carried-primary-pauses-authority-but-secondary-remains-usable,forged-endpoint-and-tooltip-request-denied,limited-barrel-moving-links-with-compatible-profile,only-active-primary-runs-canonical-pickup-upgrade,packed-primary-pauses-pickup-secondary-menu-stays-usable,recovered-moving-carrier-places-original-linked-block,create-cart-mount-opens-original-linked-group,limited-barrel-mount-opens-linked-group,secondary-minecart-sees-boat-canonical-contents,serialized-moving-entity-reloads-same-canonical-group,moving-endpoints-share-upgrade-settings-and-display,removed-endpoint-invalidates-open-menu,moving-primary-open-menu-receives-live-slot-delta,moving-secondary-open-menu-receives-primary-slot-delta,mounted-open-menu-receives-live-slot-delta,linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot,linked-carrier-copy-preserves-identity-and-limited-profile
 			tier-upgrade-recipes:storage-tier-upgrade-recipe-linkage-matrix,moving-storage-tier-upgrade-recipe-linkage-matrix
@@ -369,8 +370,8 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(26, suites.size());
-		assertEquals(124, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(27, suites.size());
+		assertEquals(130, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(127, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
