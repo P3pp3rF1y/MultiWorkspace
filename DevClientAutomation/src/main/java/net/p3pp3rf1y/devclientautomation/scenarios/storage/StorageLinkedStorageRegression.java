@@ -48,6 +48,8 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointRole;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageService;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageSnapshotProfile;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.RequestLinkedStorageContentsPayload;
+import net.p3pp3rf1y.sophisticatedcore.network.ItemStackReference;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilterType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.PrimaryMatch;
@@ -2393,6 +2395,8 @@ public final class StorageLinkedStorageRegression {
 				require(StorageItemClient.getTooltipImage(carrier) instanceof LinkedStorageTooltip tooltip
 						&& tooltip.role() == LinkedStorageEndpointRole.PRIMARY && tooltip.groupId().equals(fixture.endpoint().groupId()),
 						"Production linked tooltip did not expose the PRIMARY role and canonical group");
+				ClientPacketDistributor.sendToServer(new RequestLinkedStorageContentsPayload(fixture.endpoint().groupId(), -1L,
+						new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, fixture.inventorySlot(), "", "")));
 				return true;
 			});
 			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
