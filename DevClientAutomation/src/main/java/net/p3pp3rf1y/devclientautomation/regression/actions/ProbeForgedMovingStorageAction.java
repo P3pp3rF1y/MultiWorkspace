@@ -10,6 +10,7 @@ import net.p3pp3rf1y.sophisticatedcore.linkedstorage.ClientLinkedStorageContents
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageStackData;
+import net.p3pp3rf1y.sophisticatedcore.network.ItemStackReference;
 import net.p3pp3rf1y.sophisticatedcore.network.PacketHandler;
 import net.p3pp3rf1y.sophisticatedcore.network.RequestLinkedStorageContentsMessage;
 import net.p3pp3rf1y.sophisticatedcore.util.NBTHelper;
@@ -26,7 +27,7 @@ public final class ProbeForgedMovingStorageAction extends TypedRegressionAction<
 	}
 
 	public ProbeForgedMovingStorageAction() {
-		super("assert.movingForgedRejected", "1", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
+		super("assert.movingForgedRejected", "2", Set.of("minecraft:client", "sophisticatedstorageinmotion"));
 	}
 
 	@Override
@@ -56,6 +57,7 @@ public final class ProbeForgedMovingStorageAction extends TypedRegressionAction<
 		private BlockPos remoteSupport;
 		private BlockState originalRemoteSupport;
 		private int requestTick = -1;
+		private int nearbyRequestTick = -1;
 		private int inaccessibleRequestTick = -1;
 
 		private Execution(RegressionExecutionContext context, Arguments arguments) {
@@ -102,7 +104,8 @@ public final class ProbeForgedMovingStorageAction extends TypedRegressionAction<
 				if (ClientLinkedStorageContents.getContents(nonexistentGroup).isPresent()) {
 					return fail("Forged group already has client contents");
 				}
-				PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(nonexistentGroup, -1L));
+				PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(nonexistentGroup, -1L,
+						new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, Integer.MAX_VALUE, "", "")));
 				requestTick = context.minecraft().player.tickCount;
 			}
 			if (context.minecraft().player.tickCount - requestTick < 30) {
@@ -110,6 +113,18 @@ public final class ProbeForgedMovingStorageAction extends TypedRegressionAction<
 			}
 			if (ClientLinkedStorageContents.getContents(nonexistentGroup).isPresent()) {
 				return fail("Forged tooltip request disclosed a linked group snapshot");
+			}
+			if (nearbyRequestTick < 0) {
+				ClientLinkedStorageContents.clear();
+				PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(authenticGroup, -1L,
+						new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, Integer.MAX_VALUE, "", "")));
+				nearbyRequestTick = context.minecraft().player.tickCount;
+			}
+			if (context.minecraft().player.tickCount - nearbyRequestTick < 30) {
+				return RegressionActionProgress.WAITING;
+			}
+			if (ClientLinkedStorageContents.getContents(authenticGroup).isPresent()) {
+				return fail("Nearby entity authorized a linked tooltip without a valid item reference");
 			}
 			if (moved == null) {
 				moved = context.onServer(player -> {
@@ -132,7 +147,8 @@ public final class ProbeForgedMovingStorageAction extends TypedRegressionAction<
 			}
 			if (inaccessibleRequestTick < 0) {
 				ClientLinkedStorageContents.clear();
-				PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(authenticGroup, -1L));
+				PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(authenticGroup, -1L,
+						new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, Integer.MAX_VALUE, "", "")));
 				inaccessibleRequestTick = context.minecraft().player.tickCount;
 			}
 			if (context.minecraft().player.tickCount - inaccessibleRequestTick < 30) {

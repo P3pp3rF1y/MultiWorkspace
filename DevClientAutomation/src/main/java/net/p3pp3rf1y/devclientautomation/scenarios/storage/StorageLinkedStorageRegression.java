@@ -33,6 +33,9 @@ import net.p3pp3rf1y.devclientautomation.bridge.AutomationRuntime;
 import net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;
 import net.p3pp3rf1y.sophisticatedcore.inventory.ItemStackKey;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.*;
+import net.p3pp3rf1y.sophisticatedcore.network.ItemStackReference;
+import net.p3pp3rf1y.sophisticatedcore.network.PacketHandler;
+import net.p3pp3rf1y.sophisticatedcore.network.RequestLinkedStorageContentsMessage;
 import net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
@@ -1105,9 +1108,14 @@ public final class StorageLinkedStorageRegression {
 					return false;
 				}
 				Object tooltip = storageItem.getTooltipImage(stack).orElse(null);
-				return tooltip instanceof LinkedStorageTooltip linkedTooltip && linkedTooltip.role() == LinkedStorageEndpointRole.PRIMARY
+				boolean validTooltip = tooltip instanceof LinkedStorageTooltip linkedTooltip && linkedTooltip.role() == LinkedStorageEndpointRole.PRIMARY
 						&& linkedTooltip.groupId().equals(fixture.groupId())
 						&& new StackStorageWrapper(stack).getContentsUuid().filter(fixture.groupId()::equals).isPresent();
+				if (validTooltip) {
+					PacketHandler.INSTANCE.sendToServer(new RequestLinkedStorageContentsMessage(fixture.groupId(), -1L,
+							new ItemStackReference(ItemStackReference.PLAYER_INVENTORY, fixture.inventorySlot(), "", "")));
+				}
+				return validTooltip;
 			})) {
 				return;
 			}

@@ -16,6 +16,10 @@ if (requestedTaskNames.any { it == ':SophisticatedStorage:test' || it == 'Sophis
 	testPrepTaskNames.addAll([':Reliquary:compileJava', ':SophisticatedBackpacks:compileJava'])
 }
 
+if (requestedTaskNames.any { it in [':SophisticatedStorageInMotion:test', 'SophisticatedStorageInMotion:test', ':SophisticatedStorageInMotion:recipeViewerRegressionTest', 'SophisticatedStorageInMotion:recipeViewerRegressionTest', ':SophisticatedItemActions:test', 'SophisticatedItemActions:test'] }) {
+	testPrepTaskNames.addAll([':Reliquary:compileJava', ':SophisticatedBackpacks:compileJava', ':SophisticatedStorage:compileJava'])
+}
+
 testPrepTaskNames = testPrepTaskNames.unique()
 if (!testPrepTaskNames.isEmpty() && !testPrepTaskNames.every { requestedTaskNames.contains(it) }) {
 	gradle.startParameter.setTaskNames(testPrepTaskNames + requestedTaskNames)
