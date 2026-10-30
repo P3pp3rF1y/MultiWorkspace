@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.CleanupResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ConformanceResult;
 import net.p3pp3rf1y.devclientautomation.regression.RegressionResultModel.ReportContext;
@@ -494,6 +495,11 @@ public final class RegressionCoordinator {
 			primaryCategory = category;
 			primaryFailure = detail;
 			if (executionContext != null) {
+				VirtualInput.releaseMouseButton();
+				executionContext.minecraft().options.keyAttack.setDown(false);
+				if (executionContext.minecraft().gameMode != null) {
+					executionContext.minecraft().gameMode.stopDestroyBlock();
+				}
 				executionContext.minecraft().options.keyShift.setDown(false);
 			}
 			activeAction = null;
