@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "storage-break-drop-limit",
+  "requires": [],
+  "isolation": "testCell",
+  "fixtures": {
+    "full-barrel": [
+      {"id": "barrel", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:diamond_barrel"}},
+      {"id": "place", "action": "player.placeHeldBlock"},
+      {"id": "await", "action": "await.storageBlock"},
+      {"id": "fill", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 64, "allSlots": true}},
+      {"id": "verify-count", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 6912}}
+    ],
+    "full-chest": [
+      {"id": "chest", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:diamond_chest"}},
+      {"id": "place", "action": "player.placeHeldBlock"},
+      {"id": "await", "action": "await.storageBlock"},
+      {"id": "fill", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 64, "allSlots": true}},
+      {"id": "verify-count", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 6912}}
+    ],
+    "full-double-chest": [
+      {"id": "first", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:diamond_chest"}},
+      {"id": "place-first", "action": "player.placeHeldBlock"},
+      {"id": "second", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:diamond_chest"}},
+      {"id": "place-second", "action": "player.placeHeldBlock", "args": {"offset": [0,0,1]}},
+      {"id": "verify-double", "action": "assert.doubleChest"},
+      {"id": "fill", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 64, "allSlots": true}},
+      {"id": "verify-count", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 13824}}
+    ],
+    "link-surviving-endpoint": [
+      {"id": "survivor", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:diamond_barrel", "offset": [2,0,0]}},
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+      {"id": "create-group", "action": "player.useHeldItemOnTarget"},
+      {"id": "link-survivor", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 2}},
+      {"id": "axe", "action": "player.createMainHandItem", "args": {"item": "minecraft:netherite_axe"}}
+    ],
+    "verify-surviving-single-inventory": [
+      {"id": "contents", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,0], "item": "minecraft:diamond", "count": 6912}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "break-full-linked-barrel-preserves-shared-inventory",
+      "tags": ["linked-storage", "break", "drop-limit"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "full", "fixture": "full-barrel"},
+        {"id": "linked", "fixture": "link-surviving-endpoint"},
+        {"id": "break", "action": "player.breakTargetBlock"},
+        {"id": "preserved", "fixture": "verify-surviving-single-inventory"}
+      ]
+    },
+    {
+      "id": "break-full-linked-chest-preserves-shared-inventory",
+      "tags": ["linked-storage", "break", "drop-limit", "chest"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "full", "fixture": "full-chest"},
+        {"id": "linked", "fixture": "link-surviving-endpoint"},
+        {"id": "break", "action": "player.breakTargetBlock"},
+        {"id": "preserved", "fixture": "verify-surviving-single-inventory"}
+      ]
+    },
+    {
+      "id": "break-full-linked-double-chest-main-preserves-shared-inventory",
+      "tags": ["linked-storage", "break", "drop-limit", "double-chest"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "full", "fixture": "full-double-chest"},
+        {"id": "linked", "fixture": "link-surviving-endpoint"},
+        {"id": "break-main", "action": "player.breakTargetBlock"},
+        {"id": "preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,0], "item": "minecraft:diamond", "count": 13824}}
+      ]
+    },
+    {
+      "id": "break-full-linked-double-chest-other-preserves-shared-inventory",
+      "tags": ["linked-storage", "break", "drop-limit", "double-chest"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "full", "fixture": "full-double-chest"},
+        {"id": "linked", "fixture": "link-surviving-endpoint"},
+        {"id": "break-other-half", "action": "player.breakTargetBlock", "args": {"offset": [0,0,1]}},
+        {"id": "preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,0], "item": "minecraft:diamond", "count": 13824}}
+      ]
+    },
+    {
+      "id": "break-full-ordinary-barrel-is-blocked",
+      "tags": ["break", "drop-limit", "runtimeConformance"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "full", "fixture": "full-barrel"},
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "axe", "action": "player.createMainHandItem", "args": {"item": "minecraft:netherite_axe"}},
+        {"id": "blocked", "action": "player.breakTargetBlock", "args": {"broken": false}},
+        {"id": "preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 6912}}
+      ]
+    },
+    {
+      "id": "break-small-ordinary-barrel-succeeds",
+      "tags": ["break", "drop-limit", "runtimeConformance"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "barrel", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:barrel"}},
+        {"id": "place", "action": "player.placeHeldBlock"},
+        {"id": "await", "action": "await.storageBlock"},
+        {"id": "fill", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "axe", "action": "player.createMainHandItem", "args": {"item": "minecraft:netherite_axe"}},
+        {"id": "break", "action": "player.breakTargetBlock"}
+      ]
+    }
+  ]
+}
