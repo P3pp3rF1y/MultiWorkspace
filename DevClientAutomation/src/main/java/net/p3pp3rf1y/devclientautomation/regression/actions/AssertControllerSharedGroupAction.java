@@ -10,21 +10,22 @@ import net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity;
 import javax.annotation.Nullable;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertControllerSharedGroupAction extends TypedRegressionAction<AssertControllerSharedGroupAction.Arguments> {
-	public record Arguments(int members, int slots, int offsetZ) {
+	public record Arguments(int members, int slots, int offsetZ, boolean requireRemoteMembership) {
 	}
 
 	public AssertControllerSharedGroupAction() {
-		super("assert.controllerSharedGroup", "1", Set.of("minecraft:client", "sophisticatedstorage"));
+		super("assert.controllerSharedGroup", "2", Set.of("minecraft:client", "sophisticatedstorage"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("members", "slots", "offsetZ"), description);
+		requireOnly(args, Set.of("members", "slots", "offsetZ", "requireRemoteMembership"), description);
 		return new Arguments(optionalPositiveInt(args, "members", 2, description), optionalPositiveInt(args, "slots", 27, description),
-				optionalNonNegativeInt(args, "offsetZ", 0, description));
+				optionalNonNegativeInt(args, "offsetZ", 0, description), optionalBoolean(args, "requireRemoteMembership", false, description));
 	}
 
 	@Override
@@ -48,10 +49,25 @@ public final class AssertControllerSharedGroupAction extends TypedRegressionActi
 							throw RegressionActionFailure
 									.assertion("Expected one canonical controller range and " + arguments.members() + " visual members: " + saved);
 						}
+						UUID groupId = null;
 						for (int z = 0; z < arguments.members(); z++) {
-							if (!(player.serverLevel().getBlockEntity(context.target().south(z + arguments.offsetZ())) instanceof StorageBlockEntity storage)
+							BlockPos storagePos = context.target().south(z + arguments.offsetZ());
+							if (!(player.serverLevel().getBlockEntity(storagePos) instanceof StorageBlockEntity storage)
 									|| storage.getControllerPos().filter(pos::equals).isEmpty()) {
 								throw RegressionActionFailure.assertion("Loaded visual member lost controller membership");
+							}
+							if (arguments.requireRemoteMembership()) {
+								if (!storage.isLinked() || !controller.isStorageConnected(storagePos) || !controller.getLinkedBlocks().contains(storagePos)) {
+									throw RegressionActionFailure.assertion("Linked visual member lost remote controller membership");
+								}
+								if (storage.getLinkedStorageEndpointData() == null) {
+									throw RegressionActionFailure.assertion("Linked visual member lost its shared group endpoint");
+								}
+								if (groupId == null) {
+									groupId = storage.getLinkedStorageEndpointData().groupId();
+								} else if (!groupId.equals(storage.getLinkedStorageEndpointData().groupId())) {
+									throw RegressionActionFailure.assertion("Linked visual members do not share one group");
+								}
 							}
 						}
 					});
