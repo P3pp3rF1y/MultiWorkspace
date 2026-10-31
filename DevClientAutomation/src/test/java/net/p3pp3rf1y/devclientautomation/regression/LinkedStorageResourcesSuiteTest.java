@@ -61,11 +61,17 @@ class LinkedStorageResourcesSuiteTest {
 								test.steps().stream().filter(step -> step.action().action().metadata().id().equals("assert.canonicalCapturedMobs")).count());
 					}
 				} else {
-					assertEquals(1, suite.tests().size());
+					assertEquals(3, suite.tests().size());
 					assertTrue(actions.contains("player.useHeldItemOnTarget"));
 					assertEquals(3, actions.stream().filter("fixture.controller.reload"::equals).count());
 					assertTrue(actions.contains("player.breakTargetBlock"));
 					assertTrue(actions.contains("assert.controllerSharedGroup"));
+					for (RegressionTest test : suite.tests().subList(1, 3)) {
+						List<String> remoteActions = test.steps().stream().map(step -> step.action().action().metadata().id()).toList();
+						assertTrue(remoteActions.contains("player.useHeldItemOnTarget"));
+						assertTrue(remoteActions.contains("assert.controllerSharedGroup"));
+						assertTrue(remoteActions.contains("assert.inventoryCount"));
+					}
 				}
 			}
 		}
