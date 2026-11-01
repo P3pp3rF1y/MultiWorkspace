@@ -100,6 +100,7 @@ class SharedJvmContractTest {
 			fixture.region.reset|3|minecraft:client
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
+			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
 			menu.captureLinkedRevision|1|minecraft:client
 			menu.clickCapturedMob|1|minecraft:client,sophisticatedbackpacks
 			menu.clickPlayerInventorySlot|1|minecraft:client
@@ -115,6 +116,7 @@ class SharedJvmContractTest {
 			menu.quickMoveBackpackStorageSlot|1|minecraft:client,sophisticatedbackpacks
 			menu.quickMovePlayerInventorySlot|1|minecraft:client,sophisticatedbackpacks
 			menu.setCraftingRefill|1|minecraft:client,sophisticatedcore
+			menu.setUpgradeTab|1|minecraft:client,sophisticatedcore
 			moving.destroy|1|minecraft:client,sophisticatedstorageinmotion
 			moving.probePackedPrimary|1|minecraft:client,sophisticatedstorageinmotion
 			moving.probePickup|1|minecraft:client,sophisticatedstorageinmotion
@@ -137,6 +139,7 @@ class SharedJvmContractTest {
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
 			player.useTargetBlock|1|minecraft:client
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
+			recipeviewer.transferRecipe|1|jei,minecraft:client
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
 			storage.setBlockSlot|2|minecraft:client,sophisticatedstorage
 			""";
@@ -167,10 +170,11 @@ class SharedJvmContractTest {
 			linked-storage-interoperability:linked-shulker-stashes-into-backpack-canonical-inventory,storage-primary-crafts-backpack-secondary
 			linked-storage-mob-catcher:canonical-capture-and-menu-release,captured-mob-shows-in-barrel-secondary,captured-mob-shows-in-chest-secondary,captured-mob-shows-in-shulker-secondary
 			linked-storage-settings:settings-edit-actions-reject-missing-screen,barrel-primary-backpack-settings,chest-primary-backpack-settings,shulker-primary-backpack-settings,backpack-primary-barrel-settings,backpack-primary-chest-settings,backpack-primary-shulker-settings,backpack-primary-boat-settings,backpack-primary-minecart-settings,backpack-primary-llama-settings
+			jei-recipe-transfer:backpack-empty-storage-single-closed,backpack-empty-player-max-open,backpack-partial-storage-max-open,backpack-partial-player-single-closed,storage-empty-storage-single-closed,storage-empty-player-max-open,storage-partial-storage-max-open,storage-partial-player-single-closed,transfer-rejects-invalid-screen,transfer-rejects-unknown-recipe
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
 			menu.clickSortControl assert.sortMode
-			menu.clickStorageSettings menu.clickSettingsControl recipeviewer.dropSettingsGhost assert.settingsSelection assert.linkedSettings
+			menu.clickStorageSettings menu.clickSettingsControl recipeviewer.dropSettingsGhost recipeviewer.transferRecipe assert.settingsSelection assert.linkedSettings
 			fixture.entity.spawnPig player.sneakUseFixtureEntity assert.canonicalCapturedMobs menu.clickCapturedMob player.useHeldItemOnTarget
 			capability.storageResourceCache fixture.linked.replaceRoot fixture.backpack.setUpgrade capability.transferStorageResource assert.storageResources
 			assert.storageTierUpgradeRecipe assert.movingStorageTierUpgradeRecipe fixture.region.reset player.reset assert.playerInventoryBaseline
@@ -188,11 +192,11 @@ class SharedJvmContractTest {
 			assert.linkedStorageBlock assert.createMountedLinkedStorage menu.captureLinkedRevision assert.linkedMenuDelta assert.linkedMenuSettings
 			menu.jukeboxPlayback assert.linkedJukeboxPlayback assert.movingPresentation assert.movingUnlinked assert.movingForgedRejected
 			fixture.moving.captureNestedLinkedCarrier assert.movingNestedLinkedIdentity assert.movingStorageCompatibilityProfile storage.setBlockSlot
-			player.clearMainHand player.useHeldItem player.useTargetBlock await.menu assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
+			fixture.storage.setUpgrade player.clearMainHand player.useHeldItem player.useTargetBlock await.menu assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
 			assert.linkedItemContents assert.canonicalBackpackTemplate player.sendCommand assert.controllerSharedGroup fixture.controller.reload
 			fixture.chunk.reloadBlockEntities await.playerCraftingResult assert.doubleChest fixture.storage.createLockTool player.openInventory
 			fixture.player.setGameMode menu.clickPlayerInventorySlot menu.clickStorageSlot menu.clickUpgradeSlot menu.openUpgradeTab
-			menu.setCraftingRefill assert.upgradeSlot assert.movingMenuPresentation menu.clickSlot
+			menu.setUpgradeTab menu.setCraftingRefill assert.upgradeSlot assert.movingMenuPresentation menu.clickSlot
 			menu.quickMovePlayerInventorySlot menu.quickMoveBackpackStorageSlot menu.close await.menuClosed
 			""";
 	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.settingsSelection", "assert.menu",
@@ -203,8 +207,8 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(125, all.size());
-		assertEquals(125, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(128, all.size());
+		assertEquals(128, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -229,6 +233,7 @@ class SharedJvmContractTest {
 			}
 		}
 		Map<String, String> bindings = Map.ofEntries(Map.entry("recipeviewer.dropSettingsGhost", "{}"),
+				Map.entry("recipeviewer.transferRecipe", "{\"recipeResourceID\":\"minecraft:stick\"}"),
 				Map.entry("assert.storageTierUpgradeRecipe", "{\"form\":\"normal\",\"recipe\":\"shaped\",\"linkage\":\"unlinked\"}"),
 				Map.entry("assert.movingStorageTierUpgradeRecipe", "{\"carrier\":\"boat\",\"recipe\":\"shaped\",\"linkage\":\"unlinked\"}"),
 				Map.entry("fixture.create.mountLinkedStorage", "{\"saveAs\":\"mounted\"}"),
@@ -237,9 +242,29 @@ class SharedJvmContractTest {
 				Map.entry("fixture.create.setMountedSlot", "{\"ref\":\"mounted\",\"item\":\"minecraft:stone\",\"count\":1}"),
 				Map.entry("assert.createMountedLinkedStorage", "{\"ref\":\"mounted\",\"count\":1,\"checkPresentation\":true}"));
 		bindings.forEach((id, args) -> assertDoesNotThrow(() -> registry.require(id).bind(json(args), id)));
+		assertInstanceOf(LazyOptionalRegressionAction.class, registry.require("recipeviewer.transferRecipe"));
 		for (String id : List.of("fixture.create.mountLinkedStorage", "fixture.create.mountBackpack", "create.disassembleBackpack",
 				"fixture.create.setMountedBackpackSlot", "fixture.create.setMountedSlot", "assert.createMountedLinkedStorage")) {
 			assertInstanceOf(LazyOptionalRegressionAction.class, registry.require(id));
+		}
+	}
+
+	@Test
+	void bindValidatesRecipeTransferProxyWithoutLoadingJei() {
+		var proxy = new RegressionActionRegistry().require("recipeviewer.transferRecipe");
+		assertInstanceOf(LazyOptionalRegressionAction.class, proxy);
+		assertDoesNotThrow(() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\"}"), "recipeviewer.transferRecipe"));
+		assertDoesNotThrow(() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"maxTransfer\":true}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":3}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"not a resource id\"}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class,
+				() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"extra\":true}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class,
+				() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"maxTransfer\":1}"), "recipeviewer.transferRecipe"));
+		for (String invalid : List.of("", ":stick", "minecraft:")) {
+			assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"" + invalid + "\"}"), "recipeviewer.transferRecipe"),
+					invalid);
 		}
 	}
 
@@ -248,12 +273,12 @@ class SharedJvmContractTest {
 		var suites = RegressionCoordinator.loadSuites();
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
-		assertEquals(26, suites.size());
-		assertEquals(128, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(27, suites.size());
+		assertEquals(138, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(125, actions.size());
+		assertEquals(128, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(10, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog

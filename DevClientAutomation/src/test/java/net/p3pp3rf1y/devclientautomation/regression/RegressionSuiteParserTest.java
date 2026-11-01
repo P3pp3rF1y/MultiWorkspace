@@ -59,8 +59,8 @@ class RegressionSuiteParserTest {
 					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
 					"linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json",
 					"linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-storage-interoperability.json",
-					"linked-storage-mob-catcher.json", "linked-storage-settings.json"), indexedPaths);
-			assertEquals(26, indexedPaths.size());
+					"linked-storage-mob-catcher.json", "linked-storage-settings.json", "jei-recipe-transfer.json"), indexedPaths);
+			assertEquals(27, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
 			try (var resources = Files.list(resourceDirectory)) {
@@ -68,7 +68,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(27, physicalJson.size());
+				assertEquals(28, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -93,7 +93,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(126, testCount);
+			assertEquals(138, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}
