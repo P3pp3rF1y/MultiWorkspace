@@ -111,6 +111,8 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingStorageUpgr
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerGameModeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageBlockSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageUpgradeAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnFixturePigAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnMovingStorageAction;
@@ -130,8 +132,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public final class RegressionActionRegistry {
+	// Matches Identifier.parse's namespace and path character sets without loading Minecraft in the JVM-only schema binder.
+	private static final Pattern RECIPE_RESOURCE_LOCATION = Pattern.compile("(?:[a-z0-9_.-]*:)?[a-z0-9/._-]*");
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
@@ -140,6 +145,7 @@ public final class RegressionActionRegistry {
 		register(new ClickStorageSettingsAction());
 		register(new ClickSettingsControlAction());
 		register(lazyJeiAction());
+		register(lazyJeiTransferAction());
 		register(new AssertSettingsSelectionAction());
 		register(new AssertLinkedSettingsAction());
 		register(new SpawnFixturePigAction());
@@ -250,6 +256,7 @@ public final class RegressionActionRegistry {
 		register(new AssertNestedMovingStorageIdentityAction());
 		register(new AssertMovingStorageCompatibilityProfileAction());
 		register(new SetStorageBlockSlotAction());
+		register(new SetStorageUpgradeAction());
 		register(new ClearMainHandAction());
 		register(new UseHeldItemAction());
 		register(new UseTargetBlockAction());
@@ -272,6 +279,7 @@ public final class RegressionActionRegistry {
 		register(new ClickStorageMenuSlotAction());
 		register(new ClickUpgradeSlotAction());
 		register(new OpenUpgradeTabAction());
+		register(new SetUpgradeTabAction());
 		register(new SetCraftingRefillAction());
 		register(new AssertUpgradeSlotAction());
 		register(new AssertMovingMenuPresentationAction());
@@ -313,6 +321,18 @@ public final class RegressionActionRegistry {
 				"net.p3pp3rf1y.devclientautomation.regression.actions.DropSettingsGhostAction", (args, description) -> {
 					LazyOptionalRegressionAction.requireOnly(args, Set.of("slot"), description);
 					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "slot", description);
+				});
+	}
+
+	private static RegressionAction lazyJeiTransferAction() {
+		return new LazyOptionalRegressionAction("recipeviewer.transferRecipe", "1", Set.of("minecraft:client", "jei"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.TransferRecipeAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("recipeResourceID", "maxTransfer"), description);
+					LazyOptionalRegressionAction.requireString(args, "recipeResourceID", description);
+					if (!RECIPE_RESOURCE_LOCATION.matcher(args.get("recipeResourceID").getAsString()).matches())
+						throw new IllegalArgumentException("Argument recipeResourceID on " + description + " must be a resource location");
+					if (args.has("maxTransfer") && (!args.get("maxTransfer").isJsonPrimitive() || !args.getAsJsonPrimitive("maxTransfer").isBoolean()))
+						throw new IllegalArgumentException("Argument maxTransfer on " + description + " must be boolean");
 				});
 	}
 

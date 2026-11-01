@@ -8,7 +8,8 @@
     "ContainerScreenAccess",
     "BackgroundMouseHandlerMixin",
     "BackgroundGameRendererMixin",
-    "BackgroundSoundVolumeMixin"
+    "BackgroundSoundVolumeMixin",
+    "VirtualModifiersMixin"
   ],
   "injectors": { "defaultRequire": 1 }
 }
