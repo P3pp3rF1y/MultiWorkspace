@@ -106,7 +106,7 @@ class SharedJvmContractTest {
 			fixture.moving.spawn|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
-			fixture.region.reset|1|minecraft:client
+			fixture.region.reset|3|minecraft:client
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
@@ -330,7 +330,8 @@ class SharedJvmContractTest {
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
-		assertTrue(actions.values().stream().allMatch(metadata -> metadata.revision().equals("1") || metadata.revision().equals("2")));
+		assertTrue(actions.values().stream()
+				.allMatch(metadata -> metadata.revision().equals("1") || metadata.revision().equals("2") || metadata.revision().equals("3")));
 		assertTrue(actions.values().stream()
 				.allMatch(metadata -> metadata.dependencies().contains("minecraft:client") || metadata.id().equals("recipeviewer.dropSettingsGhost")));
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", actions.keySet()));
