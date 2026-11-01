@@ -20,7 +20,7 @@ class SharedJvmContractTest {
 			assert.canonicalCapturedMobs|1|minecraft:client,sophisticatedbackpacks
 			assert.controllerLinkGroups|1|minecraft:client,sophisticatedstorage
 			assert.controllerLinkLine|1|minecraft:client,sophisticatedstorage
-			assert.controllerSharedGroup|1|minecraft:client,sophisticatedstorage
+			assert.controllerSharedGroup|2|minecraft:client,sophisticatedstorage
 			assert.createMountedLinkedStorage|1|minecraft:client,sophisticatedstoragecreateintegration
 			assert.doubleChest|2|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
@@ -133,7 +133,7 @@ class SharedJvmContractTest {
 			player.sneakUseFixtureEntity|1|minecraft:client
 			player.useControllerLinkTool|1|minecraft:client,sophisticatedstorage
 			player.useHeldItem|1|minecraft:client
-			player.useHeldItemOnTarget|1|minecraft:client
+			player.useHeldItemOnTarget|2|minecraft:client
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
 			player.useTargetBlock|1|minecraft:client
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
@@ -160,7 +160,7 @@ class SharedJvmContractTest {
 			linked-storage-resources:item-fluid-transfer-retains-linked-endpoint-with-own-group-pump,placed-backpack-canonical-resources,boat-minecart-share-resources-after-reload,horse-backpack-resources,storage-main-has-no-resource-capabilities
 			linked-storage-menu:double-chest-primary-backpack-secondary,barrel-primary-backpack-secondary,chest-primary-backpack-secondary,shulker-primary-backpack-secondary,backpack-primary-barrel-shows-tank-and-battery-controls,backpack-primary-chest-upgrade-layout-stays-synchronized,backpack-primary-shulker-upgrade-layout-stays-synchronized
 			linked-storage-sorting:sort-actions-reject-missing-menu,linked-barrels-retain-sort-mode-on-reopen,backpack-primary-sort-mode-seeds-linked-barrel
-			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload
+			linked-storage-controller-lifecycle:shared-group-retains-all-visual-members-across-controller-reload,remote-before-group-relinks-controller,group-before-remote-links-controller
 			linked-storage-restart:prepare-canonical-mob-and-stashed-items,verify-canonical-mob-and-stashed-items-after-server-restart
 			linked-storage-inception:canonical-installed-inception-rejects-disabled-and-enabled-child
 			linked-storage-fluid-lock:locked-barrel-filters-canonical-fluid,locked-chest-filters-canonical-fluid,locked-shulker-filters-canonical-fluid
@@ -196,7 +196,8 @@ class SharedJvmContractTest {
 			""";
 	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.settingsSelection", "assert.menu",
 			"assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage",
-			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected");
+			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected",
+			"assert.controllerSharedGroup", "player.useHeldItemOnTarget");
 
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
@@ -246,7 +247,7 @@ class SharedJvmContractTest {
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
 		assertEquals(26, suites.size());
-		assertEquals(126, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(128, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
