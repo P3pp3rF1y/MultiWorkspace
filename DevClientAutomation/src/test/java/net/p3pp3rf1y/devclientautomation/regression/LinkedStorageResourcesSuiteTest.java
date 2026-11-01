@@ -49,9 +49,15 @@ class LinkedStorageResourcesSuiteTest {
 			assertEquals(3, actions(mobs.get(i)).stream().filter("assert.canonicalCapturedMobs"::equals).count());
 		}
 		var controller = suite("linked-storage-controller-lifecycle").tests();
-		assertEquals(1, controller.size());
+		assertEquals(3, controller.size());
 		assertTrue(actions(controller.get(0)).containsAll(Set.of("player.useHeldItemOnTarget", "player.breakTargetBlock", "assert.controllerSharedGroup")));
 		assertEquals(3, actions(controller.get(0)).stream().filter("fixture.controller.reload"::equals).count());
+		for (RegressionTest test : controller.subList(1, 3)) {
+			List<String> remoteActions = actions(test);
+			assertTrue(remoteActions.contains("player.useHeldItemOnTarget"));
+			assertTrue(remoteActions.contains("assert.controllerSharedGroup"));
+			assertTrue(remoteActions.contains("assert.inventoryCount"));
+		}
 	}
 
 	@Test

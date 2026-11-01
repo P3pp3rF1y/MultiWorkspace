@@ -12,9 +12,13 @@ class StorageResourcesActionContractTest {
 		invalid(new SendPlayerCommandAction(), "{\"command\":\"/sbp template list\"}");
 		invalid(new AssertCanonicalBackpackTemplateAction(), "{\"template\":\"devclientautomation:canonical_export\",\"expectation\":\"other\"}");
 		bind(new ReloadFixtureControllerAction(), "{}");
-		bind(new AssertControllerSharedGroupAction(), "{}");
+		AssertControllerSharedGroupAction.Arguments sharedGroup = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(new AssertControllerSharedGroupAction(), "{\"requireRemoteMembership\":true}"),
+				AssertControllerSharedGroupAction.Arguments.class);
+		assertTrue(sharedGroup.requireRemoteMembership());
 		invalid(new ReloadFixtureControllerAction(), "{\"offsetX\":-1}");
 		invalid(new AssertControllerSharedGroupAction(), "{\"members\":0}");
+		invalid(new AssertControllerSharedGroupAction(), "{\"requireRemoteMembership\":\"true\"}");
 		bind(new ClickPlayerInventorySlotAction(), "{\"area\":\"crafting\",\"slot\":3}");
 		bind(new ClickPlayerInventorySlotAction(), "{\"area\":\"result\",\"slot\":0}");
 		bind(new AwaitPlayerCraftingResultAction(), "{}");
