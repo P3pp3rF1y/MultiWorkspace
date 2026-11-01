@@ -101,7 +101,7 @@ class SharedJvmContractTest {
 			fixture.moving.spawn|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
-			fixture.region.reset|1|minecraft:client
+			fixture.region.reset|3|minecraft:client
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			menu.captureLinkedRevision|1|minecraft:client

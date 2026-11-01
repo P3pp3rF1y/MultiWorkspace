@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -14,6 +15,8 @@ class ResetRegionActionTest {
 
 		assertSame(action, RegressionActionTestSupport.bind(action, "{}").action());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"unexpected\": true}"));
-		RegressionActionTestSupport.assertMetadata(action, "fixture.region.reset", Set.of("minecraft:client"));
+		assertEquals("fixture.region.reset", action.metadata().id());
+		assertEquals("3", action.metadata().revision());
+		assertEquals(Set.of("minecraft:client"), action.metadata().dependencies());
 	}
 }
