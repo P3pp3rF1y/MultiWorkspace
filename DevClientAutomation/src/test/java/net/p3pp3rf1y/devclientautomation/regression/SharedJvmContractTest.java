@@ -97,7 +97,7 @@ class SharedJvmContractTest {
 			fixture.moving.spawn|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
-			fixture.region.reset|1|minecraft:client
+			fixture.region.reset|3|minecraft:client
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			menu.captureLinkedRevision|1|minecraft:client
@@ -211,7 +211,8 @@ class SharedJvmContractTest {
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), List.copyOf(all.keySet()));
 		assertEquals(REVISION_TWO, all.values().stream().filter(metadata -> metadata.revision().equals("2")).map(metadata -> metadata.id())
 				.collect(java.util.stream.Collectors.toSet()));
-		assertTrue(all.values().stream().allMatch(metadata -> metadata.revision().equals("1") || metadata.revision().equals("2")));
+		assertTrue(all.values().stream()
+				.allMatch(metadata -> metadata.revision().equals("1") || metadata.revision().equals("2") || metadata.revision().equals("3")));
 	}
 
 	@Test
