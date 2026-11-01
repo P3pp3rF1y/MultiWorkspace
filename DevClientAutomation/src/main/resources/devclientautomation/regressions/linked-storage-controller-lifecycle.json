@@ -28,5 +28,51 @@
       {"id": "reload-promoted-controller", "action": "fixture.controller.reload"},
       {"id": "survivor-membership-restored", "action": "assert.controllerSharedGroup", "args": {"members": 1, "offsetZ": 1}}
     ]
+  }, {
+    "id": "remote-before-group-relinks-controller",
+    "tags": ["controller", "linked-storage", "remote", "reload"],
+    "timeoutTicks": 400,
+    "steps": [
+      {"id": "first", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+      {"id": "second", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-1]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+      {"id": "seed-primary", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "storage-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+      {"id": "select-controller", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+      {"id": "link-primary", "action": "player.useHeldItemOnTarget"},
+      {"id": "link-secondary", "action": "player.useHeldItemOnTarget", "args": {"offset": [2,0,-1]}},
+      {"id": "ender-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+      {"id": "create-group", "action": "player.useHeldItemOnTarget"},
+      {"id": "add-secondary", "action": "player.useHeldItemOnTarget", "args": {"offset": [2,0,-1]}},
+      {"id": "remote-canonical-range", "action": "assert.controllerSharedGroup", "args": {"requireRemoteMembership": true}},
+      {"id": "seed-retained", "action": "assert.inventoryCount", "args": {"target": "storage", "item": "minecraft:diamond", "count": 7, "offset": [2,0,-2]}},
+      {"id": "reload", "action": "fixture.controller.reload"},
+      {"id": "remote-membership-restored", "action": "assert.controllerSharedGroup", "args": {"requireRemoteMembership": true}},
+      {"id": "seed-retained-after-reload", "action": "assert.inventoryCount", "args": {"target": "storage", "item": "minecraft:diamond", "count": 7, "offset": [2,0,-2]}}
+    ]
+  }, {
+    "id": "group-before-remote-links-controller",
+    "tags": ["controller", "linked-storage", "remote", "reload"],
+    "timeoutTicks": 400,
+    "steps": [
+      {"id": "first", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+      {"id": "second", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-1]}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+      {"id": "seed-primary", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "ender-linker", "action": "player.createMainHandItem", "args": {"item": "sophisticatedcore:ender_linker"}},
+      {"id": "create-group", "action": "player.useHeldItemOnTarget"},
+      {"id": "add-secondary", "action": "player.useHeldItemOnTarget", "args": {"offset": [2,0,-1]}},
+      {"id": "storage-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+      {"id": "select-controller", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+      {"id": "link-primary", "action": "player.useHeldItemOnTarget"},
+      {"id": "link-secondary", "action": "player.useHeldItemOnTarget", "args": {"offset": [2,0,-1]}},
+      {"id": "remote-canonical-range", "action": "assert.controllerSharedGroup", "args": {"requireRemoteMembership": true}},
+      {"id": "seed-retained", "action": "assert.inventoryCount", "args": {"target": "storage", "item": "minecraft:diamond", "count": 7, "offset": [2,0,-2]}},
+      {"id": "reload", "action": "fixture.controller.reload"},
+      {"id": "remote-membership-restored", "action": "assert.controllerSharedGroup", "args": {"requireRemoteMembership": true}},
+      {"id": "seed-retained-after-reload", "action": "assert.inventoryCount", "args": {"target": "storage", "item": "minecraft:diamond", "count": 7, "offset": [2,0,-2]}}
+    ]
   }]
 }
