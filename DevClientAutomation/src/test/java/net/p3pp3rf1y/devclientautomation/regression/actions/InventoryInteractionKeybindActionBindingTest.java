@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +45,7 @@ class InventoryInteractionKeybindActionBindingTest {
 		assertEquals(List.of(new RegressionValueContract.Value("menu", RegressionValueTypes.VANILLA_MENU)), awaited.values().produces());
 		assertTrue(VanillaMenuHandle.class.isRecord());
 		assertEquals(List.of("kind", "containerId"),
-				Arrays.stream(VanillaMenuHandle.class.getRecordComponents()).map(component -> component.getName()).toList());
+				Arrays.stream(VanillaMenuHandle.class.getRecordComponents()).map(RecordComponent::getName).toList());
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(open, "{\"kind\":\"furnace\",\"fixture\":\"storageSort\",\"saveAs\":\"menu\"}"));
 		assertThrows(IllegalArgumentException.class,

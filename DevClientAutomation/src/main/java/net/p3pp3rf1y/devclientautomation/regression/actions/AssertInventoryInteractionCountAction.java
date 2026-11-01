@@ -77,7 +77,7 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 					deadline = context.minecraft().player.tickCount + arguments.timeoutTicks();
 				}
 				if (observation == null) {
-					observation = context.onServer(player -> observe(player));
+					observation = context.onServer(this::observe);
 					return RegressionActionProgress.WAITING;
 				}
 				RegressionActionProgress result = await(observation);
