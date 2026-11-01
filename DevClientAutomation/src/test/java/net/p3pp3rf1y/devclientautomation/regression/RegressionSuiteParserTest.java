@@ -65,15 +65,16 @@ class RegressionSuiteParserTest {
 					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
 					"linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json",
 					"linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-pump-fluid-transfer.json",
-					"linked-storage-interoperability.json", "linked-storage-mob-catcher.json", "linked-storage-settings.json"), indexedPaths);
-			assertEquals(27, indexedPaths.size());
+					"linked-storage-interoperability.json", "linked-storage-mob-catcher.json", "linked-storage-settings.json", "jei-recipe-transfer.json"),
+					indexedPaths);
+			assertEquals(28, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			try (var resources = Files.list(Path.of("src", "main", "resources", "devclientautomation", "regressions"))) {
 				List<String> physicalJson = resources.filter(path -> path.getFileName().toString().endsWith(".json")).map(path -> path.getFileName().toString())
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(28, physicalJson.size());
+				assertEquals(29, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -98,7 +99,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(130, testCount);
+			assertEquals(142, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}

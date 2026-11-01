@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.recipeviewer.jei;
 
 import com.google.gson.JsonObject;
+import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
@@ -272,7 +273,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 		return entries;
 	}
 
-	private static List<IRecipeLayoutDrawable<?>> openedRecipeLayouts(Screen screen) throws ReflectiveOperationException {
+	public static List<IRecipeLayoutDrawable<?>> openedRecipeLayouts(Screen screen) throws ReflectiveOperationException {
 		Object layouts = getField(screen, "layouts");
 		Object layoutEntries = getField(layouts, "recipeLayoutsWithButtons");
 		if (!(layoutEntries instanceof List<?> recipeLayoutsWithButtons)) {
@@ -286,6 +287,45 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 			}
 		}
 		return entries;
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	public static boolean showExactRecipe(ResourceLocation recipeResourceId) {
+		IJeiRuntime jeiRuntime = runtime;
+		if (jeiRuntime == null) {
+			return false;
+		}
+		IRecipeManager recipeManager = jeiRuntime.getRecipeManager();
+		IRecipeCategory category = recipeManager.createRecipeCategoryLookup().get().filter(candidate -> RecipeTypes.CRAFTING.equals(candidate.getRecipeType()))
+				.findFirst().orElseThrow(() -> new IllegalStateException("JEI crafting category minecraft:crafting is missing"));
+		List recipes = recipesForCategory(recipeManager, category).stream()
+				.filter(recipe -> recipeResourceId.toString().equals(recipeCategoryId(category, recipe))).toList();
+		if (recipes.isEmpty()) {
+			throw new IllegalStateException("JEI crafting recipe is missing: " + recipeResourceId);
+		}
+		if (recipes.size() != 1) {
+			throw new IllegalStateException("JEI crafting recipe is ambiguous: " + recipeResourceId + " (matches=" + recipes.size() + ")");
+		}
+		jeiRuntime.getRecipesGui().showRecipes(category, recipes, List.of());
+		return true;
+	}
+
+	public static boolean isRecipeScreenOpen(@Nullable Screen screen) {
+		return screen != null && screen.getClass().getName().contains("RecipesGui");
+	}
+
+	public static @Nullable String layoutRecipeId(IRecipeLayoutDrawable<?> layout) {
+		return recipeCategoryId(layout.getRecipeCategory(), layout.getRecipe());
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String recipeCategoryId(IRecipeCategory<?> category, Object recipe) {
+		ResourceLocation registryName = ((IRecipeCategory<Object>) category).getRegistryName(recipe);
+		return registryName == null ? recipeId(recipe) : registryName.toString();
+	}
+
+	public static Object parentContainer(Screen screen) throws ReflectiveOperationException {
+		return invoke(screen, "getParentContainerMenu");
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -313,8 +353,7 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 	private static RecipeEntry recipeEntry(IRecipeLayoutDrawable<?> layout) {
 		IRecipeCategory<Object> category = (IRecipeCategory<Object>) layout.getRecipeCategory();
 		Object recipe = layout.getRecipe();
-		ResourceLocation registryName = category.getRegistryName(recipe);
-		String id = registryName == null ? recipeId(recipe) : registryName.toString();
+		String id = recipeCategoryId(category, recipe);
 		List<List<ItemStack>> inputs = slotStacks(layout, RecipeIngredientRole.INPUT);
 		List<List<ItemStack>> outputs = slotStacks(layout, RecipeIngredientRole.OUTPUT);
 		return new RecipeEntry(id, category.getRecipeType().getUid().toString(), category.getTitle().getString(), inputs, outputs);
@@ -429,10 +468,6 @@ public class JeiRecipeViewerAutomation implements RecipeViewerAutomation {
 	private static String runtimeUnavailableJson(@Nullable Screen screen) {
 		return "{\"ok\":false," + JsonUtil.property("viewer", "jei") + "," + JsonUtil.property("error", "JEI runtime is not available") + ","
 				+ JsonUtil.property("screenClass", screen == null ? null : screen.getClass().getName()) + "}";
-	}
-
-	private static boolean isRecipeScreenOpen(@Nullable Screen screen) {
-		return screen != null && screen.getClass().getName().contains("RecipesGui");
 	}
 
 	private record RecipeEntry(@Nullable String id, String category, String categoryName, List<List<ItemStack>> inputs, List<List<ItemStack>> outputs) {
