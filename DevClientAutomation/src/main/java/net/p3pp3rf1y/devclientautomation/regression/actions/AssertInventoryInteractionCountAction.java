@@ -88,8 +88,7 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 					return RegressionActionProgress.PASSED;
 				}
 				if (context.minecraft().player.tickCount >= deadline) {
-					return failAssertion(
-							"Inventory interaction assertion did not match within " + arguments.timeoutTicks() + " ticks: " + expectedActual());
+					return failAssertion("Inventory interaction assertion did not match within " + arguments.timeoutTicks() + " ticks: " + expectedActual());
 				}
 				observation = null;
 				return RegressionActionProgress.WAITING;

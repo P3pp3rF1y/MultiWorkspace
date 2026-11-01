@@ -38,8 +38,7 @@ public final class OpenInventoryInteractionMenuAction extends TypedRegressionAct
 		if (!Set.of("transferToStorage", "transferToPlayer", "storageSort", "playerSort").contains(fixture)) {
 			throw new IllegalArgumentException("Invalid inventory-interaction fixture on " + description);
 		}
-		if (kind == VanillaMenuHandle.Kind.CHEST && fixture.equals("playerSort")
-				|| kind != VanillaMenuHandle.Kind.CHEST && !fixture.equals("playerSort")) {
+		if (kind == VanillaMenuHandle.Kind.CHEST && fixture.equals("playerSort") || kind != VanillaMenuHandle.Kind.CHEST && !fixture.equals("playerSort")) {
 			throw new IllegalArgumentException("Menu kind and fixture are incompatible on " + description);
 		}
 		return new Arguments(kind, fixture, RegressionValueStore.requireName(requireString(args, "saveAs", description)));
