@@ -61,9 +61,14 @@ class StorageResourcesActionContractTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertCanonicalBackpackTemplateAction(),
 				"{\"template\":\"devclientautomation:canonical_export\",\"expectation\":\"other\"}"));
 		RegressionActionTestSupport.bind(new ReloadFixtureControllerAction(), "{}");
-		RegressionActionTestSupport.bind(new AssertControllerSharedGroupAction(), "{}");
+		AssertControllerSharedGroupAction.Arguments sharedGroup = RegressionActionTestSupport.arguments(
+				RegressionActionTestSupport.bind(new AssertControllerSharedGroupAction(), "{\"requireRemoteMembership\":true}"),
+				AssertControllerSharedGroupAction.Arguments.class);
+		assertTrue(sharedGroup.requireRemoteMembership());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new ReloadFixtureControllerAction(), "{\"offsetX\":-1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertControllerSharedGroupAction(), "{\"members\":0}"));
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(new AssertControllerSharedGroupAction(), "{\"requireRemoteMembership\":\"true\"}"));
 		RegressionActionTestSupport.bind(new ClickPlayerInventorySlotAction(), "{\"area\":\"crafting\",\"slot\":3}");
 		RegressionActionTestSupport.bind(new ClickPlayerInventorySlotAction(), "{\"area\":\"result\",\"slot\":0}");
 		RegressionActionTestSupport.bind(new AwaitPlayerCraftingResultAction(), "{}");
