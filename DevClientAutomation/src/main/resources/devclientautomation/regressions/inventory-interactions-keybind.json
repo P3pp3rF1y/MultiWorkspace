@@ -150,6 +150,7 @@
       "steps": [
         {"id": "first", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
         {"id": "second", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
         {"id": "open", "action": "player.openInventory"},
         {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "playerOnly"}},
         {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}}
