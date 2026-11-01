@@ -10,7 +10,8 @@
     "BackgroundCursorTypeMixin",
     "BackgroundTextInputManagerMixin",
     "BackgroundGameRendererMixin",
-    "BackgroundSoundVolumeMixin"
+    "BackgroundSoundVolumeMixin",
+    "VirtualModifiersMixin"
   ],
   "injectors": { "defaultRequire": 1 }
 }
