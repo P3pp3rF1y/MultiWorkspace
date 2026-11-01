@@ -95,13 +95,13 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 			}
 
 			private void observe(ServerPlayer player) {
-				Count actual = count(player);
+				Count actual = observeCount(player);
 				matched = actual.count() == arguments.count() && (arguments.stacks() < 0 || actual.stacks() == arguments.stacks());
 				observe(Map.of("count", arguments.count(), "stacks", arguments.stacks()), Map.of("count", actual.count(), "stacks", actual.stacks()));
 				context.putDiagnostic("inventoryInteractionCount", Map.of("target", arguments.target(), "count", actual.count(), "stacks", actual.stacks()));
 			}
 
-			private Count count(ServerPlayer player) {
+			private Count observeCount(ServerPlayer player) {
 				if (arguments.target().equals("craftingRegion") || arguments.target().equals("furnaceRegion")) {
 					AbstractContainerMenu menu = requireMenu(player);
 					int end = arguments.target().equals("craftingRegion") ? 10 : 3;

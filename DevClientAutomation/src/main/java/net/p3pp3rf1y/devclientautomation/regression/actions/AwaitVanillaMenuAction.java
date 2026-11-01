@@ -2,7 +2,6 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.ChestScreen;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -78,7 +77,7 @@ public final class AwaitVanillaMenuAction extends TypedRegressionAction<AwaitVan
 					return false;
 				}
 				return switch (handle.kind()) {
-					case CHEST -> screen instanceof ChestScreen && screen.getMenu() instanceof ChestMenu;
+					case CHEST -> screen.getMenu() instanceof ChestMenu;
 					case CRAFTING -> screen instanceof CraftingScreen && screen.getMenu() instanceof CraftingMenu;
 					case FURNACE -> screen instanceof FurnaceScreen && screen.getMenu() instanceof FurnaceMenu;
 				};

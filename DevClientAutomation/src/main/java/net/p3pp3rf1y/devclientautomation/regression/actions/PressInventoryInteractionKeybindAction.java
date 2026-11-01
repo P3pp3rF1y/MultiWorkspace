@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.ChestScreen;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -156,7 +155,7 @@ public final class PressInventoryInteractionKeybindAction extends TypedRegressio
 
 	private static boolean matchesVanilla(AbstractContainerScreen<?> screen, VanillaMenuHandle handle) {
 		return screen.getMenu().containerId == handle.containerId() && switch (handle.kind()) {
-			case CHEST -> screen instanceof ChestScreen && screen.getMenu() instanceof ChestMenu;
+			case CHEST -> screen.getMenu() instanceof ChestMenu;
 			case CRAFTING -> screen instanceof CraftingScreen && screen.getMenu() instanceof CraftingMenu;
 			case FURNACE -> screen instanceof FurnaceScreen && screen.getMenu() instanceof FurnaceMenu;
 		};
