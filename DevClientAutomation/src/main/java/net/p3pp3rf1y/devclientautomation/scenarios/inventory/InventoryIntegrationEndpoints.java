@@ -32,7 +32,6 @@ public final class InventoryIntegrationEndpoints {
 
 	public static void register(EndpointRegistry endpoints) {
 		endpoints.register("/invtweaks/sort", InventoryIntegrationEndpoints::inventoryTweaksSort);
-		endpoints.register("/inventory-interactions/keybind-regression", InventoryIntegrationEndpoints::inventoryInteractionsKeybindRegression);
 		endpoints.register("/inventoryessentials/drop-by-type", InventoryIntegrationEndpoints::inventoryEssentialsDropByType);
 	}
 
@@ -42,11 +41,6 @@ public final class InventoryIntegrationEndpoints {
 		boolean playerInventory = bool(request, "playerInventory", false);
 		String screenName = string(request, "screenName", "net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen");
 		sendJsonHandling(exchange, LOGGER, () -> AutomationRuntime.runOnServer(player -> inventoryTweaksSort(player, playerInventory, screenName)));
-	}
-
-	private static void inventoryInteractionsKeybindRegression(HttpExchange exchange) throws IOException {
-		requireMethod(exchange, "POST");
-		sendJsonHandling(exchange, LOGGER, InventoryInteractionsKeybindRegression::run);
 	}
 
 	private static void inventoryEssentialsDropByType(HttpExchange exchange) throws IOException {
