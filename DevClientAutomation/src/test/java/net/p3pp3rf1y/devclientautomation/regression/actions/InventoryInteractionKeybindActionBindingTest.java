@@ -44,8 +44,7 @@ class InventoryInteractionKeybindActionBindingTest {
 		assertEquals(opened.values().produces(), awaited.values().consumes());
 		assertEquals(List.of(new RegressionValueContract.Value("menu", RegressionValueTypes.VANILLA_MENU)), awaited.values().produces());
 		assertTrue(VanillaMenuHandle.class.isRecord());
-		assertEquals(List.of("kind", "containerId"),
-				Arrays.stream(VanillaMenuHandle.class.getRecordComponents()).map(RecordComponent::getName).toList());
+		assertEquals(List.of("kind", "containerId"), Arrays.stream(VanillaMenuHandle.class.getRecordComponents()).map(RecordComponent::getName).toList());
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(open, "{\"kind\":\"furnace\",\"fixture\":\"storageSort\",\"saveAs\":\"menu\"}"));
 		assertThrows(IllegalArgumentException.class,
