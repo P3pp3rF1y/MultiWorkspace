@@ -111,6 +111,8 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingStorageUpgr
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerGameModeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageBlockSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageUpgradeAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnFixturePigAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnMovingStorageAction;
@@ -140,11 +142,13 @@ public final class RegressionActionRegistry {
 		register(new AssertSortModeAction());
 		register(new ClickSettingsControlAction());
 		register(lazyJeiAction());
+		register(lazyJeiTransferAction());
 		register(new AssertSettingsSelectionAction());
 		register(new AssertDoubleChestAction());
 		register(new ClickStorageMenuSlotAction());
 		register(new ClickUpgradeSlotAction());
 		register(new OpenUpgradeTabAction());
+		register(new SetUpgradeTabAction());
 		register(new SetCraftingRefillAction());
 		register(new AssertUpgradeSlotAction());
 		register(new ClickStorageSettingsAction());
@@ -185,6 +189,7 @@ public final class RegressionActionRegistry {
 		register(new AwaitStorageBlockAction());
 		register(new ConfigureStorageContentsFilterAction());
 		register(new SetStorageBlockSlotAction());
+		register(new SetStorageUpgradeAction());
 		register(new ClearMainHandAction());
 		register(new UseHeldItemAction());
 		register(new UseTargetBlockAction());
@@ -312,6 +317,7 @@ public final class RegressionActionRegistry {
 			capability.storageResourceCache
 			fixture.linked.replaceRoot
 			fixture.backpack.setUpgrade
+			fixture.storage.setUpgrade
 			capability.transferStorageResource
 			capability.transferLinkedBackpackFluid
 			capability.transferLinkedPumpFluid
@@ -416,6 +422,7 @@ public final class RegressionActionRegistry {
 			menu.clickStorageSlot
 			menu.clickUpgradeSlot
 			menu.openUpgradeTab
+			menu.setUpgradeTab
 			menu.setCraftingRefill
 			assert.upgradeSlot
 			assert.movingMenuPresentation
@@ -424,6 +431,7 @@ public final class RegressionActionRegistry {
 			menu.quickMoveBackpackStorageSlot
 			menu.close
 			await.menuClosed
+			recipeviewer.transferRecipe
 			""";
 	public RegressionAction require(String actionId) {
 		RegressionAction action = actions.get(actionId);
@@ -451,6 +459,15 @@ public final class RegressionActionRegistry {
 				"net.p3pp3rf1y.devclientautomation.regression.actions.DropSettingsGhostAction", (args, description) -> {
 					LazyOptionalRegressionAction.requireOnly(args, Set.of("slot"), description);
 					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "slot", description);
+				});
+	}
+	private static RegressionAction lazyJeiTransferAction() {
+		return new LazyOptionalRegressionAction("recipeviewer.transferRecipe", "1", Set.of("minecraft:client", "jei"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.TransferRecipeAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("recipeResourceID", "maxTransfer"), description);
+					LazyOptionalRegressionAction.requireString(args, "recipeResourceID", description);
+					if (args.has("maxTransfer") && (!args.get("maxTransfer").isJsonPrimitive() || !args.getAsJsonPrimitive("maxTransfer").isBoolean()))
+						throw new IllegalArgumentException("Argument maxTransfer on " + description + " must be boolean");
 				});
 	}
 	private static RegressionAction lazyCreateAction(String id, String capability, String implementation, Set<String> names, Set<String> strings,
