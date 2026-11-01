@@ -40,10 +40,10 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertUpgradeSlotAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitBackpackBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitItemEntityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitVanillaMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuClosedAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitPlayerCraftingResultAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitStorageBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitVanillaMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BackpackTemplateCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkGroupsBarrelAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkLineBarrelAction;
@@ -80,8 +80,8 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingS
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
-import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenInventoryInteractionMenuAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PickupPlacedBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlaceHeldBackpackAction;

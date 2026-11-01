@@ -62,8 +62,7 @@ public final class PressInventoryInteractionKeybindAction extends TypedRegressio
 		if (target.equals("playerOnly") && args.has("ref")) {
 			throw new IllegalArgumentException("playerOnly sort cannot use a menu handle on " + description);
 		}
-		return new Arguments(operation, modifier.equals("shift"), target,
-				target.equals("playerOnly") ? -1 : requireNonNegativeInt(args, "slot", description),
+		return new Arguments(operation, modifier.equals("shift"), target, target.equals("playerOnly") ? -1 : requireNonNegativeInt(args, "slot", description),
 				args.has("ref") ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null);
 	}
 
@@ -105,8 +104,8 @@ public final class PressInventoryInteractionKeybindAction extends TypedRegressio
 					}
 					VirtualInput.moveToSlot(screen, arguments.slot());
 					Slot slot = screen.getMenu().getSlot(arguments.slot());
-					boolean playerMain = slot.container == context.minecraft().player.getInventory()
-							&& slot.getContainerSlot() >= 0 && slot.getContainerSlot() <= 35;
+					boolean playerMain = slot.container == context.minecraft().player.getInventory() && slot.getContainerSlot() >= 0
+							&& slot.getContainerSlot() <= 35;
 					if (arguments.target().equals("player") != playerMain) {
 						return fail("Sort hover does not belong to the requested menu region");
 					}
@@ -129,8 +128,7 @@ public final class PressInventoryInteractionKeybindAction extends TypedRegressio
 					toPlayer.setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_RIGHT_BRACKET));
 					KeyMapping.resetMapping();
 					boolean handled = VirtualInputState.withModifiers(modifiers, () -> invokeHook(screen, modifiers));
-					result = handled ? RegressionActionProgress.PASSED
-							: fail("Production inventory interaction hook did not handle " + arguments.operation());
+					result = handled ? RegressionActionProgress.PASSED : fail("Production inventory interaction hook did not handle " + arguments.operation());
 				} finally {
 					sort.setKey(oldSort);
 					toContainer.setKey(oldContainer);
