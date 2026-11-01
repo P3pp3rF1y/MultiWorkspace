@@ -2,16 +2,6 @@
   "protocolVersion": 1,
   "suites": [
     {
-      "id": "inventory-interactions-keybind",
-      "groups": ["inventory-interactions", "smoke"],
-      "tier": "fast",
-      "loaders": ["neoforge"],
-      "script": "run-inventory-interactions-regression.ps1",
-      "arguments": {
-        "MinimalRuntime": true
-      }
-    },
-    {
       "id": "storage-controller-filter-routing",
       "groups": ["storage", "controller"],
       "tier": "fast",

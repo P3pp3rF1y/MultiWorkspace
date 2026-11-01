@@ -59,13 +59,13 @@ class RegressionSuiteParserTest {
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
 			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
-					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "storage-compression.json",
+					"inventory-interactions-keybind.json", "item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "storage-compression.json",
 					"storage-break-drop-limit.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json",
 					"controller-link.json", "controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json",
 					"linked-storage-resources.json", "linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json",
 					"linked-storage-restart.json", "linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-storage-interoperability.json",
 					"linked-storage-mob-catcher.json", "linked-storage-settings.json", "jei-recipe-transfer.json"), indexedPaths);
-			assertEquals(28, indexedPaths.size());
+			assertEquals(29, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
@@ -74,7 +74,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(29, physicalJson.size());
+				assertEquals(30, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 
@@ -99,11 +99,25 @@ class RegressionSuiteParserTest {
 										"linked-placed-backpack-quick-move-stays-synchronized", "linked-held-backpack-menu-receives-slot-delta"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
 					}
+					if (indexedPath.equals("inventory-interactions-keybind.json")) {
+						assertEquals(List.of("vanilla-transfer-to-storage-filtered", "vanilla-transfer-to-storage-all", "vanilla-transfer-to-player-filtered",
+								"vanilla-transfer-to-player-all", "backpack-transfer-to-storage-filtered", "backpack-transfer-to-storage-all",
+								"backpack-transfer-to-player-filtered", "backpack-transfer-to-player-all", "vanilla-container-sort", "player-inventory-sort",
+								"crafting-player-inventory-sort", "furnace-player-inventory-sort", "backpack-storage-sort"), testIdsWithTag(suite, "behavior"));
+						assertEquals(List.of("closed-screen-keybind-rejected", "stale-menu-handle-rejected", "wrong-hover-region-rejected",
+								"vanilla-menu-await-times-out-cleanly"), testIdsWithTag(suite, "conformance"));
+					}
 				}
 			}
-			assertEquals(141, testCount);
+			assertEquals(158, testCount);
 			assertEquals(24, fixtureCount);
 		}
+	}
+
+	private static List<String> testIdsWithTag(JsonObject suite, String tag) {
+		return suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject())
+				.filter(test -> test.getAsJsonArray("tags").asList().stream().anyMatch(value -> value.getAsString().equals(tag)))
+				.map(test -> test.get("id").getAsString()).toList();
 	}
 
 	@Test
