@@ -64,6 +64,26 @@ class BackgroundInputContractTest {
 	}
 
 	@Test
+	void virtualModifiersMixinOverridesOnlyActiveMinecraftModifierQueries() throws IOException {
+		String mixin = Files.readString(Path.of("src/main/java/net/p3pp3rf1y/devclientautomation/mixin/VirtualModifiersMixin.java"));
+		String registration = Files.readString(Path.of("src/main/resources/devclientautomation.mixins.json"));
+
+		assertTrue(mixin.contains("@Mixin(Minecraft.class)"));
+		for (String method : new String[]{"hasShiftDown", "hasControlDown", "hasAltDown"}) {
+			assertTrue(mixin.contains("@Inject(method = \"" + method + "\", at = @At(\"HEAD\"), cancellable = true)"), method);
+		}
+		for (String mask : new String[]{"SHIFT", "CONTROL", "ALT"}) {
+			assertTrue(Pattern.compile(
+					"if\\s*\\(VirtualInputState\\.active\\(\\)\\)\\s*\\{\\s*callback\\.setReturnValue\\(VirtualInputState\\.modifier\\(InputConstants\\.MOD_"
+							+ mask + "\\)\\);")
+					.matcher(mixin).find(), mask);
+		}
+		assertTrue(registration.contains("\"client\""));
+		assertTrue(registration.contains("\"VirtualModifiersMixin\""));
+		assertTrue(registration.contains("\"defaultRequire\": 1"));
+	}
+
+	@Test
 	void presentationPolicyRejectsOrdinaryAndUnfocusedStartsWithoutWaiting() {
 		assertThrows(IllegalStateException.class, () -> PresentationPolicy.requireStart(false, true));
 		assertThrows(IllegalStateException.class, () -> PresentationPolicy.requireStart(false, false));
