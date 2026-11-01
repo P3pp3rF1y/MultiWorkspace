@@ -72,10 +72,12 @@ class ResourceLifecycleActionBindingTest {
 		assertEquals(new ReloadFixtureControllerAction.Arguments(0),
 				((BoundRegressionAction<?>) RegressionActionTestSupport.bind(reload, "{\"offsetX\":0}")).arguments());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(reload, "{\"offsetX\":-1}"));
-		assertEquals(new AssertControllerSharedGroupAction.Arguments(2, 27, 0),
+		assertEquals(new AssertControllerSharedGroupAction.Arguments(2, 27, 0, false),
 				((BoundRegressionAction<?>) RegressionActionTestSupport.bind(shared, "{}")).arguments());
-		assertEquals(new AssertControllerSharedGroupAction.Arguments(3, 54, 1),
+		assertEquals(new AssertControllerSharedGroupAction.Arguments(3, 54, 1, false),
 				((BoundRegressionAction<?>) RegressionActionTestSupport.bind(shared, "{\"members\":3,\"slots\":54,\"offsetZ\":1}")).arguments());
+		assertEquals(new AssertControllerSharedGroupAction.Arguments(3, 54, 1, true), ((BoundRegressionAction<?>) RegressionActionTestSupport.bind(shared,
+				"{\"members\":3,\"slots\":54,\"offsetZ\":1,\"requireRemoteMembership\":true}")).arguments());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(shared, "{\"members\":0}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(shared, "{\"extra\":true}"));
 		RegressionActionTestSupport.assertMetadata(reload, "fixture.controller.reload", Set.of("minecraft:client", "sophisticatedstorage"));
