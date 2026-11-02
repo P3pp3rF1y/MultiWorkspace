@@ -49,6 +49,7 @@ class SharedJvmContractTest {
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
 			assert.settingsSelection|2|minecraft:client,sophisticatedcore
 			assert.sortMode|1|minecraft:client,sophisticatedcore
+			assert.storage.compression|1|minecraft:client,sophisticatedstorage
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
@@ -75,6 +76,8 @@ class SharedJvmContractTest {
 			capability.storageResourceCache|1|minecraft:client,sophisticatedstorage
 			capability.transferStorageResource|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			create.disassembleBackpack|1|minecraft:client,sophisticatedbackpackscreateintegration
+			exercise.storage.compressionAutomation|1|minecraft:client,sophisticatedstorage
+			exercise.storage.compressionFront|1|minecraft:client,sophisticatedstorage
 			fixture.backpack.setUpgrade|1|minecraft:client,sophisticatedbackpacks
 			fixture.block.set|1|minecraft:client
 			fixture.chunk.reloadBlockEntities|2|minecraft:client,sophisticatedstorage
@@ -98,6 +101,7 @@ class SharedJvmContractTest {
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
 			fixture.region.reset|3|minecraft:client
+			fixture.storage.compression|1|minecraft:client,sophisticatedstorage
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
@@ -138,6 +142,7 @@ class SharedJvmContractTest {
 			player.useHeldItemOnTarget|2|minecraft:client
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
 			player.useTargetBlock|1|minecraft:client
+			profile.storage.compression|1|minecraft:client,sophisticatedstorage
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
 			recipeviewer.transferRecipe|1|jei,minecraft:client
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
@@ -152,6 +157,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
+			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
 			moving-linked-storage:boat-link-through-entity-interaction,minecart-link-through-entity-interaction,primary-tier-migrates-once-secondary-rejected,recoverable-boat-destruction-reopens-same-group,recoverable-minecart-destruction-reopens-same-group,horse-attach-and-drop-preserves-linked-carrier,nonrecoverable-secondary-detaches-without-erasing-group,removed-primary-pauses-authority-but-secondary-remains-usable,carried-primary-pauses-authority-but-secondary-remains-usable,forged-endpoint-and-tooltip-request-denied,limited-barrel-moving-links-with-compatible-profile,only-active-primary-runs-canonical-pickup-upgrade,packed-primary-pauses-pickup-secondary-menu-stays-usable,recovered-moving-carrier-places-original-linked-block,create-cart-mount-opens-original-linked-group,limited-barrel-mount-opens-linked-group,secondary-minecart-sees-boat-canonical-contents,serialized-moving-entity-reloads-same-canonical-group,moving-endpoints-share-upgrade-settings-and-display,removed-endpoint-invalidates-open-menu,moving-primary-open-menu-receives-live-slot-delta,moving-secondary-open-menu-receives-primary-slot-delta,mounted-open-menu-receives-live-slot-delta,linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot,linked-carrier-copy-preserves-identity-and-limited-profile
@@ -183,7 +189,8 @@ class SharedJvmContractTest {
 			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount backpack.configurePickup backpack.fillStorage
 			fixture.itemEntity.spawn await.itemEntity assert.backpackPickupConfiguration assert.restockBackpack assert.restockBarrel
 			player.setInventorySlot backpack.placeHeld assert.placedBackpackContents assert.backpackAutomationExtractable assert.heldBackpackContents
-			backpack.pickupPlaced backpack.breakAndAssertDrop player.placeHeldBlock await.backpackBlock await.storageBlock fixture.storage.contentsFilter
+			backpack.pickupPlaced backpack.breakAndAssertDrop player.placeHeldBlock await.backpackBlock await.storageBlock fixture.storage.compression
+			assert.storage.compression exercise.storage.compressionAutomation exercise.storage.compressionFront profile.storage.compression fixture.storage.contentsFilter
 			fixture.block.set fixture.controller.scanAdjacent fixture.controllerLinkLine.breakFirstBarrel fixture.controllerLinkGroups.breakBarrel
 			player.useControllerLinkTool assert.controllerLinkLine assert.controllerLinkGroups fixture.moving.spawn moving.destroy fixture.moving.restoreDrop
 			fixture.moving.reload fixture.moving.holdRecoveredInner fixture.create.mountLinkedStorage fixture.create.mountBackpack create.disassembleBackpack
@@ -207,8 +214,8 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(128, all.size());
-		assertEquals(128, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(133, all.size());
+		assertEquals(133, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -269,12 +276,12 @@ class SharedJvmContractTest {
 		var suites = RegressionCoordinator.loadSuites();
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
-		assertEquals(27, suites.size());
-		assertEquals(138, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(28, suites.size());
+		assertEquals(141, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(128, actions.size());
+		assertEquals(133, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(10, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog
