@@ -56,6 +56,7 @@ class SharedJvmContractTest {
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
 			assert.settingsSelection|2|minecraft:client,sophisticatedcore
 			assert.sortMode|1|minecraft:client,sophisticatedcore
+			assert.storage.compression|1|minecraft:client,sophisticatedstorage
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
@@ -84,6 +85,8 @@ class SharedJvmContractTest {
 			capability.transferLinkedPumpFluid|1|minecraft:client,sophisticatedbackpacks
 			capability.transferStorageResource|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			create.disassembleBackpack|1|minecraft:client,sophisticatedbackpackscreateintegration
+			exercise.storage.compressionAutomation|1|minecraft:client,sophisticatedstorage
+			exercise.storage.compressionFront|1|minecraft:client,sophisticatedstorage
 			fixture.backpack.setUpgrade|1|minecraft:client,sophisticatedbackpacks
 			fixture.block.set|1|minecraft:client
 			fixture.chunk.reloadBlockEntities|2|minecraft:client,sophisticatedstorage
@@ -107,6 +110,7 @@ class SharedJvmContractTest {
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
 			fixture.region.reset|3|minecraft:client
+			fixture.storage.compression|1|minecraft:client,sophisticatedstorage
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
@@ -147,6 +151,7 @@ class SharedJvmContractTest {
 			player.useHeldItemOnTarget|2|minecraft:client
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
 			player.useTargetBlock|1|minecraft:client
+			profile.storage.compression|1|minecraft:client,sophisticatedstorage
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
 			recipeviewer.transferRecipe|1|jei,minecraft:client
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
@@ -211,6 +216,11 @@ class SharedJvmContractTest {
 			await.backpackBlock
 			await.storageBlock
 			fixture.storage.contentsFilter
+			fixture.storage.compression
+			assert.storage.compression
+			profile.storage.compression
+			exercise.storage.compressionAutomation
+			exercise.storage.compressionFront
 			fixture.block.set
 			fixture.controller.scanAdjacent
 			fixture.controllerLinkLine.breakFirstBarrel
@@ -297,6 +307,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
+			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
 			moving-linked-storage:boat-link-through-entity-interaction,minecart-link-through-entity-interaction,primary-tier-migrates-once-secondary-rejected,recoverable-boat-destruction-reopens-same-group,recoverable-minecart-destruction-reopens-same-group,horse-attach-and-drop-preserves-linked-carrier,nonrecoverable-secondary-detaches-without-erasing-group,removed-primary-pauses-authority-but-secondary-remains-usable,carried-primary-pauses-authority-but-secondary-remains-usable,forged-endpoint-and-tooltip-request-denied,limited-barrel-moving-links-with-compatible-profile,only-active-primary-runs-canonical-pickup-upgrade,packed-primary-pauses-pickup-secondary-menu-stays-usable,recovered-moving-carrier-places-original-linked-block,create-cart-mount-opens-original-linked-group,limited-barrel-mount-opens-linked-group,secondary-minecart-sees-boat-canonical-contents,serialized-moving-entity-reloads-same-canonical-group,moving-endpoints-share-upgrade-settings-and-display,removed-endpoint-invalidates-open-menu,moving-primary-open-menu-receives-live-slot-delta,moving-secondary-open-menu-receives-primary-slot-delta,mounted-open-menu-receives-live-slot-delta,linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot,linked-carrier-copy-preserves-identity-and-limited-profile
@@ -322,11 +333,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(130, actions.size());
+		assertEquals(135, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(130, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(135, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -393,10 +404,10 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(28, suites.size());
-		assertEquals(142, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(29, suites.size());
+		assertEquals(145, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(130, catalog.getAsJsonObject("actions").size());
+		assertEquals(135, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());
