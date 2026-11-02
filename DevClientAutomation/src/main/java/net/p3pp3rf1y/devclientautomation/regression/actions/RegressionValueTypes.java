@@ -11,6 +11,7 @@ public final class RegressionValueTypes {
 	public static final String NESTED_STORAGE = PACKAGE + "NestedMovingStorageSnapshot";
 	public static final String RESOURCE_PROBE = PACKAGE + "StorageResourceCacheAction$Probe";
 	public static final String ITEM_ENTITY = PACKAGE + "ItemEntityHandle";
+	public static final String VANILLA_MENU = PACKAGE + "VanillaMenuHandle";
 
 	private RegressionValueTypes() {
 	}

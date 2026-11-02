@@ -26,6 +26,7 @@ class SharedJvmContractTest {
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
 			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
+			assert.inventoryInteractionCount|2|minecraft:client
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
@@ -59,6 +60,7 @@ class SharedJvmContractTest {
 			await.menuClosed|1|minecraft:client
 			await.playerCraftingResult|1|minecraft:client
 			await.storageBlock|1|minecraft:client,sophisticatedstorage
+			await.vanillaMenu|2|minecraft:client
 			backpack.breakAndAssertDrop|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureDeposit|1|minecraft:client,sophisticatedbackpacks
 			backpack.configureFilter|1|minecraft:client,sophisticatedbackpacks
@@ -98,6 +100,7 @@ class SharedJvmContractTest {
 			fixture.moving.restoreDrop|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.moving.setJukeboxDisc|1|minecraft:client,sophisticatedstorageinmotion
 			fixture.moving.spawn|1|minecraft:client,sophisticatedstorageinmotion
+			fixture.openInventoryInteractionMenu|1|minecraft:client
 			fixture.player.copyInventoryItem|1|minecraft:client
 			fixture.player.setGameMode|1|minecraft:client
 			fixture.region.reset|3|minecraft:client
@@ -105,6 +108,7 @@ class SharedJvmContractTest {
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
+			input.inventoryInteractionKeybind|2|minecraft:client,sophisticatedinventoryinteractions
 			menu.captureLinkedRevision|1|minecraft:client
 			menu.clickCapturedMob|1|minecraft:client,sophisticatedbackpacks
 			menu.clickPlayerInventorySlot|1|minecraft:client
@@ -154,6 +158,7 @@ class SharedJvmContractTest {
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
+			inventory-interactions-keybind:vanilla-transfer-to-storage-filtered,vanilla-transfer-to-storage-all,vanilla-transfer-to-player-filtered,vanilla-transfer-to-player-all,backpack-transfer-to-storage-filtered,backpack-transfer-to-storage-all,backpack-transfer-to-player-filtered,backpack-transfer-to-player-all,vanilla-container-sort,player-inventory-sort,crafting-player-inventory-sort,furnace-player-inventory-sort,backpack-storage-sort,closed-screen-keybind-rejected,stale-menu-handle-rejected,wrong-hover-region-rejected,vanilla-menu-await-times-out-cleanly
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
@@ -186,7 +191,7 @@ class SharedJvmContractTest {
 			assert.storageTierUpgradeRecipe assert.movingStorageTierUpgradeRecipe fixture.region.reset player.reset assert.playerInventoryBaseline
 			backpack.createInMainHand backpack.templateCommand player.createMainHandItem fixture.player.copyInventoryItem player.breakTargetBlock
 			backpack.setStorageSlot backpack.linkHeld storage.linkBlock backpack.configureFilter backpack.probeFilterIO assert.heldBackpackFilter
-			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount backpack.configurePickup backpack.fillStorage
+			backpack.configureRestock backpack.configureDeposit backpack.useOnStorage assert.inventoryCount assert.inventoryInteractionCount backpack.configurePickup backpack.fillStorage
 			fixture.itemEntity.spawn await.itemEntity assert.backpackPickupConfiguration assert.restockBackpack assert.restockBarrel
 			player.setInventorySlot backpack.placeHeld assert.placedBackpackContents assert.backpackAutomationExtractable assert.heldBackpackContents
 			backpack.pickupPlaced backpack.breakAndAssertDrop player.placeHeldBlock await.backpackBlock await.storageBlock fixture.storage.compression
@@ -199,23 +204,24 @@ class SharedJvmContractTest {
 			assert.linkedStorageBlock assert.createMountedLinkedStorage menu.captureLinkedRevision assert.linkedMenuDelta assert.linkedMenuSettings
 			menu.jukeboxPlayback assert.linkedJukeboxPlayback assert.movingPresentation assert.movingUnlinked assert.movingForgedRejected
 			fixture.moving.captureNestedLinkedCarrier assert.movingNestedLinkedIdentity assert.movingStorageCompatibilityProfile storage.setBlockSlot
-			fixture.storage.setUpgrade player.clearMainHand player.useHeldItem player.useTargetBlock await.menu assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
+			fixture.storage.setUpgrade player.clearMainHand player.useHeldItem player.useTargetBlock await.menu await.vanillaMenu fixture.openInventoryInteractionMenu input.inventoryInteractionKeybind assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
 			assert.linkedItemContents assert.canonicalBackpackTemplate player.sendCommand assert.controllerSharedGroup fixture.controller.reload
 			fixture.chunk.reloadBlockEntities await.playerCraftingResult assert.doubleChest fixture.storage.createLockTool player.openInventory
 			fixture.player.setGameMode menu.clickPlayerInventorySlot menu.clickStorageSlot menu.clickUpgradeSlot menu.openUpgradeTab
 			menu.setUpgradeTab menu.setCraftingRefill assert.upgradeSlot assert.movingMenuPresentation menu.clickSlot
 			menu.quickMovePlayerInventorySlot menu.quickMoveBackpackStorageSlot menu.close await.menuClosed
 			""";
-	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.settingsSelection", "assert.menu",
-			"assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage",
-			"fixture.chunk.reloadBlockEntities", "player.setInventorySlot", "assert.movingForgedRejected", "player.breakTargetBlock", "storage.setBlockSlot",
-			"assert.controllerSharedGroup", "player.useHeldItemOnTarget");
+	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.inventoryInteractionCount",
+			"assert.settingsSelection", "assert.menu", "assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu",
+			"await.vanillaMenu", "input.inventoryInteractionKeybind", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
+			"player.setInventorySlot", "assert.movingForgedRejected", "player.breakTargetBlock", "storage.setBlockSlot", "assert.controllerSharedGroup",
+			"player.useHeldItemOnTarget");
 
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(133, all.size());
-		assertEquals(133, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(137, all.size());
+		assertEquals(137, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -280,12 +286,12 @@ class SharedJvmContractTest {
 		var suites = RegressionCoordinator.loadSuites();
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
-		assertEquals(28, suites.size());
-		assertEquals(141, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(29, suites.size());
+		assertEquals(158, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(133, actions.size());
+		assertEquals(137, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(10, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog
