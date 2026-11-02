@@ -59,7 +59,7 @@ the GUI, restarts the client, and checks the nested backpack after world reload.
 Run the vanilla and Sophisticated inventory keybind regression with:
 
 ```powershell
-.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
+.\scripts\dev-client\regression.ps1 run -Suite inventory-interactions-keybind
 ```
 
 The regression covers both transfer directions with and without the Shift
