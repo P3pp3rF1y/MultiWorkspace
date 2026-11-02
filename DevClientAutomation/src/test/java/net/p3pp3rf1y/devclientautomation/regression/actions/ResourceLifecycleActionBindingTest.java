@@ -81,6 +81,8 @@ class ResourceLifecycleActionBindingTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(shared, "{\"members\":0}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(shared, "{\"extra\":true}"));
 		RegressionActionTestSupport.assertMetadata(reload, "fixture.controller.reload", Set.of("minecraft:client", "sophisticatedstorage"));
-		RegressionActionTestSupport.assertMetadata(shared, "assert.controllerSharedGroup", Set.of("minecraft:client", "sophisticatedstorage"));
+		assertEquals("assert.controllerSharedGroup", shared.metadata().id());
+		assertEquals("2", shared.metadata().revision());
+		assertEquals(Set.of("minecraft:client", "sophisticatedstorage"), shared.metadata().dependencies());
 	}
 }
