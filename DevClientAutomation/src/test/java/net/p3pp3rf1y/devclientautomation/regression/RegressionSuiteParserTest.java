@@ -60,21 +60,21 @@ class RegressionSuiteParserTest {
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
 			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
-					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "storage-break-drop-limit.json",
-					"vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json",
-					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
-					"linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json",
-					"linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-pump-fluid-transfer.json",
+					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "storage-compression.json",
+					"storage-break-drop-limit.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json",
+					"controller-link.json", "controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json",
+					"linked-storage-resources.json", "linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json",
+					"linked-storage-restart.json", "linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-pump-fluid-transfer.json",
 					"linked-storage-interoperability.json", "linked-storage-mob-catcher.json", "linked-storage-settings.json", "jei-recipe-transfer.json"),
 					indexedPaths);
-			assertEquals(28, indexedPaths.size());
+			assertEquals(29, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			try (var resources = Files.list(Path.of("src", "main", "resources", "devclientautomation", "regressions"))) {
 				List<String> physicalJson = resources.filter(path -> path.getFileName().toString().endsWith(".json")).map(path -> path.getFileName().toString())
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(29, physicalJson.size());
+				assertEquals(30, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -99,7 +99,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(142, testCount);
+			assertEquals(145, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}

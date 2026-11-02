@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "storage-compression",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "locked-limited-barrel-menu-compacts-and-tracks",
+      "tags": ["compression", "menu", "tracker", "void", "conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id":"hold", "action":"player.createMainHandItem", "args":{"item":"sophisticatedstorage:limited_gold_barrel_3"}},
+        {"id":"place", "action":"player.placeHeldBlock"},
+        {"id":"placed", "action":"await.storageBlock"},
+        {"id":"configure", "action":"fixture.storage.compression"},
+        {"id":"initial", "action":"assert.storage.compression", "args":{"missing":1}},
+        {"id":"empty-hand", "action":"player.clearMainHand"},
+        {"id":"open", "action":"player.useTargetBlock"},
+        {"id":"menu", "action":"await.menu", "args":{"kind":"storageBlock"}},
+        {"id":"nugget", "action":"player.setInventorySlot", "args":{"slot":1,"item":"minecraft:iron_nugget","count":1}},
+        {"id":"deposit", "action":"menu.clickStorageSlot", "args":{"area":"player","slot":1,"click":"quickMove"}},
+        {"id":"carry", "action":"assert.storage.compression"},
+        {"id":"withdraw", "action":"menu.clickStorageSlot", "args":{"area":"storage","slot":2,"click":"quickMove"}},
+        {"id":"compacted", "action":"assert.storage.compression", "args":{"missing":64}},
+        {"id":"withdrawn", "action":"assert.inventoryCount", "args":{"target":"player","item":"minecraft:iron_nugget","count":64,"client":true}},
+        {"id":"return", "action":"menu.clickStorageSlot", "args":{"area":"player","slot":8,"click":"quickMove"}},
+        {"id":"returned", "action":"assert.storage.compression"},
+        {"id":"close", "action":"menu.close"},
+        {"id":"closed", "action":"await.menuClosed"},
+        {"id":"front-single", "action":"exercise.storage.compressionFront"},
+        {"id":"front-stack", "action":"exercise.storage.compressionFront", "args":{"stack":true}},
+        {"id":"automation", "action":"exercise.storage.compressionAutomation"}
+      ]
+    },
+    {
+      "id": "bounded-hot-path-profile",
+      "tags": ["compression", "performance"],
+      "timeoutTicks": 2400,
+      "prepareTestCell": false,
+      "steps": [{"id":"measure", "action":"profile.storage.compression"}]
+    },
+    {
+      "id": "fifty-storages-same-tick-profile",
+      "tags": ["compression", "performance", "world", "fifty-storages"],
+      "timeoutTicks": 2400,
+      "steps": [{"id":"measure", "action":"profile.storage.compression", "args":{"worldBatch":true}}]
+    }
+  ]
+}
