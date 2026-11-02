@@ -36,17 +36,6 @@ runtime viewer API data exposed by `DevClientAutomation`; the existing JUnit
 When the regression runner starts the client itself, it stops that client through
 `POST /client/stop` in a `finally` block after the suite completes or fails.
 
-## Inventory Interaction Regression
-
-Run the vanilla and Sophisticated inventory keybind regression with:
-
-```powershell
-.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
-```
-
-The regression covers both transfer directions with and without the Shift
-override, plus sorting vanilla chests, player inventory, and backpacks.
-
 ## Backpack Regression
 
 Run the Sophisticated Backpacks GUI regression with:
@@ -64,7 +53,7 @@ client, and checks the nested backpack after world reload.
 Run the vanilla and Sophisticated inventory keybind regression with:
 
 ```powershell
-.\scripts\dev-client\run-inventory-interactions-regression.ps1 -MinimalRuntime
+.\scripts\dev-client\regression.ps1 run -Suite inventory-interactions-keybind
 ```
 
 The regression covers both transfer directions with and without the Shift

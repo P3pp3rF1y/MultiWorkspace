@@ -1,7 +1,6 @@
 {
   "protocolVersion": 1,
   "suites": [
-    {"id":"inventory-interactions-keybind","groups":["inventory-interactions","smoke"],"tier":"fast","loaders":["forge"],"script":"run-inventory-interactions-regression.ps1","arguments":{"MinimalRuntime":true}},
     {"id":"storage-controller-filter-routing","groups":["storage","controller"],"tier":"fast","loaders":["forge"],"script":"run-storage-controller-filter-regression.ps1","arguments":{"MinimalRuntime":true},"acceptsMaximizeClient":false},
     {"id":"storage-linked-storage","groups":["storage","linked-storage","controller"],"tier":"full","loaders":["forge"],"script":"run-storage-regression.ps1","arguments":{"Suite":"sophisticatedstorage-linked-storage","MinimalRuntime":true},"acceptsMaximizeClient":false},
     {"id":"backpack-runtime","groups":["backpacks"],"tier":"full","loaders":["forge"],"script":"run-backpack-regression.ps1","arguments":{"Suite":"sophisticatedbackpacks"},"acceptsMaximizeClient":false},

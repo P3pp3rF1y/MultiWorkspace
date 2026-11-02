@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "inventory-interactions-keybind",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "vanilla-transfer-to-storage-filtered",
+      "tags": ["behavior", "keybind", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "transferToStorage", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "none", "ref": "menu"}},
+        {"id": "container-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "container-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:dirt", "count": 0}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 1}}
+      ]
+    },
+    {
+      "id": "vanilla-transfer-to-storage-all",
+      "tags": ["behavior", "keybind", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "transferToStorage", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "shift", "ref": "menu"}},
+        {"id": "container-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "container-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:dirt", "count": 1}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 0}}
+      ]
+    },
+    {
+      "id": "vanilla-transfer-to-player-filtered",
+      "tags": ["behavior", "keybind", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "transferToPlayer", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToPlayer", "modifier": "none", "ref": "menu"}},
+        {"id": "container-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "container-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:dirt", "count": 1}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 0}}
+      ]
+    },
+    {
+      "id": "vanilla-transfer-to-player-all",
+      "tags": ["behavior", "keybind", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "transferToPlayer", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToPlayer", "modifier": "shift", "ref": "menu"}},
+        {"id": "container-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "container-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:dirt", "count": 0}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 1}}
+      ]
+    },
+    {
+      "id": "backpack-transfer-to-storage-filtered",
+      "tags": ["behavior", "keybind", "backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "storage", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player-cobble", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player-dirt", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "minecraft:dirt", "count": 1}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "none"}},
+        {"id": "backpack-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "backpack-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:dirt", "count": 0}},
+        {"id": "player-cobble-assert", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "player-dirt-assert", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 1}}
+      ]
+    },
+    {
+      "id": "backpack-transfer-to-storage-all",
+      "tags": ["behavior", "keybind", "backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "storage", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player-cobble", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player-dirt", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "minecraft:dirt", "count": 1}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "shift"}},
+        {"id": "backpack-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "backpack-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:dirt", "count": 1}},
+        {"id": "player-cobble-assert", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "player-dirt-assert", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 0}}
+      ]
+    },
+    {
+      "id": "backpack-transfer-to-player-filtered",
+      "tags": ["behavior", "keybind", "backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "storage-cobble", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "storage-dirt", "action": "backpack.setStorageSlot", "args": {"slot": 1, "item": "minecraft:dirt", "count": 1}},
+        {"id": "player", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToPlayer", "modifier": "none"}},
+        {"id": "backpack-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "backpack-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:dirt", "count": 1}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 0}}
+      ]
+    },
+    {
+      "id": "backpack-transfer-to-player-all",
+      "tags": ["behavior", "keybind", "backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "storage-cobble", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "storage-dirt", "action": "backpack.setStorageSlot", "args": {"slot": 1, "item": "minecraft:dirt", "count": 1}},
+        {"id": "player", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToPlayer", "modifier": "shift"}},
+        {"id": "backpack-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 0}},
+        {"id": "backpack-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:dirt", "count": 0}},
+        {"id": "player-cobble", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "player-dirt", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:dirt", "count": 1}}
+      ]
+    },
+    {
+      "id": "vanilla-container-sort",
+      "tags": ["behavior", "keybind", "sort", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "container", "slot": 0, "ref": "menu"}},
+        {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}}
+      ]
+    },
+    {
+      "id": "player-inventory-sort",
+      "tags": ["behavior", "keybind", "sort", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "first", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "second", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "open", "action": "player.openInventory"},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "playerOnly"}},
+        {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}}
+      ]
+    },
+    {
+      "id": "crafting-player-inventory-sort",
+      "tags": ["behavior", "keybind", "sort", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "crafting", "fixture": "playerSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "player", "slot": 10, "ref": "menu"}},
+        {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}},
+        {"id": "crafting-unchanged", "action": "assert.inventoryInteractionCount", "args": {"target": "craftingRegion", "ref": "menu", "count": 0}}
+      ]
+    },
+    {
+      "id": "furnace-player-inventory-sort",
+      "tags": ["behavior", "keybind", "sort", "vanilla"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "furnace", "fixture": "playerSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "player", "slot": 3, "ref": "menu"}},
+        {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}},
+        {"id": "furnace-unchanged", "action": "assert.inventoryInteractionCount", "args": {"target": "furnaceRegion", "ref": "menu", "count": 0}}
+      ]
+    },
+    {
+      "id": "backpack-storage-sort",
+      "tags": ["behavior", "keybind", "sort", "backpack"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "first", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "second", "action": "backpack.setStorageSlot", "args": {"slot": 5, "item": "minecraft:cobblestone", "count": 2}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "container", "slot": 0}},
+        {"id": "sorted", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 3, "stacks": 1}}
+      ]
+    },
+    {
+      "id": "closed-screen-keybind-rejected",
+      "tags": ["conformance", "prevalidation"],
+      "timeoutTicks": 100,
+      "steps": [
+        {"id": "press", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "playerOnly"}, "expectFailure": "A live container screen is required"}
+      ]
+    },
+    {
+      "id": "stale-menu-handle-rejected",
+      "tags": ["conformance", "prevalidation"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "open-chest", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "chest-opened"}},
+        {"id": "await-chest", "action": "await.vanillaMenu", "args": {"ref": "chest-opened", "saveAs": "chest-menu"}},
+        {"id": "open-crafting", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "crafting", "fixture": "playerSort", "saveAs": "crafting-opened"}},
+        {"id": "await-crafting", "action": "await.vanillaMenu", "args": {"ref": "crafting-opened", "saveAs": "crafting-menu"}},
+        {"id": "press-with-stale-handle", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "container", "slot": 0, "ref": "chest-menu"}, "expectFailure": "Client screen does not match synthetic menu handle"}
+      ]
+    },
+    {
+      "id": "wrong-hover-region-rejected",
+      "tags": ["conformance", "prevalidation"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "press-wrong-region", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "player", "slot": 0, "ref": "menu"}, "expectFailure": "Sort hover does not belong to the requested menu region"}
+      ]
+    },
+    {
+      "id": "vanilla-menu-await-times-out-cleanly",
+      "tags": ["conformance", "timeout", "cleanup"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "close", "action": "menu.close"},
+        {"id": "await-close", "action": "await.menuClosed"},
+        {"id": "await-stale", "action": "await.vanillaMenu", "args": {"ref": "menu", "saveAs": "unexpected", "timeoutTicks": 2}, "expectFailure": "Vanilla menu did not synchronize to handle"}
+      ]
+    }
+  ]
+}
