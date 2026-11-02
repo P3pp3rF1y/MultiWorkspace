@@ -13,6 +13,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertDoubleChestAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackFilterAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryCountAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackHostAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedItemContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedJukeboxPlaybackAction;
@@ -42,6 +43,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitMenuClosedAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitPlayerCraftingResultAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitStorageBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AwaitVanillaMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BackpackTemplateCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkGroupsBarrelAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkLineBarrelAction;
@@ -78,11 +80,13 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingS
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.OpenInventoryInteractionMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PickupPlacedBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlaceHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.PlaceHeldBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.PressInventoryInteractionKeybindAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeBackpackFilterAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeForgedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeMovingStoragePickupAction;
@@ -185,6 +189,7 @@ public final class RegressionActionRegistry {
 		register(new ConfigureBackpackDepositAction());
 		register(new UseHeldBackpackOnStorageAction());
 		register(new AssertInventoryCountAction());
+		register(new AssertInventoryInteractionCountAction());
 		register(new ConfigureBackpackPickupAction());
 		register(new FillBackpackAction());
 		register(new SpawnItemEntityAction());
@@ -271,6 +276,9 @@ public final class RegressionActionRegistry {
 		register(new UseHeldItemAction());
 		register(new UseTargetBlockAction());
 		register(new AwaitMenuAction());
+		register(new AwaitVanillaMenuAction());
+		register(new OpenInventoryInteractionMenuAction());
+		register(new PressInventoryInteractionKeybindAction());
 		register(new AssertMenuAction());
 		register(new AssertMenuUpgradeLayoutAction());
 		register(new AssertLinkedBackpackHostAction());
