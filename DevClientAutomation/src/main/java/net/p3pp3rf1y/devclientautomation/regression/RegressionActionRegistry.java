@@ -5,6 +5,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackAutoma
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalBackpackTemplateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalCapturedMobsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCompressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkGroupsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkLineAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerSharedGroupAction;
@@ -69,7 +70,10 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMain
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateLockToolAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateMainHandItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ExerciseCompressionAutomationAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ExerciseCompressionFrontAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.FillBackpackAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
@@ -83,6 +87,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeBackpackFilterA
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeForgedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbeMovingStoragePickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ProbePackedPrimaryAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ProfileCompressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMoveBackpackStorageSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.QuickMovePlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RegressionAction;
@@ -197,6 +202,11 @@ public final class RegressionActionRegistry {
 		register(new PlaceHeldBlockAction());
 		register(new AwaitBackpackBlockAction());
 		register(new AwaitStorageBlockAction());
+		register(new FixtureCompressionAction());
+		register(new AssertCompressionAction());
+		register(new ExerciseCompressionAutomationAction());
+		register(new ExerciseCompressionFrontAction());
+		register(new ProfileCompressionAction());
 		register(new ConfigureStorageContentsFilterAction());
 		register(new SetFixtureBlockAction());
 		register(new ScanFixtureControllerAction());
