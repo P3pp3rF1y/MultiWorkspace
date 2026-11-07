@@ -362,9 +362,10 @@ public final class RegressionCoordinator {
 				fail("error", RegressionResultModel.Failure.exception("infrastructure", e));
 				return;
 			}
+			executionContext.advanceCoordinatorTick();
 			if (deadlineTick < 0) {
-				deadlineTick = Minecraft.getInstance().player.tickCount + activeTest.timeoutTicks();
-			} else if (Minecraft.getInstance().player.tickCount >= deadlineTick) {
+				deadlineTick = executionContext.coordinatorTicks() + activeTest.timeoutTicks();
+			} else if (executionContext.coordinatorTicks() >= deadlineTick) {
 				fail("error", RegressionResultModel.Failure.message("timeout", "Test exceeded timeoutTicks " + activeTest.timeoutTicks()));
 				return;
 			}
@@ -493,6 +494,7 @@ public final class RegressionCoordinator {
 			primaryCategory = category;
 			primaryFailure = detail;
 			if (executionContext != null) {
+				executionContext.clearHeldBackpackJukeboxSoundObserver();
 				VirtualInput.releaseMouseButton();
 				executionContext.minecraft().options.keyAttack.setDown(false);
 				if (executionContext.minecraft().gameMode != null) {

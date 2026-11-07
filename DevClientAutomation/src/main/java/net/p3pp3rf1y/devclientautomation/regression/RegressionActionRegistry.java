@@ -12,6 +12,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerShar
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertDoubleChestAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackFilterAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackJukeboxPlaybackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackHostAction;
@@ -66,6 +67,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackFil
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackRestockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureStorageContentsFilterAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ControlHeldBackpackJukeboxPlaybackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ControlJukeboxPlaybackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CopyPlayerInventoryItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMainHandAction;
@@ -77,9 +79,11 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ExerciseCompressionF
 import net.p3pp3rf1y.devclientautomation.regression.actions.FillBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.KeepInventoryDeathRespawnAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ObserveHeldBackpackJukeboxSoundAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenInventoryInteractionMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenPlayerInventoryAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.OpenUpgradeTabAction;
@@ -111,6 +115,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SendPlayerCommandAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetBackpackStorageSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetCraftingRefillAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetFixtureBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetHeldBackpackJukeboxDiscAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetHeldBackpackUpgradeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingJukeboxDiscAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingStoragePackedAction;
@@ -163,6 +168,7 @@ public final class RegressionActionRegistry {
 		register(new ClickStorageSettingsAction());
 		register(new ResetRegionAction());
 		register(new ResetPlayerAction());
+		register(new KeepInventoryDeathRespawnAction());
 		register(new AssertPlayerInventoryBaselineAction());
 		register(new CreateBackpackInMainHandAction());
 		register(new BackpackTemplateCommandAction());
@@ -276,6 +282,9 @@ public final class RegressionActionRegistry {
 		register(new AssertLinkedMenuDeltaAction());
 		register(new AssertLinkedMenuSettingsAction());
 		register(new ControlJukeboxPlaybackAction());
+		register(new ObserveHeldBackpackJukeboxSoundAction());
+		register(new ControlHeldBackpackJukeboxPlaybackAction());
+		register(new AssertHeldBackpackJukeboxPlaybackAction());
 		register(new AssertLinkedJukeboxPlaybackAction());
 		register(new HoldRecoveredMovingStorageInnerAction());
 		register(lazyTierAction("assert.storageTierUpgradeRecipe", Set.of("minecraft:client", "sophisticatedstorage"), "AssertStorageTierUpgradeRecipeAction",
@@ -298,6 +307,7 @@ public final class RegressionActionRegistry {
 		register(new ReloadFixtureControllerAction());
 		register(new ReplaceLinkedStorageRootAction());
 		register(new SetHeldBackpackUpgradeAction());
+		register(new SetHeldBackpackJukeboxDiscAction());
 		register(new SpawnFixturePigAction());
 		register(new StorageResourceCacheAction());
 		register(new TransferStorageResourceAction());
@@ -335,6 +345,7 @@ public final class RegressionActionRegistry {
 			capability.storageResourceCache
 			fixture.linked.replaceRoot
 			fixture.backpack.setUpgrade
+			fixture.backpack.setHeldJukeboxDisc
 			fixture.storage.setUpgrade
 			capability.transferStorageResource
 			capability.transferLinkedBackpackFluid
@@ -344,6 +355,7 @@ public final class RegressionActionRegistry {
 			assert.movingStorageTierUpgradeRecipe
 			fixture.region.reset
 			player.reset
+			player.keepInventoryDeathRespawn
 			assert.playerInventoryBaseline
 			backpack.createInMainHand
 			backpack.templateCommand
@@ -416,6 +428,9 @@ public final class RegressionActionRegistry {
 			assert.linkedMenuDelta
 			assert.linkedMenuSettings
 			menu.jukeboxPlayback
+			observe.heldBackpackJukeboxSound
+			menu.heldBackpackJukeboxPlayback
+			assert.heldBackpackJukeboxPlayback
 			assert.linkedJukeboxPlayback
 			assert.movingPresentation
 			assert.movingUnlinked

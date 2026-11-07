@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class RegressionExecutionContext {
 	private final String runId;
@@ -27,6 +29,8 @@ public final class RegressionExecutionContext {
 	private PlayerStatePolicy playerState = PlayerStatePolicy.ISOLATED;
 	private String checkpoint = "";
 	private boolean successful;
+	private HeldBackpackJukeboxSoundObserver heldBackpackJukeboxSoundObserver;
+	private int coordinatorTicks;
 
 	public RegressionExecutionContext(String runId, Map<String, Object> diagnostics) {
 		this.runId = runId;
@@ -64,22 +68,49 @@ public final class RegressionExecutionContext {
 	public Minecraft minecraft() {
 		return Minecraft.getInstance();
 	}
+	public void advanceCoordinatorTick() {
+		coordinatorTicks++;
+	}
+	public int coordinatorTicks() {
+		return coordinatorTicks;
+	}
+	public void observeHeldBackpackJukeboxSound(ResourceLocation sound) {
+		clearHeldBackpackJukeboxSoundObserver();
+		heldBackpackJukeboxSoundObserver = new HeldBackpackJukeboxSoundObserver(minecraft().getSoundManager(), sound);
+	}
+	public HeldBackpackJukeboxSoundObserver heldBackpackJukeboxSoundObserver() {
+		if (heldBackpackJukeboxSoundObserver == null) {
+			throw new IllegalStateException("Held backpack jukebox sound observer is not installed");
+		}
+		return heldBackpackJukeboxSoundObserver;
+	}
+	public void clearHeldBackpackJukeboxSoundObserver() {
+		if (heldBackpackJukeboxSoundObserver != null) {
+			heldBackpackJukeboxSoundObserver.remove();
+			heldBackpackJukeboxSoundObserver = null;
+		}
+	}
 	public CompletableFuture<Void> onServer(Consumer<ServerPlayer> task) {
+		return onServerResult(player -> {
+			task.accept(player);
+			return null;
+		});
+	}
+	public <T> CompletableFuture<T> onServerResult(Function<ServerPlayer, T> task) {
 		Minecraft minecraft = minecraft();
 		MinecraftServer server = minecraft.getSingleplayerServer();
 		if (server == null || minecraft.player == null) {
 			return CompletableFuture.failedFuture(new IllegalStateException("Integrated server or client player is unavailable"));
 		}
 		UUID playerId = minecraft.player.getUUID();
-		CompletableFuture<Void> result = new CompletableFuture<>();
+		CompletableFuture<T> result = new CompletableFuture<>();
 		server.execute(() -> {
 			try {
 				ServerPlayer player = server.getPlayerList().getPlayer(playerId);
 				if (player == null) {
 					throw new IllegalStateException("Server player is unavailable");
 				}
-				task.accept(player);
-				result.complete(null);
+				result.complete(task.apply(player));
 			} catch (Throwable error) {
 				result.completeExceptionally(error);
 			}

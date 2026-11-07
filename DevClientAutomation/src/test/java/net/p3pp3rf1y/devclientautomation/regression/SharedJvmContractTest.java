@@ -32,6 +32,7 @@ class SharedJvmContractTest {
 			assert.doubleChest|2|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
+			assert.heldBackpackJukeboxPlayback|2|minecraft:client,sophisticatedbackpacks
 			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			assert.inventoryInteractionCount|2|minecraft:client
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
@@ -89,6 +90,7 @@ class SharedJvmContractTest {
 			create.disassembleBackpack|1|minecraft:client,sophisticatedbackpackscreateintegration
 			exercise.storage.compressionAutomation|1|minecraft:client,sophisticatedstorage
 			exercise.storage.compressionFront|1|minecraft:client,sophisticatedstorage
+			fixture.backpack.setHeldJukeboxDisc|2|minecraft:client,sophisticatedbackpacks
 			fixture.backpack.setUpgrade|1|minecraft:client,sophisticatedbackpacks
 			fixture.block.set|1|minecraft:client
 			fixture.chunk.reloadBlockEntities|2|minecraft:client,sophisticatedstorage
@@ -128,6 +130,7 @@ class SharedJvmContractTest {
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
 			menu.clickUpgradeSlot|1|minecraft:client,sophisticatedcore
 			menu.close|1|minecraft:client
+			menu.heldBackpackJukeboxPlayback|1|minecraft:client,sophisticatedbackpacks
 			menu.jukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
 			menu.openUpgradeTab|1|minecraft:client,sophisticatedcore
 			menu.quickMoveBackpackStorageSlot|1|minecraft:client,sophisticatedbackpacks
@@ -141,9 +144,11 @@ class SharedJvmContractTest {
 			moving.setPresentation|1|minecraft:client,sophisticatedstorageinmotion
 			moving.setSlot|1|minecraft:client,sophisticatedstorageinmotion
 			moving.setUpgrade|1|minecraft:client,sophisticatedstorageinmotion
+			observe.heldBackpackJukeboxSound|1|minecraft:client,sophisticatedbackpacks
 			player.breakTargetBlock|2|minecraft:client
 			player.clearMainHand|1|minecraft:client
 			player.createMainHandItem|1|minecraft:client
+			player.keepInventoryDeathRespawn|3|minecraft:client
 			player.openInventory|1|minecraft:client
 			player.placeHeldBlock|1|minecraft:client
 			player.reset|1|minecraft:client
@@ -177,6 +182,7 @@ class SharedJvmContractTest {
 			capability.storageResourceCache
 			fixture.linked.replaceRoot
 			fixture.backpack.setUpgrade
+			fixture.backpack.setHeldJukeboxDisc
 			fixture.storage.setUpgrade
 			capability.transferStorageResource
 			capability.transferLinkedBackpackFluid
@@ -186,6 +192,7 @@ class SharedJvmContractTest {
 			assert.movingStorageTierUpgradeRecipe
 			fixture.region.reset
 			player.reset
+			player.keepInventoryDeathRespawn
 			assert.playerInventoryBaseline
 			backpack.createInMainHand
 			backpack.templateCommand
@@ -258,6 +265,9 @@ class SharedJvmContractTest {
 			assert.linkedMenuDelta
 			assert.linkedMenuSettings
 			menu.jukeboxPlayback
+			observe.heldBackpackJukeboxSound
+			menu.heldBackpackJukeboxPlayback
+			assert.heldBackpackJukeboxPlayback
 			assert.linkedJukeboxPlayback
 			assert.movingPresentation
 			assert.movingUnlinked
@@ -306,9 +316,10 @@ class SharedJvmContractTest {
 			"input.inventoryInteractionKeybind", "assert.doubleChest", "assert.menu", "assert.settingsSelection", "assert.movingStorageTierUpgradeRecipe",
 			"assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
 			"player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected", "assert.controllerSharedGroup",
-			"player.useHeldItemOnTarget");
+			"player.useHeldItemOnTarget", "fixture.backpack.setHeldJukeboxDisc", "assert.heldBackpackJukeboxPlayback");
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-jukebox-death:held-backpack-jukebox-keep-inventory-death-stops-and-replays,advanced-held-backpack-jukebox-death-replays-immediately,advanced-jukebox-death-replays-after-expiry
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
@@ -343,11 +354,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(139, actions.size());
+		assertEquals(144, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(139, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(144, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -414,10 +425,10 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(30, suites.size());
-		assertEquals(162, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(31, suites.size());
+		assertEquals(165, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(139, catalog.getAsJsonObject("actions").size());
+		assertEquals(144, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());
