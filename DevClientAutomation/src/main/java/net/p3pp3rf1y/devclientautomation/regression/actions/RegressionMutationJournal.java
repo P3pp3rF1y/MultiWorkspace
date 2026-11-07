@@ -18,6 +18,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -49,6 +50,7 @@ public final class RegressionMutationJournal {
 	private final String runId;
 	private final Map<String, CompoundTag> blocks = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
+	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
 	@Nullable
 	private CompoundTag playerSnapshot;
 	@Nullable
@@ -234,6 +236,25 @@ public final class RegressionMutationJournal {
 		recordEntity(entity, null);
 	}
 
+	/** Records death-respawn rules before a regression changes them so every terminal cleanup path restores them. */
+	public void recordDeathRespawnRules(ServerLevel level) {
+		String key = level.dimension().location().toString();
+		if (gameRules.containsKey(key)) {
+			return;
+		}
+		CompoundTag entry = new CompoundTag();
+		entry.putString("dimension", key);
+		entry.putBoolean("keepInventory", level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY));
+		entry.putBoolean("immediateRespawn", level.getGameRules().getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN));
+		gameRules.put(key, entry);
+		try {
+			persist();
+		} catch (RuntimeException e) {
+			gameRules.remove(key);
+			throw e;
+		}
+	}
+
 	/** Register item entities created within a mutation's pre-snapshotted bounds. */
 	public void recordNewItemDrops(ServerLevel level, AABB bounds, Set<UUID> existingItemEntityIds) {
 		level.getEntitiesOfClass(ItemEntity.class, bounds, entity -> !existingItemEntityIds.contains(entity.getUUID())).forEach(this::recordCreatedEntity);
@@ -274,6 +295,17 @@ public final class RegressionMutationJournal {
 
 	private void restore(ServerPlayer player, @Nullable BlockPos support, boolean restorePlayerState, boolean clearJournal) {
 		List<String> failures = new ArrayList<>();
+		for (CompoundTag entry : gameRules.values()) {
+			try {
+				ServerLevel level = level(player, entry);
+				level.getGameRules().getRule(GameRules.RULE_KEEPINVENTORY).set(entry.getBoolean("keepInventory"), level.getServer());
+				if (entry.contains("immediateRespawn", 1)) {
+					level.getGameRules().getRule(GameRules.RULE_DO_IMMEDIATE_RESPAWN).set(entry.getBoolean("immediateRespawn"), level.getServer());
+				}
+			} catch (RuntimeException e) {
+				failures.add("game rule " + entry.getString("dimension") + ": " + e.getMessage());
+			}
+		}
 		List<CompoundTag> entityEntries = new ArrayList<>(entities.values());
 		for (int i = entityEntries.size() - 1; i >= 0; i--) {
 			CompoundTag entry = entityEntries.get(i);
@@ -388,6 +420,11 @@ public final class RegressionMutationJournal {
 				CompoundTag entry = entityList.getCompound(i);
 				journal.entities.put(entry.getString("dimension") + ":" + entry.getUUID("uuid"), entry);
 			}
+			ListTag gameRuleList = root.getList("gameRules", 10);
+			for (int i = 0; i < gameRuleList.size(); i++) {
+				CompoundTag entry = gameRuleList.getCompound(i);
+				journal.gameRules.put(entry.getString("dimension"), entry);
+			}
 			return journal;
 		} catch (IOException e) {
 			throw new IllegalStateException("Could not read recovery journal " + path, e);
@@ -412,6 +449,9 @@ public final class RegressionMutationJournal {
 		ListTag entityList = new ListTag();
 		entities.values().forEach(entityList::add);
 		root.put("entities", entityList);
+		ListTag gameRuleList = new ListTag();
+		gameRules.values().forEach(gameRuleList::add);
+		root.put("gameRules", gameRuleList);
 		writeTag(path, root);
 	}
 

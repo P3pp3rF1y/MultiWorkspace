@@ -12,6 +12,7 @@ public final class RegressionValueTypes {
 	public static final String RESOURCE_PROBE = PACKAGE + "StorageResourceCacheAction$Probe";
 	public static final String ITEM_ENTITY = PACKAGE + "ItemEntityHandle";
 	public static final String VANILLA_MENU = PACKAGE + "VanillaMenuHandle";
+	public static final String HELD_BACKPACK_JUKEBOX_BASELINE = PACKAGE + "AssertHeldBackpackJukeboxPlaybackAction$Baseline";
 
 	private RegressionValueTypes() {
 	}
