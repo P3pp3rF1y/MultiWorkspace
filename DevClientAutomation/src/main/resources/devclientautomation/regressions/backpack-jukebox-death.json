@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "backpack-jukebox-death",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "held-backpack-jukebox-keep-inventory-death-stops-and-replays",
+      "tags": ["backpack", "jukebox", "death", "keepInventory"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "jukebox", "action": "fixture.backpack.setUpgrade", "args": {"item": "sophisticatedbackpacks:jukebox_upgrade"}},
+        {"id": "disc", "action": "fixture.backpack.setHeldJukeboxDisc", "args": {"item": "minecraft:music_disc_13"}},
+        {"id": "observe-sound", "action": "observe.heldBackpackJukeboxSound", "args": {"item": "minecraft:music_disc_13"}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "play", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "playing", "action": "assert.heldBackpackJukeboxPlayback", "args": {"saveAs": "beforedeath", "playing": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "stopped", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": false}},
+        {"id": "reopen", "action": "player.useHeldItem"},
+        {"id": "reopened-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "replay", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "replaying", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": true}}
+      ]
+    },
+    {
+      "id": "advanced-held-backpack-jukebox-death-replays-immediately",
+      "tags": ["backpack", "jukebox", "death", "keepInventory", "advanced"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "jukebox", "action": "fixture.backpack.setUpgrade", "args": {"item": "sophisticatedbackpacks:advanced_jukebox_upgrade"}},
+        {"id": "disc-13", "action": "fixture.backpack.setHeldJukeboxDisc", "args": {"item": "minecraft:music_disc_13", "slot": 0, "repeat": "one", "shuffle": false}},
+        {"id": "disc-cat", "action": "fixture.backpack.setHeldJukeboxDisc", "args": {"item": "minecraft:music_disc_cat", "slot": 1}},
+        {"id": "observe-sound", "action": "observe.heldBackpackJukeboxSound", "args": {"item": "minecraft:music_disc_13"}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "play", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "playing", "action": "assert.heldBackpackJukeboxPlayback", "args": {"saveAs": "beforedeath", "playing": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "stopped", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": false}},
+        {"id": "reopen", "action": "player.useHeldItem"},
+        {"id": "reopened-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "replay", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "replaying", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": true}}
+      ]
+    },
+    {
+      "id": "advanced-jukebox-death-replays-after-expiry",
+      "tags": ["backpack", "jukebox", "death", "keepInventory", "advanced", "keepalive"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "jukebox", "action": "fixture.backpack.setUpgrade", "args": {"item": "sophisticatedbackpacks:advanced_jukebox_upgrade"}},
+        {"id": "disc-13", "action": "fixture.backpack.setHeldJukeboxDisc", "args": {"item": "minecraft:music_disc_13", "slot": 0, "repeat": "one", "shuffle": false}},
+        {"id": "disc-cat", "action": "fixture.backpack.setHeldJukeboxDisc", "args": {"item": "minecraft:music_disc_cat", "slot": 1}},
+        {"id": "observe-sound", "action": "observe.heldBackpackJukeboxSound", "args": {"item": "minecraft:music_disc_13"}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "play", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "playing", "action": "assert.heldBackpackJukeboxPlayback", "args": {"saveAs": "beforedeath", "playing": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn", "args": {"respawnDelayTicks": 30}},
+        {"id": "stopped", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": false}},
+        {"id": "reopen", "action": "player.useHeldItem"},
+        {"id": "reopened-menu", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "replay", "action": "menu.heldBackpackJukeboxPlayback", "args": {"control": "play"}},
+        {"id": "replaying", "action": "assert.heldBackpackJukeboxPlayback", "args": {"baseline": "beforedeath", "playing": true}}
+      ]
+    }
+  ]
+}
