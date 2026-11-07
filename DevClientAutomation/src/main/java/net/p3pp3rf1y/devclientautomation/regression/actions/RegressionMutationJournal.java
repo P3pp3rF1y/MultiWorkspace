@@ -25,6 +25,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -52,6 +53,7 @@ public final class RegressionMutationJournal {
 	private final String runId;
 	private final Map<String, CompoundTag> blocks = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
+	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
 	private CompoundTag playerSnapshot;
 	private CompoundTag preparedPlayer;
 	private boolean committingVerification;
@@ -242,6 +244,25 @@ public final class RegressionMutationJournal {
 		}
 	}
 
+	/** Records death-respawn rules before a regression changes them so every terminal cleanup path restores them. */
+	public void recordDeathRespawnRules(ServerLevel level) {
+		String key = level.dimension().identifier().toString();
+		if (gameRules.containsKey(key)) {
+			return;
+		}
+		CompoundTag entry = new CompoundTag();
+		entry.putString("dimension", key);
+		entry.putBoolean("keepInventory", level.getGameRules().get(GameRules.KEEP_INVENTORY));
+		entry.putBoolean("immediateRespawn", level.getGameRules().get(GameRules.IMMEDIATE_RESPAWN));
+		gameRules.put(key, entry);
+		try {
+			persist();
+		} catch (RuntimeException e) {
+			gameRules.remove(key);
+			throw e;
+		}
+	}
+
 	public void recordCreatedEntity(Entity entity) {
 		recordEntity(entity, null);
 	}
@@ -285,6 +306,17 @@ public final class RegressionMutationJournal {
 
 	private void restore(ServerPlayer player, BlockPos support, boolean restorePlayerState, boolean clearJournal) {
 		List<String> failures = new ArrayList<>();
+		for (CompoundTag entry : gameRules.values()) {
+			try {
+				ServerLevel level = level(player, entry);
+				level.getGameRules().set(GameRules.KEEP_INVENTORY, entry.getBooleanOr("keepInventory", false), level.getServer());
+				if (entry.contains("immediateRespawn")) {
+					level.getGameRules().set(GameRules.IMMEDIATE_RESPAWN, entry.getBooleanOr("immediateRespawn", false), level.getServer());
+				}
+			} catch (RuntimeException e) {
+				failures.add("game rule " + entry.getStringOr("dimension", "") + ": " + e.getMessage());
+			}
+		}
 		List<CompoundTag> entityEntries = new ArrayList<>(entities.values());
 		for (int i = entityEntries.size() - 1; i >= 0; i--) {
 			CompoundTag entry = entityEntries.get(i);
@@ -401,6 +433,11 @@ public final class RegressionMutationJournal {
 				CompoundTag entry = entityList.getCompoundOrEmpty(i);
 				journal.entities.put(entry.getStringOr("dimension", "") + ":" + entry.getStringOr("uuid", ""), entry);
 			}
+			ListTag gameRuleList = root.getListOrEmpty("gameRules");
+			for (int i = 0; i < gameRuleList.size(); i++) {
+				CompoundTag entry = gameRuleList.getCompoundOrEmpty(i);
+				journal.gameRules.put(entry.getStringOr("dimension", ""), entry);
+			}
 			return journal;
 		} catch (IOException e) {
 			throw new IllegalStateException("Could not read recovery journal " + path, e);
@@ -425,6 +462,9 @@ public final class RegressionMutationJournal {
 		ListTag entityList = new ListTag();
 		entities.values().forEach(entityList::add);
 		root.put("entities", entityList);
+		ListTag gameRuleList = new ListTag();
+		gameRules.values().forEach(gameRuleList::add);
+		root.put("gameRules", gameRuleList);
 		writeTag(path, root);
 	}
 
