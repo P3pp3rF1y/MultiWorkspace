@@ -2,6 +2,8 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.DeathScreen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,6 +36,7 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 	private static final class Execution extends TickRegressionActionExecution {
 		private CompletableFuture<Void> future;
 		private int deadline = -1;
+		private boolean respawnRequested;
 
 		private Execution(RegressionExecutionContext context) {
 			super(context);
@@ -41,11 +44,25 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 
 		@Override
 		public RegressionActionProgress tick() {
+			Minecraft minecraft = context.minecraft();
+			LocalPlayer clientPlayer = minecraft.player;
+			if (clientPlayer == null) {
+				return fail("Client player is unavailable while resetting the test cell");
+			}
+			if ((clientPlayer.isDeadOrDying() || minecraft.gui.screen() instanceof DeathScreen) && !respawnRequested) {
+				clientPlayer.respawn();
+				respawnRequested = true;
+				context.putDiagnostic("resetPlayerRecovery", "requestedRespawn");
+				return RegressionActionProgress.WAITING;
+			}
+			if (respawnRequested && (clientPlayer.isDeadOrDying() || minecraft.gui.screen() instanceof DeathScreen)) {
+				return waitForRecovery();
+			}
 			if (future == null) {
 				future = context.onServer(player -> {
 					BlockPos target = context.standingPosition();
-					player.setShiftKeyDown(false);
 					player.closeContainer();
+					player.setShiftKeyDown(false);
 					player.teleportTo(player.level(), target.getX() + 0.5D, target.getY(), target.getZ() + 0.5D, Set.of(), CAMERA_YAW, CAMERA_PITCH, false);
 					player.setDeltaMovement(Vec3.ZERO);
 					player.resetFallDistance();
@@ -55,7 +72,6 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 			if (reset != RegressionActionProgress.PASSED) {
 				return reset;
 			}
-			Minecraft minecraft = context.minecraft();
 			BlockPos target = context.standingPosition();
 			if (minecraft.player != null) {
 				if (minecraft.player.containerMenu != minecraft.player.inventoryMenu) {
@@ -75,10 +91,22 @@ public final class ResetPlayerAction extends TypedRegressionAction<ResetPlayerAc
 				}
 			}
 			if (deadline < 0) {
-				deadline = minecraft.player.tickCount + 100;
+				deadline = context.coordinatorTicks() + 100;
 			}
-			if (minecraft.player.tickCount >= deadline) {
-				return fail("Client player did not synchronize to the supported test cell");
+			if (context.coordinatorTicks() >= deadline) {
+				return fail("Client player did not synchronize to the supported test cell after 100 coordinator ticks: " + "position="
+						+ (minecraft.player == null ? "unavailable" : minecraft.player.blockPosition()) + ", onGround="
+						+ (minecraft.player != null && minecraft.player.onGround()) + ", recovery=" + respawnRequested);
+			}
+			return RegressionActionProgress.WAITING;
+		}
+
+		private RegressionActionProgress waitForRecovery() {
+			if (deadline < 0) {
+				deadline = context.coordinatorTicks() + 100;
+			}
+			if (context.coordinatorTicks() >= deadline) {
+				return fail("Client player remained dead while resetting the test cell after 100 coordinator ticks");
 			}
 			return RegressionActionProgress.WAITING;
 		}
