@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -28,8 +29,14 @@ public final class AssertCompressionAction extends TypedRegressionAction<AssertC
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
 			private CompletableFuture<Void> future;
+			private boolean matched;
+			private int deadline = -1;
 			@Override
 			public RegressionActionProgress tick() {
+				int tick = Minecraft.getInstance().player.tickCount;
+				if (deadline < 0) {
+					deadline = tick + 100;
+				}
 				if (future == null) {
 					future = context.onServer(player -> {
 						if (!(player.serverLevel().getBlockEntity(context.target()) instanceof StorageBlockEntity storage)) {
@@ -39,12 +46,18 @@ public final class AssertCompressionAction extends TypedRegressionAction<AssertC
 						long total = assertContents(inventory);
 						long expected = (long) inventory.getBaseStackLimit(new ItemStack(Items.IRON_BLOCK)) * arguments.multiple() - arguments.missing();
 						observe(Map.of("total", expected), Map.of("total", total));
-						if (total != expected) {
-							throw RegressionActionFailure.assertion("Compression conservation: " + expectedActual());
-						}
+						matched = total == expected;
 					});
 				}
-				return await(future);
+				RegressionActionProgress result = await(future);
+				if (result != RegressionActionProgress.PASSED) {
+					return result;
+				}
+				if (matched) {
+					return RegressionActionProgress.PASSED;
+				}
+				future = null;
+				return tick >= deadline ? failAssertion("Compression conservation: " + expectedActual()) : RegressionActionProgress.WAITING;
 			}
 		};
 	}

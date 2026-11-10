@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceKey;
@@ -14,6 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -53,6 +55,8 @@ public final class RegressionMutationJournal {
 	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
 	@Nullable
 	private CompoundTag playerSnapshot;
+	@Nullable
+	private CompoundTag playerConditionSnapshot;
 	@Nullable
 	private CompoundTag preparedPlayer;
 	private boolean committingVerification;
@@ -96,6 +100,9 @@ public final class RegressionMutationJournal {
 				throw new IllegalStateException("Restart checkpoint player inventory/endpoints differ from preparation");
 			}
 			journal.playerSnapshot = checkpoint.getCompound("originalPlayer").copy();
+			journal.playerConditionSnapshot = checkpoint.contains("originalPlayerConditions", 10)
+					? checkpoint.getCompound("originalPlayerConditions").copy()
+					: null;
 			journal.preparedPlayer = checkpoint.getCompound("preparedPlayer").copy();
 			diagnostics.put("restartPreparationToken", checkpoint.getUUID("token").toString());
 			diagnostics.put("restartPreparationBootId", checkpoint.getUUID("boot").toString());
@@ -104,6 +111,7 @@ public final class RegressionMutationJournal {
 				throw new IllegalStateException("A retained restart checkpoint must be verified before another test");
 			}
 			journal.playerSnapshot = snapshotPlayer(player);
+			journal.playerConditionSnapshot = snapshotPlayerConditions(player);
 		}
 		journal.persist();
 		if (policy != PlayerStatePolicy.CHECKPOINT_VERIFY) {
@@ -129,6 +137,31 @@ public final class RegressionMutationJournal {
 		}
 		state.put("crafting", crafting);
 		return state;
+	}
+
+	private static CompoundTag snapshotPlayerConditions(ServerPlayer player) {
+		CompoundTag snapshot = new CompoundTag();
+		snapshot.putFloat("health", player.getHealth());
+		ListTag effects = new ListTag();
+		var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+		for (MobEffectInstance effect : player.getActiveEffects()) {
+			effects.add(MobEffectInstance.CODEC.encodeStart(ops, effect).getOrThrow());
+		}
+		snapshot.put("effects", effects);
+		return snapshot;
+	}
+
+	private static void restorePlayerConditions(ServerPlayer player, @Nullable CompoundTag snapshot) {
+		if (snapshot == null) {
+			return;
+		}
+		player.removeAllEffects();
+		var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+		ListTag effects = snapshot.getList("effects", 10);
+		for (int index = 0; index < effects.size(); index++) {
+			player.addEffect(MobEffectInstance.CODEC.parse(ops, effects.get(index)).getOrThrow());
+		}
+		player.setHealth(snapshot.getFloat("health"));
 	}
 
 	private static void clearPlayer(ServerPlayer player) {
@@ -180,6 +213,7 @@ public final class RegressionMutationJournal {
 				// Failed/cancelled/interrupted assertions recover to the exact prepared state for retry.
 				restore(player, support, false, false);
 				restorePlayer(player, preparedPlayer);
+				restorePlayerConditions(player, playerConditionSnapshot);
 				clearJournal();
 				return;
 			}
@@ -197,6 +231,7 @@ public final class RegressionMutationJournal {
 			diagnostics.put("restartPreparationToken", checkpoint.getUUID("token").toString());
 			diagnostics.put("restartPreparationBootId", checkpoint.getUUID("boot").toString());
 			checkpoint.put("originalPlayer", playerSnapshot);
+			checkpoint.put("originalPlayerConditions", playerConditionSnapshot);
 			checkpoint.put("preparedPlayer", prepared);
 			writeTag(checkpointPath(), checkpoint);
 		} else if (playerState != PlayerStatePolicy.ISOLATED) {
@@ -368,6 +403,7 @@ public final class RegressionMutationJournal {
 		if (restorePlayerState) {
 			try {
 				restorePlayer(player);
+				restorePlayerConditions(player, playerConditionSnapshot);
 			} catch (RuntimeException e) {
 				failures.add("player: " + e.getMessage());
 			}
@@ -410,6 +446,9 @@ public final class RegressionMutationJournal {
 			if (root.contains("playerSnapshot", 10)) {
 				journal.playerSnapshot = root.getCompound("playerSnapshot");
 			}
+			if (root.contains("playerConditionSnapshot", 10)) {
+				journal.playerConditionSnapshot = root.getCompound("playerConditionSnapshot");
+			}
 			ListTag blockList = root.getList("blocks", 10);
 			for (int i = 0; i < blockList.size(); i++) {
 				CompoundTag entry = blockList.getCompound(i);
@@ -442,6 +481,9 @@ public final class RegressionMutationJournal {
 		}
 		if (playerSnapshot != null) {
 			root.put("playerSnapshot", playerSnapshot);
+		}
+		if (playerConditionSnapshot != null) {
+			root.put("playerConditionSnapshot", playerConditionSnapshot);
 		}
 		ListTag blockList = new ListTag();
 		blocks.values().forEach(blockList::add);

@@ -52,6 +52,7 @@ class SharedJvmContractTest {
 			assert.movingStorageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.movingUnlinked|1|minecraft:client,sophisticatedstorageinmotion
 			assert.placedBackpackContents|1|minecraft:client,sophisticatedbackpacks
+			assert.playerHealth|1|minecraft:client
 			assert.playerInventoryBaseline|1|minecraft:client
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
@@ -146,6 +147,7 @@ class SharedJvmContractTest {
 			player.clearMainHand|1|minecraft:client
 			player.createMainHandItem|1|minecraft:client
 			player.keepInventoryDeathRespawn|3|minecraft:client
+			player.lethalDamage|1|minecraft:client
 			player.openInventory|1|minecraft:client
 			player.placeHeldBlock|1|minecraft:client
 			player.reset|1|minecraft:client
@@ -187,6 +189,7 @@ class SharedJvmContractTest {
 			fixture.region.reset
 			player.reset
 			assert.playerInventoryBaseline
+			assert.playerHealth
 			backpack.createInMainHand
 			backpack.templateCommand
 			player.createMainHandItem
@@ -262,6 +265,7 @@ class SharedJvmContractTest {
 			menu.heldBackpackJukeboxPlayback
 			observe.heldBackpackJukeboxSound
 			player.keepInventoryDeathRespawn
+			player.lethalDamage
 			fixture.backpack.setHeldJukeboxDisc
 			assert.linkedJukeboxPlayback
 			assert.movingPresentation
@@ -314,6 +318,7 @@ class SharedJvmContractTest {
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
 			backpack-jukebox-death:held-backpack-jukebox-keep-inventory-death-stops-and-replays,advanced-held-backpack-jukebox-death-replays-immediately,advanced-jukebox-death-replays-after-expiry
+			reliquary-resurrection:generic-kill-without-rescue-item-completes-death,generic-kill-preserves-angelheart-vial,generic-kill-preserves-phoenix-down,generic-kill-preserves-both-rescue-items,ordinary-fire-rescues-with-angelheart-vial,ordinary-wither-rescues-with-phoenix-down,ordinary-generic-rescues-with-angelheart-vial,ordinary-generic-prefers-angelheart-vial-before-phoenix-down,lethal-damage-rejects-creative-immunity,player-health-observes-server-and-client-state,player-health-reports-server-below-minimum
 			inventory-interactions-keybind:vanilla-transfer-to-storage-filtered,vanilla-transfer-to-storage-all,vanilla-transfer-to-player-filtered,vanilla-transfer-to-player-all,backpack-transfer-to-storage-filtered,backpack-transfer-to-storage-all,backpack-transfer-to-player-filtered,backpack-transfer-to-player-all,vanilla-container-sort,player-inventory-sort,crafting-player-inventory-sort,furnace-player-inventory-sort,backpack-storage-sort,closed-screen-keybind-rejected,stale-menu-handle-rejected,wrong-hover-region-rejected,vanilla-menu-await-times-out-cleanly
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
@@ -347,7 +352,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(142, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(144, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -393,6 +398,10 @@ class SharedJvmContractTest {
 		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"not a resource id\"}"), "recipeviewer.transferRecipe"));
 		assertThrows(IllegalArgumentException.class,
 				() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"maxTransfer\":1}"), "recipeviewer.transferRecipe"));
+		for (String invalid : List.of("", ":stick", "minecraft:")) {
+			assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"" + invalid + "\"}"), "recipeviewer.transferRecipe"),
+					invalid);
+		}
 	}
 
 	@Test
@@ -402,13 +411,13 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(30, suites.size());
-		assertEquals(161, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(31, suites.size());
+		assertEquals(172, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(142, actions.size());
+		assertEquals(144, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 

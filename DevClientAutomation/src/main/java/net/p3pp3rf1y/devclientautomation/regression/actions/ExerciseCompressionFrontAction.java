@@ -84,7 +84,9 @@ public final class ExerciseCompressionFrontAction extends TypedRegressionAction<
 				}
 				if (future == null) {
 					future = context.onServer(player -> {
-						shiftReady = player.isShiftKeyDown() == (arguments.stack() && !withdrawn);
+						shiftReady = player.isShiftKeyDown() == (arguments.stack() && !withdrawn)
+								&& player.pick(player.blockInteractionRange(), 0, false) instanceof BlockHitResult serverHit
+								&& serverHit.getBlockPos().equals(context.target()) && serverHit.getDirection() == facing;
 						StorageBlockEntity storage = (StorageBlockEntity) player.serverLevel().getBlockEntity(context.target());
 						long total = AssertCompressionAction.assertContents(storage.getStorageWrapper().getInventoryHandler());
 						int amount = arguments.stack() ? 64 : 1;

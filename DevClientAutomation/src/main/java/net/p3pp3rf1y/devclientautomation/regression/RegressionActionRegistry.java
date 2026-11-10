@@ -30,6 +30,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageC
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStoragePresentationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertNestedMovingStorageIdentityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlacedBackpackContentsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerHealthAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventoryBaselineAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBarrelAction;
@@ -81,6 +82,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAc
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.KeepInventoryDeathRespawnAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LethalDamageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ObserveHeldBackpackJukeboxSoundAction;
@@ -150,7 +152,7 @@ import java.util.regex.Pattern;
 
 public final class RegressionActionRegistry {
 	// Matches ResourceLocation.tryBySeparator's namespace and path character sets without loading Minecraft in the JVM-only schema binder.
-	private static final Pattern RECIPE_RESOURCE_LOCATION = Pattern.compile("(?:[a-z0-9_.-]*:)?[a-z0-9/._-]*");
+	private static final Pattern RECIPE_RESOURCE_LOCATION = Pattern.compile("(?:[a-z0-9_.-]+:)?[a-z0-9/._-]+");
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
@@ -179,6 +181,7 @@ public final class RegressionActionRegistry {
 		register(new ResetRegionAction());
 		register(new ResetPlayerAction());
 		register(new AssertPlayerInventoryBaselineAction());
+		register(new AssertPlayerHealthAction());
 		register(new CreateBackpackInMainHandAction());
 		register(new BackpackTemplateCommandAction());
 		register(new CreateMainHandItemAction());
@@ -272,6 +275,7 @@ public final class RegressionActionRegistry {
 		register(new ControlHeldBackpackJukeboxPlaybackAction());
 		register(new ObserveHeldBackpackJukeboxSoundAction());
 		register(new KeepInventoryDeathRespawnAction());
+		register(new LethalDamageAction());
 		register(new SetHeldBackpackJukeboxDiscAction());
 		register(new AssertLinkedJukeboxPlaybackAction());
 		register(new AssertMovingStoragePresentationAction());
