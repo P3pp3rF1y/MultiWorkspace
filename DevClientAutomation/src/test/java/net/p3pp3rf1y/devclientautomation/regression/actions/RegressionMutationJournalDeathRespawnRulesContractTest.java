@@ -19,4 +19,15 @@ class RegressionMutationJournalDeathRespawnRulesContractTest {
 		assertTrue(
 				journal.contains("level.getGameRules().set(GameRules.IMMEDIATE_RESPAWN, entry.getBooleanOr(\"immediateRespawn\", false), level.getServer())"));
 	}
+
+	@Test
+	void legacyCheckpointWithoutConditionsDoesNotResetHealthOrEffects() throws IOException {
+		String journal = Files.readString(Path.of("src/main/java/net/p3pp3rf1y/devclientautomation/regression/actions/RegressionMutationJournal.java"));
+
+		assertTrue(journal.contains("checkpoint.contains(\"originalPlayerConditions\")"));
+		assertTrue(journal.contains("? checkpoint.getCompoundOrEmpty(\"originalPlayerConditions\").copy()"));
+		assertTrue(journal.contains(": null;"));
+		assertTrue(journal.contains("if (snapshot == null)"));
+		assertTrue(journal.contains("restorePlayerConditions(player, playerConditionSnapshot)"));
+	}
 }
