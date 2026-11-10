@@ -36,8 +36,10 @@
 !/SophisticatedStorageInMotion/
 
 # Local artifacts within allowed directories.
+/DevClientAutomation/.gradle/
 /DevClientAutomation/build/
 /DevClientAutomation/bin/
+/DevClientAutomation/logs/
 /workspace/build/
 /workspace/run/
 /workspace/run2/
