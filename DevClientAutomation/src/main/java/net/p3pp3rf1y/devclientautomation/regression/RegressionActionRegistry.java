@@ -30,6 +30,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageC
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStoragePresentationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertNestedMovingStorageIdentityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlacedBackpackContentsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerHealthAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventoryBaselineAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBarrelAction;
@@ -81,6 +82,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAc
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.KeepInventoryDeathRespawnAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LethalDamageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ObserveHeldBackpackJukeboxSoundAction;
@@ -148,8 +150,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public final class RegressionActionRegistry {
+	private static final Pattern RECIPE_RESOURCE_LOCATION = Pattern.compile("(?:[a-z0-9_.-]+:)?[a-z0-9/._-]+");
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 	public RegressionActionRegistry() {
 		register(new ClickSortControlAction());
@@ -169,6 +173,8 @@ public final class RegressionActionRegistry {
 		register(new ResetRegionAction());
 		register(new ResetPlayerAction());
 		register(new KeepInventoryDeathRespawnAction());
+		register(new LethalDamageAction());
+		register(new AssertPlayerHealthAction());
 		register(new AssertPlayerInventoryBaselineAction());
 		register(new CreateBackpackInMainHandAction());
 		register(new BackpackTemplateCommandAction());
@@ -356,6 +362,8 @@ public final class RegressionActionRegistry {
 			fixture.region.reset
 			player.reset
 			player.keepInventoryDeathRespawn
+			player.lethalDamage
+			assert.playerHealth
 			assert.playerInventoryBaseline
 			backpack.createInMainHand
 			backpack.templateCommand
@@ -508,6 +516,8 @@ public final class RegressionActionRegistry {
 				"net.p3pp3rf1y.devclientautomation.regression.actions.TransferRecipeAction", (args, description) -> {
 					LazyOptionalRegressionAction.requireOnly(args, Set.of("recipeResourceID", "maxTransfer"), description);
 					LazyOptionalRegressionAction.requireString(args, "recipeResourceID", description);
+					if (!RECIPE_RESOURCE_LOCATION.matcher(args.get("recipeResourceID").getAsString()).matches())
+						throw new IllegalArgumentException("Argument recipeResourceID on " + description + " must be a resource location");
 					if (args.has("maxTransfer") && (!args.get("maxTransfer").isJsonPrimitive() || !args.getAsJsonPrimitive("maxTransfer").isBoolean()))
 						throw new IllegalArgumentException("Argument maxTransfer on " + description + " must be boolean");
 				});

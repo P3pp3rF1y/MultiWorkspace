@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "reliquary-resurrection",
+  "requires": ["reliquary"],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "generic-kill-without-rescue-item-completes-death",
+      "tags": ["reliquary", "resurrection", "genericKill"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "vial", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 0, "client": true}},
+        {"id": "phoenix", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:phoenix_down", "count": 0, "client": true}},
+        {"id": "feather", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "generic-kill-preserves-angelheart-vial",
+      "tags": ["reliquary", "resurrection", "genericKill", "angelheart"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "vial", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:angelheart_vial", "count": 1, "clearMatching": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "vial-preserved", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 1, "client": true}},
+        {"id": "no-feather", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "generic-kill-preserves-phoenix-down",
+      "tags": ["reliquary", "resurrection", "genericKill", "phoenix"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "phoenix", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:phoenix_down", "count": 1, "clearMatching": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "phoenix-preserved", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:phoenix_down", "count": 1, "client": true}},
+        {"id": "no-feather", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "generic-kill-preserves-both-rescue-items",
+      "tags": ["reliquary", "resurrection", "genericKill", "angelheart", "phoenix"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "vial", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:angelheart_vial", "count": 1, "clearMatching": true}},
+        {"id": "phoenix", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "reliquary:phoenix_down", "count": 1, "clearMatching": true}},
+        {"id": "death", "action": "player.keepInventoryDeathRespawn"},
+        {"id": "vial-preserved", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 1, "client": true}},
+        {"id": "phoenix-preserved", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:phoenix_down", "count": 1, "client": true}},
+        {"id": "no-feather", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "ordinary-fire-rescues-with-angelheart-vial",
+      "tags": ["reliquary", "resurrection", "fire", "runtimeConformance"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "vial", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:angelheart_vial", "count": 1, "clearMatching": true}},
+        {"id": "damage", "action": "player.lethalDamage", "args": {"source": "fire"}},
+        {"id": "health", "action": "assert.playerHealth"},
+        {"id": "vial-consumed", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "ordinary-wither-rescues-with-phoenix-down",
+      "tags": ["reliquary", "resurrection", "wither", "runtimeConformance"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "phoenix", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:phoenix_down", "count": 1, "clearMatching": true}},
+        {"id": "damage", "action": "player.lethalDamage", "args": {"source": "wither"}},
+        {"id": "health", "action": "assert.playerHealth"},
+        {"id": "phoenix-consumed", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:phoenix_down", "count": 0, "client": true}},
+        {"id": "feather-created", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 1, "client": true}}
+      ]
+    },
+    {
+      "id": "ordinary-generic-rescues-with-angelheart-vial",
+      "tags": ["reliquary", "resurrection", "generic", "runtimeConformance"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "vial", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:angelheart_vial", "count": 1, "clearMatching": true}},
+        {"id": "damage", "action": "player.lethalDamage", "args": {"source": "generic"}},
+        {"id": "health", "action": "assert.playerHealth"},
+        {"id": "vial-consumed", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "ordinary-generic-prefers-angelheart-vial-before-phoenix-down",
+      "tags": ["reliquary", "resurrection", "generic", "angelheart", "phoenix", "runtimeConformance"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "vial", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "reliquary:angelheart_vial", "count": 1, "clearMatching": true}},
+        {"id": "phoenix", "action": "player.setInventorySlot", "args": {"slot": 10, "item": "reliquary:phoenix_down", "count": 1, "clearMatching": true}},
+        {"id": "damage", "action": "player.lethalDamage", "args": {"source": "generic"}},
+        {"id": "health", "action": "assert.playerHealth"},
+        {"id": "vial-consumed", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelheart_vial", "count": 0, "client": true}},
+        {"id": "phoenix-preserved", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:phoenix_down", "count": 1, "client": true}},
+        {"id": "no-feather", "action": "assert.inventoryCount", "args": {"target": "player", "item": "reliquary:angelic_feather", "count": 0, "client": true}}
+      ]
+    },
+    {
+      "id": "lethal-damage-rejects-creative-immunity",
+      "tags": ["reliquary", "resurrection", "runtimeConformance", "negative"],
+      "timeoutTicks": 100,
+      "steps": [
+        {"id": "creative", "action": "fixture.player.setGameMode", "args": {"mode": "creative"}},
+        {"id": "rejected", "action": "player.lethalDamage", "args": {"source": "generic"}, "expectFailure": "Lethal generic damage was not accepted"}
+      ]
+    },
+    {
+      "id": "player-health-observes-server-and-client-state",
+      "tags": ["reliquary", "resurrection", "runtimeConformance"],
+      "timeoutTicks": 100,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "health", "action": "assert.playerHealth", "args": {"minimum": 1}}
+      ]
+    },
+    {
+      "id": "player-health-reports-server-below-minimum",
+      "tags": ["reliquary", "resurrection", "runtimeConformance", "negative"],
+      "timeoutTicks": 100,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "below-minimum", "action": "assert.playerHealth", "args": {"minimum": 21}, "expectFailure": "Server player is not alive with required health"}
+      ]
+    }
+  ]
+}

@@ -11,6 +11,7 @@ param(
     [switch]$KeepClientOpen,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
+    [switch]$PreflightOnly,
     [string]$GameDirectory = "",
     [string]$OptionsSeed = "",
     [ValidateSet("", "emi", "jei", "rei", "none")]
@@ -25,25 +26,36 @@ $discoveryPaths = @(
     (Join-Path $WorkspaceRoot "workspace\run\dev-client-automation.json"),
     (Join-Path $WorkspaceRoot "workspace\run\client\dev-client-automation.json")
 )
+$defaultDiscoveryPaths = $discoveryPaths
 if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) {
     $gamePath = [System.IO.Path]::GetFullPath($GameDirectory)
     if (-not $gamePath.StartsWith(([System.IO.Path]::GetFullPath((Join-Path $WorkspaceRoot 'build')) + [System.IO.Path]::DirectorySeparatorChar),
             [System.StringComparison]::OrdinalIgnoreCase)) {
         throw 'Isolated game directory must be beneath workspace/build.'
     }
-    if (-not (Test-Path -LiteralPath $gamePath)) {
-        $null = New-Item -ItemType Directory -Path $gamePath -Force
-    }
     if (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) {
         $seedPath = [System.IO.Path]::GetFullPath($OptionsSeed)
         if (-not (Test-Path -LiteralPath $seedPath -PathType Leaf)) { throw "Options seed does not exist: $seedPath" }
         $destination = Join-Path $gamePath 'options.txt'
         if (Test-Path -LiteralPath $destination) { throw "Isolated options already exist; use a fresh game directory: $destination" }
-        Copy-Item -LiteralPath $seedPath -Destination $destination
     }
     $discoveryPaths = @((Join-Path $gamePath 'dev-client-automation.json'))
 } elseif (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) {
     throw 'OptionsSeed requires an isolated GameDirectory.'
+}
+
+foreach ($discoveryPath in @($defaultDiscoveryPaths + $discoveryPaths | Select-Object -Unique)) {
+    Assert-ClientLaunchAvailable -DiscoveryPath $discoveryPath
+}
+if ($PreflightOnly) { return [pscustomobject]@{ ok = $true; discoveryPaths = $discoveryPaths; launched = $false } }
+
+if (-not [string]::IsNullOrWhiteSpace($GameDirectory)) {
+    if (-not (Test-Path -LiteralPath $gamePath)) {
+        $null = New-Item -ItemType Directory -Path $gamePath -Force
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OptionsSeed)) {
+        Copy-Item -LiteralPath $seedPath -Destination $destination
+    }
 }
 
 foreach ($discoveryPath in $discoveryPaths) {

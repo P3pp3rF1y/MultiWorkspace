@@ -9,6 +9,7 @@ param(
     [string]$BaseUrl,
     [switch]$KeepClientOpen,
     [string]$ArtifactDirectory = (Join-Path $WorkspaceRoot "build/reports/dev-client-regression"),
+    [string]$ReportPath,
     [ValidateSet("fast", "full")]
     [string]$Tier = "fast",
     [int]$TimeoutSeconds = 360,
@@ -19,6 +20,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($ReportPath) {
+    if ($RegressionSuite.Count -gt 0 -or $List) { throw 'ReportPath is for terminal manifest runs, not declarative suites or listing.' }
+    if (-not [System.IO.Path]::IsPathFullyQualified($ReportPath) -or (Test-Path -LiteralPath $ReportPath)) {
+        throw 'ReportPath must be a new absolute file path; existing evidence is preserved.'
+    }
+}
 $manifestPath = Join-Path $PSScriptRoot "regression-suites.json"
 $tierRanks = @{ fast = 0; full = 1 }
 $runner = [pscustomobject]@{
@@ -291,6 +298,15 @@ function Assert-Accounting {
     }
 }
 
+function Save-RegressionReport {
+    param([object]$Summary)
+    if (-not $ReportPath) { return }
+    [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($ReportPath)) | Out-Null
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($Summary | ConvertTo-Json -Depth 100))
+    $stream = [System.IO.File]::Open($ReportPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+}
+
 function Write-RegressionFailureSummary {
     param([Parameter(Mandatory = $true)] [string]$Message, [object[]]$Results = @(), [int]$Selected = 0, [object]$Selection = $null)
 
@@ -322,6 +338,7 @@ function Write-RegressionFailureSummary {
         error = ConvertTo-SanitizedText $Message
     }
     $summary = Copy-SanitizedTelemetry $summary
+    Save-RegressionReport -Summary $summary
     $summary
     throw (ConvertTo-SanitizedText $Message)
 }
@@ -458,6 +475,7 @@ $summary = [pscustomobject]@{
     results = $results
 }
 $summary = Copy-SanitizedTelemetry $summary
+Save-RegressionReport -Summary $summary
 $summary
 if (-not $summary.ok) {
     throw "Regression run failed: $($accounting.failed) failed, $($accounting.notRun) not run, of $($accounting.selected) selected suites."

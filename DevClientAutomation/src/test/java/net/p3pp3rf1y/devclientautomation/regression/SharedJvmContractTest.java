@@ -53,6 +53,7 @@ class SharedJvmContractTest {
 			assert.movingStorageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.movingUnlinked|1|minecraft:client,sophisticatedstorageinmotion
 			assert.placedBackpackContents|1|minecraft:client,sophisticatedbackpacks
+			assert.playerHealth|1|minecraft:client
 			assert.playerInventoryBaseline|1|minecraft:client
 			assert.restockBackpack|1|minecraft:client,sophisticatedbackpacks
 			assert.restockBarrel|1|minecraft:client,sophisticatedstorage
@@ -149,6 +150,7 @@ class SharedJvmContractTest {
 			player.clearMainHand|1|minecraft:client
 			player.createMainHandItem|1|minecraft:client
 			player.keepInventoryDeathRespawn|3|minecraft:client
+			player.lethalDamage|1|minecraft:client
 			player.openInventory|1|minecraft:client
 			player.placeHeldBlock|1|minecraft:client
 			player.reset|1|minecraft:client
@@ -193,6 +195,8 @@ class SharedJvmContractTest {
 			fixture.region.reset
 			player.reset
 			player.keepInventoryDeathRespawn
+			player.lethalDamage
+			assert.playerHealth
 			assert.playerInventoryBaseline
 			backpack.createInMainHand
 			backpack.templateCommand
@@ -320,6 +324,7 @@ class SharedJvmContractTest {
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-jukebox-death:held-backpack-jukebox-keep-inventory-death-stops-and-replays,advanced-held-backpack-jukebox-death-replays-immediately,advanced-jukebox-death-replays-after-expiry
+			reliquary-resurrection:generic-kill-without-rescue-item-completes-death,generic-kill-preserves-angelheart-vial,generic-kill-preserves-phoenix-down,generic-kill-preserves-both-rescue-items,ordinary-fire-rescues-with-angelheart-vial,ordinary-wither-rescues-with-phoenix-down,ordinary-generic-rescues-with-angelheart-vial,ordinary-generic-prefers-angelheart-vial-before-phoenix-down,lethal-damage-rejects-creative-immunity,player-health-observes-server-and-client-state,player-health-reports-server-below-minimum
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
@@ -354,11 +359,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(144, actions.size());
+		assertEquals(146, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(144, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(146, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -417,18 +422,23 @@ class SharedJvmContractTest {
 		assertDoesNotThrow(() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"maxTransfer\":true}"), "recipeviewer.transferRecipe"));
 		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{}"), "recipeviewer.transferRecipe"));
 		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":3}"), "recipeviewer.transferRecipe"));
+		assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"not a resource id\"}"), "recipeviewer.transferRecipe"));
 		assertThrows(IllegalArgumentException.class,
 				() -> proxy.bind(json("{\"recipeResourceID\":\"minecraft:stick\",\"maxTransfer\":1}"), "recipeviewer.transferRecipe"));
+		for (String invalid : List.of("", ":stick", "minecraft:")) {
+			assertThrows(IllegalArgumentException.class, () -> proxy.bind(json("{\"recipeResourceID\":\"" + invalid + "\"}"), "recipeviewer.transferRecipe"),
+					invalid);
+		}
 	}
 
 	@Test
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(31, suites.size());
-		assertEquals(165, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(32, suites.size());
+		assertEquals(176, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(144, catalog.getAsJsonObject("actions").size());
+		assertEquals(146, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());

@@ -13,6 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -49,6 +50,7 @@ public final class RegressionMutationJournal {
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
 	private CompoundTag playerSnapshot;
+	private CompoundTag playerConditionSnapshot;
 	private CompoundTag preparedPlayer;
 	private boolean committingVerification;
 	private PlayerStatePolicy playerState = PlayerStatePolicy.ISOLATED;
@@ -93,6 +95,9 @@ public final class RegressionMutationJournal {
 						"Restart checkpoint player inventory/endpoints differ from preparation: prepared=" + preparedPlayer + "; current=" + currentPlayer);
 			}
 			journal.playerSnapshot = normalizeEmptyStackSnapshots(checkpoint.getCompound("originalPlayer"));
+			journal.playerConditionSnapshot = checkpoint.contains("originalPlayerConditions", 10)
+					? checkpoint.getCompound("originalPlayerConditions").copy()
+					: null;
 			journal.preparedPlayer = preparedPlayer;
 			diagnostics.put("restartPreparationToken", checkpoint.getUUID("token").toString());
 			diagnostics.put("restartPreparationBootId", checkpoint.getUUID("boot").toString());
@@ -101,6 +106,7 @@ public final class RegressionMutationJournal {
 				throw new IllegalStateException("A retained restart checkpoint must be verified before another test");
 			}
 			journal.playerSnapshot = snapshotPlayer(player);
+			journal.playerConditionSnapshot = snapshotPlayerConditions(player);
 		}
 		journal.persist();
 		if (policy != PlayerStatePolicy.CHECKPOINT_VERIFY) {
@@ -130,6 +136,33 @@ public final class RegressionMutationJournal {
 
 	private static CompoundTag saveOptionalStack(ItemStack stack) {
 		return stack.isEmpty() ? new CompoundTag() : stack.save(new CompoundTag());
+	}
+
+	private static CompoundTag snapshotPlayerConditions(ServerPlayer player) {
+		CompoundTag snapshot = new CompoundTag();
+		snapshot.putFloat("health", player.getHealth());
+		ListTag effects = new ListTag();
+		for (MobEffectInstance effect : player.getActiveEffects()) {
+			effects.add(effect.save(new CompoundTag()));
+		}
+		snapshot.put("effects", effects);
+		return snapshot;
+	}
+
+	private static void restorePlayerConditions(ServerPlayer player, CompoundTag snapshot) {
+		if (snapshot == null) {
+			return;
+		}
+		player.removeAllEffects();
+		ListTag effects = snapshot.getList("effects", 10);
+		for (int index = 0; index < effects.size(); index++) {
+			MobEffectInstance effect = MobEffectInstance.load(effects.getCompound(index));
+			if (effect == null) {
+				throw new IllegalStateException("Could not restore saved player effect " + effects.getCompound(index));
+			}
+			player.addEffect(effect);
+		}
+		player.setHealth(snapshot.getFloat("health"));
 	}
 
 	private static CompoundTag normalizeEmptyStackSnapshots(CompoundTag snapshot) {
@@ -193,13 +226,14 @@ public final class RegressionMutationJournal {
 			}
 			if (!committingVerification) {
 				restore(player, support, preparedPlayer, false);
+				restorePlayerConditions(player, playerConditionSnapshot);
 				clearJournal();
 				return;
 			}
 		}
 		boolean retain = successful && playerState == PlayerStatePolicy.CHECKPOINT_PREPARE;
 		CompoundTag prepared = retain ? snapshotPlayer(player) : null;
-		restore(player, support, retain ? null : playerSnapshot, false);
+		restore(player, support, retain ? null : playerSnapshot, retain ? null : playerConditionSnapshot, false);
 		if (retain) {
 			CompoundTag checkpoint = new CompoundTag();
 			checkpoint.putString("checkpoint", checkpointId);
@@ -210,6 +244,7 @@ public final class RegressionMutationJournal {
 			diagnostics.put("restartPreparationToken", checkpoint.getUUID("token").toString());
 			diagnostics.put("restartPreparationBootId", checkpoint.getUUID("boot").toString());
 			checkpoint.put("originalPlayer", playerSnapshot);
+			checkpoint.put("originalPlayerConditions", playerConditionSnapshot);
 			checkpoint.put("preparedPlayer", prepared);
 			writeTag(checkpointPath(), checkpoint);
 		} else if (playerState != PlayerStatePolicy.ISOLATED) {
@@ -294,10 +329,14 @@ public final class RegressionMutationJournal {
 	}
 
 	public void restore(ServerPlayer player, BlockPos support) {
-		restore(player, support, playerSnapshot, true);
+		restore(player, support, playerSnapshot, playerConditionSnapshot, true);
 	}
 
 	private void restore(ServerPlayer player, BlockPos support, CompoundTag playerSnapshot, boolean clearJournal) {
+		restore(player, support, playerSnapshot, null, clearJournal);
+	}
+
+	private void restore(ServerPlayer player, BlockPos support, CompoundTag playerSnapshot, CompoundTag playerConditions, boolean clearJournal) {
 		List<String> failures = new ArrayList<>();
 		for (CompoundTag entry : gameRules.values()) {
 			try {
@@ -371,6 +410,7 @@ public final class RegressionMutationJournal {
 		if (playerSnapshot != null) {
 			try {
 				restorePlayer(player, playerSnapshot);
+				restorePlayerConditions(player, playerConditions);
 			} catch (RuntimeException e) {
 				failures.add("player: " + e.getMessage());
 			}
@@ -413,6 +453,9 @@ public final class RegressionMutationJournal {
 			if (root.contains("playerSnapshot", 10)) {
 				journal.playerSnapshot = root.getCompound("playerSnapshot");
 			}
+			if (root.contains("playerConditionSnapshot", 10)) {
+				journal.playerConditionSnapshot = root.getCompound("playerConditionSnapshot");
+			}
 			ListTag gameRuleList = root.getList("gameRules", 10);
 			for (int i = 0; i < gameRuleList.size(); i++) {
 				CompoundTag entry = gameRuleList.getCompound(i);
@@ -445,6 +488,9 @@ public final class RegressionMutationJournal {
 		}
 		if (playerSnapshot != null) {
 			root.put("playerSnapshot", playerSnapshot);
+		}
+		if (playerConditionSnapshot != null) {
+			root.put("playerConditionSnapshot", playerConditionSnapshot);
 		}
 		ListTag gameRuleList = new ListTag();
 		gameRules.values().forEach(gameRuleList::add);
