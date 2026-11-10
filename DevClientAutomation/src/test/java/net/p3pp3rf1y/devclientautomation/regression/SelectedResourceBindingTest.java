@@ -39,7 +39,7 @@ class SelectedResourceBindingTest {
 				entries.stream().filter(entry -> Arrays.stream(SELECTED).noneMatch(id -> entry.equals(id + ".json")))
 						.collect(java.util.stream.Collectors.toSet()));
 		assertEquals(31, entries.size());
-		assertEquals(16, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
+		assertEquals(17, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(2, JsonParser.parseString(resource("storage-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 	}
 
