@@ -1,13 +1,44 @@
-/.gradle/
-/.idea/
-/build/
-/workspace/build/
+# Ignore all root-level paths by default.
+/*
+
+# Tracked root files.
+!/.gitignore
+!/.gitmodules
+!/LICENSE
+!/README.md
+!/build.gradle
+!/gradle.properties
+!/gradlew
+!/gradlew.bat
+!/push-all.ps1
+!/revert_lineending_diffs.ps1
+!/settings.gradle
+!/spotless-check.ps1
+
+# Tracked root directories.
+!/.github/
+!/config/
+!/DevClientAutomation/
+!/gradle/
+!/scripts/
+!/src/
+!/workspace/
+!/Reliquary/
+!/SophisticatedBackpacks/
+!/SophisticatedBackpacksCreateIntegration/
+!/SophisticatedCore/
+!/SophisticatedInventoryInteractions/
+!/SophisticatedItemActions/
+!/SophisticatedStorage/
+!/SophisticatedStorageCreateIntegration/
+!/SophisticatedStorageInMotion/
+
+# Local artifacts within allowed directories.
+/DevClientAutomation/.gradle/
 /DevClientAutomation/build/
-/docs/
+/DevClientAutomation/bin/
+/DevClientAutomation/logs/
+/workspace/build/
 /workspace/run/
 /workspace/run2/
 /workspace/run3/
-/.source-cache/
-/.settings/org.eclipse.buildship.core.prefs
-/block-texture/
-/logs/
