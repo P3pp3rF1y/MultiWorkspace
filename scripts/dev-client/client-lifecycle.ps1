@@ -1,5 +1,14 @@
 # Dot-source from a launcher or an outer test batch. Only an explicit ownership
 # record can authorize shutdown; a caller-supplied BaseUrl never creates one.
+function Assert-ClientLaunchAvailable {
+    param([Parameter(Mandatory = $true)] [string]$DiscoveryPath)
+    if (-not (Test-Path -LiteralPath $DiscoveryPath)) { return }
+    try { $discovery = Get-Content -LiteralPath $DiscoveryPath -Raw | ConvertFrom-Json }
+    catch { throw "Unreadable client discovery: $DiscoveryPath. Discovery was preserved." }
+    $process = if ($discovery.processId) { Get-Process -Id $discovery.processId -ErrorAction SilentlyContinue } else { $null }
+    if ($process) { throw "Client launch conflict: process $($process.Id) is still running. Close it or use BaseUrl. Discovery was preserved." }
+}
+
 function New-ClientOwnership {
     param([Parameter(Mandatory = $true)] [System.Diagnostics.Process]$Launcher)
 

@@ -4,10 +4,12 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
+import net.minecraft.client.gui.screens.inventory.SmithingScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.SmithingMenu;
 
 import javax.annotation.Nullable;
 
@@ -16,24 +18,33 @@ import java.util.concurrent.CompletableFuture;
 
 /** Tick-bounded client/server synchronization for an immutable vanilla menu identity. */
 public final class AwaitVanillaMenuAction extends TypedRegressionAction<AwaitVanillaMenuAction.Arguments> {
-	public record Arguments(String ref, String saveAs, int timeoutTicks) {
+	public record Arguments(@Nullable String ref, @Nullable VanillaMenuHandle.Kind kind, String saveAs, int timeoutTicks) {
 	}
 
 	public AwaitVanillaMenuAction() {
-		super("await.vanillaMenu", "2", Set.of("minecraft:client"));
+		super("await.vanillaMenu", "3", Set.of("minecraft:client"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("ref", "saveAs", "timeoutTicks"), description);
-		return new Arguments(RegressionValueStore.requireName(requireString(args, "ref", description)),
+		requireOnly(args, Set.of("ref", "kind", "saveAs", "timeoutTicks"), description);
+		if (args.has("ref") == args.has("kind"))
+			throw new IllegalArgumentException(description + " requires exactly one of ref or kind");
+		VanillaMenuHandle.Kind kind = null;
+		if (args.has("kind"))
+			try {
+				kind = VanillaMenuHandle.Kind.valueOf(requireString(args, "kind", description).toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Unknown vanilla menu kind on " + description, e);
+			}
+		return new Arguments(args.has("ref") ? RegressionValueStore.requireName(requireString(args, "ref", description)) : null, kind,
 				RegressionValueStore.requireName(requireString(args, "saveAs", description)), optionalPositiveInt(args, "timeoutTicks", 100, description));
 	}
 
 	@Override
 	protected RegressionValueContract values(Arguments arguments) {
-		return RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.VANILLA_MENU)
-				.and(RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.VANILLA_MENU));
+		RegressionValueContract produced = RegressionValueContract.producing(arguments.saveAs(), RegressionValueTypes.VANILLA_MENU);
+		return arguments.ref() == null ? produced : RegressionValueContract.consuming(arguments.ref(), RegressionValueTypes.VANILLA_MENU).and(produced);
 	}
 
 	@Override
@@ -45,7 +56,9 @@ public final class AwaitVanillaMenuAction extends TypedRegressionAction<AwaitVan
 
 			@Override
 			public RegressionActionProgress tick() {
-				VanillaMenuHandle handle = context.values().require(arguments.ref(), VanillaMenuHandle.class);
+				VanillaMenuHandle handle = arguments.ref() == null
+						? activeHandle(arguments.kind())
+						: context.values().require(arguments.ref(), VanillaMenuHandle.class);
 				if (deadline < 0) {
 					deadline = context.minecraft().player.tickCount + arguments.timeoutTicks();
 				}
@@ -81,6 +94,22 @@ public final class AwaitVanillaMenuAction extends TypedRegressionAction<AwaitVan
 					case CHEST -> screen.getMenu() instanceof ChestMenu;
 					case CRAFTING -> screen instanceof CraftingScreen && screen.getMenu() instanceof CraftingMenu;
 					case FURNACE -> screen instanceof FurnaceScreen && screen.getMenu() instanceof FurnaceMenu;
+					case SMITHING -> screen instanceof SmithingScreen && screen.getMenu() instanceof SmithingMenu;
+				};
+			}
+
+			private VanillaMenuHandle activeHandle(VanillaMenuHandle.Kind kind) {
+				if (!(context.minecraft().gui.screen() instanceof AbstractContainerScreen<?> screen) || !matchesClientScreen(screen, kind))
+					return new VanillaMenuHandle(kind, -1);
+				return new VanillaMenuHandle(kind, screen.getMenu().containerId);
+			}
+
+			private boolean matchesClientScreen(AbstractContainerScreen<?> screen, VanillaMenuHandle.Kind kind) {
+				return switch (kind) {
+					case CHEST -> screen.getMenu() instanceof ChestMenu;
+					case CRAFTING -> screen instanceof CraftingScreen && screen.getMenu() instanceof CraftingMenu;
+					case FURNACE -> screen instanceof FurnaceScreen && screen.getMenu() instanceof FurnaceMenu;
+					case SMITHING -> screen instanceof SmithingScreen && screen.getMenu() instanceof SmithingMenu;
 				};
 			}
 		};
@@ -91,6 +120,7 @@ public final class AwaitVanillaMenuAction extends TypedRegressionAction<AwaitVan
 			case CHEST -> menu instanceof ChestMenu;
 			case CRAFTING -> menu instanceof CraftingMenu;
 			case FURNACE -> menu instanceof FurnaceMenu;
+			case SMITHING -> menu instanceof SmithingMenu;
 		};
 	}
 }
