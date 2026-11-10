@@ -13,6 +13,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertDoubleChestAct
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackFilterAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackJukeboxPlaybackAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackStateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackHostAction;
@@ -30,6 +31,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageC
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStoragePresentationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertNestedMovingStorageIdentityAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlacedBackpackContentsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerHealthAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventoryBaselineAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertRestockBarrelAction;
@@ -50,6 +52,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkG
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkLineBarrelAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakPlacedBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakTargetBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureHeldBackpackUuidAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureLinkedMenuRevisionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureNestedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClearMainHandAction;
@@ -61,6 +64,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ClickSortControlActi
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageMenuSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickStorageSettingsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClickUpgradeSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.ClickVanillaMenuSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CloseMenuAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackDepositAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ConfigureBackpackFilterAction;
@@ -81,6 +85,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAc
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.KeepInventoryDeathRespawnAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.LethalDamageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkHeldBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LinkTargetStorageBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ObserveHeldBackpackJukeboxSoundAction;
@@ -110,6 +115,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ResetPlayerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ResetRegionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RestoreMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ScanFixtureControllerAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SelectHotbarSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SendPlayerCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetBackpackStorageSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetCraftingRefillAction;
@@ -178,6 +184,7 @@ public final class RegressionActionRegistry {
 		register(new ResetRegionAction());
 		register(new ResetPlayerAction());
 		register(new AssertPlayerInventoryBaselineAction());
+		register(new AssertPlayerHealthAction());
 		register(new CreateBackpackInMainHandAction());
 		register(new BackpackTemplateCommandAction());
 		register(new CreateMainHandItemAction());
@@ -206,6 +213,8 @@ public final class RegressionActionRegistry {
 		register(new AssertPlacedBackpackContentsAction());
 		register(new AssertBackpackAutomationExtractableAction());
 		register(new AssertHeldBackpackContentsAction());
+		register(new AssertHeldBackpackStateAction());
+		register(new CaptureHeldBackpackUuidAction());
 		register(new PickupPlacedBackpackAction());
 		register(new BreakPlacedBackpackAction());
 		register(new PlaceHeldBlockAction());
@@ -278,6 +287,7 @@ public final class RegressionActionRegistry {
 		register(new ControlHeldBackpackJukeboxPlaybackAction());
 		register(new ObserveHeldBackpackJukeboxSoundAction());
 		register(new KeepInventoryDeathRespawnAction());
+		register(new LethalDamageAction());
 		register(new SetHeldBackpackJukeboxDiscAction());
 		register(new AssertLinkedJukeboxPlaybackAction());
 		register(new AssertMovingStoragePresentationAction());
@@ -289,6 +299,7 @@ public final class RegressionActionRegistry {
 		register(new SetStorageBlockSlotAction());
 		register(new SetStorageUpgradeAction());
 		register(new ClearMainHandAction());
+		register(new SelectHotbarSlotAction());
 		register(new UseHeldItemAction());
 		register(new UseTargetBlockAction());
 		register(new AwaitMenuAction());
@@ -310,6 +321,7 @@ public final class RegressionActionRegistry {
 		register(new OpenPlayerInventoryAction());
 		register(new SetPlayerGameModeAction());
 		register(new ClickPlayerInventorySlotAction());
+		register(new ClickVanillaMenuSlotAction());
 		register(new ClickStorageMenuSlotAction());
 		register(new ClickUpgradeSlotAction());
 		register(new OpenUpgradeTabAction());

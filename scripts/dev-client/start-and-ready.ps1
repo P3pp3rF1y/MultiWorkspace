@@ -11,6 +11,7 @@ param(
     [switch]$KeepClientOpen,
     [switch]$SkipRecipeViewerReady,
     [switch]$MinimalRuntime,
+    [switch]$PreflightOnly,
     [ValidateSet("", "emi", "jei", "rei", "none")]
     [string]$RecipeViewer = ""
 )
@@ -24,6 +25,10 @@ if ([bool]$validationDirectory -ne [bool]$validationInit) { throw 'Validation ru
 if ($validationDirectory -and (-not (Test-Path -LiteralPath $validationDirectory -PathType Container) -or
         -not (Test-Path -LiteralPath $validationInit -PathType Leaf))) { throw 'Validation runtime directory or init script is unavailable.' }
 $discoveryPath = if ($validationDirectory) { Join-Path $validationDirectory 'dev-client-automation.json' } else { Join-Path $WorkspaceRoot 'workspace\run\dev-client-automation.json' }
+if ($Loader -eq 'fabric') { throw 'Fabric dev-client launching is not configured in this workspace yet.' }
+Assert-ClientLaunchAvailable -DiscoveryPath $discoveryPath
+if ($validationDirectory) { Assert-ClientLaunchAvailable -DiscoveryPath (Join-Path $WorkspaceRoot 'workspace/run/dev-client-automation.json') }
+if ($PreflightOnly) { return [pscustomobject]@{ ok = $true; discoveryPath = $discoveryPath; launched = $false } }
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 
 if (Test-Path $discoveryPath) {

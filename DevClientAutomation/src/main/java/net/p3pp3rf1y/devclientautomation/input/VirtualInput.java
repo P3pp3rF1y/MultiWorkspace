@@ -1,6 +1,7 @@
 package net.p3pp3rf1y.devclientautomation.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -55,6 +56,17 @@ public final class VirtualInput {
 
 	public static void clearHover() {
 		move(-100, -100);
+	}
+
+	/** Dispatches a complete press/release through the configured key mapping. */
+	public static void pressKey(KeyMapping keyMapping) {
+		InputConstants.Key key = keyMapping.getKey();
+		KeyMapping.set(key, true);
+		try {
+			KeyMapping.click(key);
+		} finally {
+			KeyMapping.set(key, false);
+		}
 	}
 
 	public static void moveToSlot(AbstractContainerScreen<?> screen, int menuSlot) {
