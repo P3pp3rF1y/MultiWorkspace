@@ -322,7 +322,7 @@ class SharedJvmContractTest {
 			"player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected", "assert.controllerSharedGroup",
 			"player.useHeldItemOnTarget", "fixture.backpack.setHeldJukeboxDisc", "assert.heldBackpackJukeboxPlayback");
 	private static final String CANONICAL_SUITE_TESTS = """
-			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-jukebox-death:held-backpack-jukebox-keep-inventory-death-stops-and-replays,advanced-held-backpack-jukebox-death-replays-immediately,advanced-jukebox-death-replays-after-expiry
 			reliquary-resurrection:generic-kill-without-rescue-item-completes-death,generic-kill-preserves-angelheart-vial,generic-kill-preserves-phoenix-down,generic-kill-preserves-both-rescue-items,ordinary-fire-rescues-with-angelheart-vial,ordinary-wither-rescues-with-phoenix-down,ordinary-generic-rescues-with-angelheart-vial,ordinary-generic-prefers-angelheart-vial-before-phoenix-down,lethal-damage-rejects-creative-immunity,player-health-observes-server-and-client-state,player-health-reports-server-below-minimum
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
@@ -436,7 +436,7 @@ class SharedJvmContractTest {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
 		assertEquals(32, suites.size());
-		assertEquals(176, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(177, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(146, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
