@@ -61,6 +61,7 @@ class SharedJvmContractTest {
 			assert.storage.compression|1|minecraft:client,sophisticatedstorage
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
+			assert.tank|1|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
 			await.itemEntity|1|minecraft:client
@@ -84,8 +85,10 @@ class SharedJvmContractTest {
 			backpack.templateCommand|1|minecraft:client,sophisticatedbackpacks
 			backpack.useOnStorage|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
 			capability.storageResourceCache|1|minecraft:client,sophisticatedstorage
+			capability.tankFluid|1|minecraft:client,sophisticatedstorage
 			capability.transferStorageResource|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			create.disassembleBackpack|1|minecraft:client,sophisticatedbackpackscreateintegration
+			diagnostic.screenshot|1|minecraft:client
 			exercise.storage.compressionAutomation|1|minecraft:client,sophisticatedstorage
 			exercise.storage.compressionFront|1|minecraft:client,sophisticatedstorage
 			fixture.backpack.setHeldJukeboxDisc|2|minecraft:client,sophisticatedbackpacks
@@ -117,15 +120,20 @@ class SharedJvmContractTest {
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
+			fixture.tank.recoverDrop|1|minecraft:client,sophisticatedstorage
+			fixture.tank.reload|1|minecraft:client,sophisticatedstorage
+			fixture.tank.spawnExperience|1|minecraft:client,sophisticatedstorage
 			input.inventoryInteractionKeybind|2|minecraft:client,sophisticatedinventoryinteractions
 			menu.captureLinkedRevision|1|minecraft:client
 			menu.clickCapturedMob|1|minecraft:client,sophisticatedbackpacks
 			menu.clickPlayerInventorySlot|1|minecraft:client
+			menu.clickPumpControl|1|minecraft:client,sophisticatedcore
 			menu.clickSettingsControl|1|minecraft:client,sophisticatedcore
 			menu.clickSlot|1|minecraft:client,sophisticatedbackpacks
 			menu.clickSortControl|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSettings|1|minecraft:client,sophisticatedcore
 			menu.clickStorageSlot|1|minecraft:client,sophisticatedcore
+			menu.clickTankGauge|1|minecraft:client,sophisticatedstorage
 			menu.clickUpgradeSlot|1|minecraft:client,sophisticatedcore
 			menu.close|1|minecraft:client
 			menu.heldBackpackJukeboxPlayback|1|minecraft:client,sophisticatedbackpacks
@@ -158,14 +166,26 @@ class SharedJvmContractTest {
 			player.useHeldItem|1|minecraft:client
 			player.useHeldItemOnTarget|2|minecraft:client
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
+			player.useTankSegment|1|minecraft:client,sophisticatedstorage
 			player.useTargetBlock|1|minecraft:client
 			profile.storage.compression|1|minecraft:client,sophisticatedstorage
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
 			recipeviewer.transferRecipe|1|jei,minecraft:client
 			storage.linkBlock|1|minecraft:client,sophisticatedstorage
 			storage.setBlockSlot|2|minecraft:client,sophisticatedstorage
+			world.removeTargetBlock|1|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
+			assert.tank
+			player.useTankSegment
+			capability.tankFluid
+			fixture.tank.recoverDrop
+			world.removeTargetBlock
+			fixture.tank.spawnExperience
+			fixture.tank.reload
+			diagnostic.screenshot
+			menu.clickPumpControl
+			menu.clickTankGauge
 			menu.clickSortControl
 			assert.sortMode
 			menu.clickStorageSettings
@@ -312,7 +332,7 @@ class SharedJvmContractTest {
 			await.menuClosed
 			""";
 	private static final String CANONICAL_SUITE_TESTS = """
-			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
@@ -323,6 +343,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
+			storage-tanks:native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
 			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -352,7 +373,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(144, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(154, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -411,13 +432,13 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(31, suites.size());
-		assertEquals(172, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(32, suites.size());
+		assertEquals(204, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(144, actions.size());
+		assertEquals(154, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 

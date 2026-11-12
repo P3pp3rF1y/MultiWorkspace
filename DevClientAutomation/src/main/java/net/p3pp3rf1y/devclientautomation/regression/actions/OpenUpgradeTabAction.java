@@ -2,6 +2,7 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import net.p3pp3rf1y.sophisticatedcore.SophisticatedCore;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
 import net.p3pp3rf1y.sophisticatedcore.client.gui.Tab;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.UpgradeContainerBase;
@@ -11,17 +12,19 @@ import java.util.Map;
 import java.util.Set;
 
 public final class OpenUpgradeTabAction extends TypedRegressionAction<OpenUpgradeTabAction.Arguments> {
+	private static final String UPGRADE_ARGUMENT = "upgrade";
+
 	public record Arguments(int upgrade) {
 	}
 
 	public OpenUpgradeTabAction() {
-		super("menu.openUpgradeTab", "1", Set.of("minecraft:client", "sophisticatedcore"));
+		super("menu.openUpgradeTab", "1", Set.of(CLIENT_CAPABILITY, SophisticatedCore.MOD_ID));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("upgrade"), description);
-		return new Arguments(optionalNonNegativeInt(args, "upgrade", 0, description));
+		requireOnly(args, Set.of(UPGRADE_ARGUMENT), description);
+		return new Arguments(optionalNonNegativeInt(args, UPGRADE_ARGUMENT, 0, description));
 	}
 
 	@Override
@@ -32,20 +35,20 @@ public final class OpenUpgradeTabAction extends TypedRegressionAction<OpenUpgrad
 				if (!(context.minecraft().screen instanceof StorageScreenBase<?> screen)) {
 					return fail("Storage screen is not active for upgrade tab click");
 				}
-				var upgrades = screen.getMenu().getUpgradeContainers();
+				Map<Integer, UpgradeContainerBase<?, ?>> upgrades = screen.getMenu().getUpgradeContainers();
 				UpgradeContainerBase<?, ?> upgrade = upgrades.get(arguments.upgrade());
 				if (upgrade == null) {
 					return fail("Menu has no upgrade " + arguments.upgrade());
 				}
 				if (!upgrade.isOpen()) {
-					// UpgradeSettingsTabControl puts the storage-settings tab first, then the upgrades in menu order.
-					int tabIndex = new ArrayList<>(upgrades.keySet()).indexOf(arguments.upgrade()) + 1;
+					int settingsTabs = screen.getMenu().getStorageWrapper().supportsItemContents() ? 1 : 0;
+					int tabIndex = new ArrayList<>(upgrades.keySet()).indexOf(arguments.upgrade()) + settingsTabs;
 					if (!(screen.getUpgradeSettingsControl().children().get(tabIndex) instanceof Tab tab)) {
 						return fail("Upgrade tab is missing from the storage screen");
 					}
 					VirtualInput.click(screen, tab.getX() + 8, tab.getTopY() + 12, 0, 0);
 				}
-				observe(Map.of("upgrade", arguments.upgrade()), Map.of("open", upgrade.isOpen()));
+				observe(Map.of(UPGRADE_ARGUMENT, arguments.upgrade()), Map.of("open", upgrade.isOpen()));
 				return upgrade.isOpen() ? RegressionActionProgress.PASSED : fail("Upgrade tab click did not open the requested tab");
 			}
 		};

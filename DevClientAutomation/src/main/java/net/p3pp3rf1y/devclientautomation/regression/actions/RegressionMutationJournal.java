@@ -28,6 +28,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
+import net.p3pp3rf1y.sophisticatedstorage.block.TankBlockEntity;
 
 import javax.annotation.Nullable;
 
@@ -48,11 +51,24 @@ import java.util.stream.Collectors;
 /** Write-ahead record of world state owned by one test, independent of the test cell. Server thread only. */
 public final class RegressionMutationJournal {
 	private static final String FILE_NAME = "dev-client-regression-recovery.nbt";
+	private static final String EXPERIENCE_LEVEL_TAG = "experienceLevel";
+	private static final String TOTAL_EXPERIENCE_TAG = "totalExperience";
+	private static final String EXPERIENCE_PROGRESS_TAG = "experienceProgress";
+	private static final String DIMENSION_TAG = "dimension";
+	private static final String POSITION_TAG = "position";
+	private static final String BLOCK_STATE_TAG = "state";
+	private static final String BLOCK_ENTITY_TAG = "blockEntity";
+	private static final String BLOCK_NAME_TAG = "Name";
+	private static final String ENTITY_UUID_TAG = "uuid";
+	private static final String GROUP_ID_TAG = "group";
+	private static final String PRIMARY_ENDPOINT_ID_TAG = "primary";
+	private static final String CREATED_TANK_GROUPS_TAG = "createdTankGroups";
 	private final Path path;
 	private final String runId;
 	private final Map<String, CompoundTag> blocks = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
+	private final Map<UUID, CompoundTag> createdTankGroups = new LinkedHashMap<>();
 	@Nullable
 	private CompoundTag playerSnapshot;
 	@Nullable
@@ -130,6 +146,9 @@ public final class RegressionMutationJournal {
 		state.put("inventory", player.getInventory().save(new ListTag()));
 		state.putInt("selected", player.getInventory().selected);
 		state.putInt("gameMode", player.gameMode.getGameModeForPlayer().getId());
+		state.putInt(EXPERIENCE_LEVEL_TAG, player.experienceLevel);
+		state.putInt(TOTAL_EXPERIENCE_TAG, player.totalExperience);
+		state.putFloat(EXPERIENCE_PROGRESS_TAG, player.experienceProgress);
 		state.put("carried", player.containerMenu.getCarried().saveOptional(player.registryAccess()));
 		ListTag crafting = new ListTag();
 		for (int slot = 1; slot <= 4; slot++) {
@@ -191,6 +210,11 @@ public final class RegressionMutationJournal {
 		player.getInventory().load(snapshot.getList("inventory", 10));
 		player.getInventory().selected = snapshot.getInt("selected");
 		player.setGameMode(GameType.byId(snapshot.getInt("gameMode")));
+		if (snapshot.contains(EXPERIENCE_LEVEL_TAG)) {
+			player.setExperienceLevels(snapshot.getInt(EXPERIENCE_LEVEL_TAG));
+			player.totalExperience = snapshot.getInt(TOTAL_EXPERIENCE_TAG);
+			player.experienceProgress = snapshot.getFloat(EXPERIENCE_PROGRESS_TAG);
+		}
 		player.connection.send(new ClientboundSetCarriedItemPacket(player.getInventory().selected));
 		ListTag crafting = snapshot.getList("crafting", 10);
 		for (int slot = 1; slot <= 4; slot++) {
@@ -198,7 +222,13 @@ public final class RegressionMutationJournal {
 		}
 		player.inventoryMenu.setCarried(ItemStack.parseOptional(player.registryAccess(), snapshot.getCompound("carried")));
 		player.inventoryMenu.sendAllDataToRemote();
-		if (!snapshotPlayer(player).equals(snapshot)) {
+		CompoundTag restored = snapshotPlayer(player);
+		if (!snapshot.contains(EXPERIENCE_LEVEL_TAG)) {
+			restored.remove(EXPERIENCE_LEVEL_TAG);
+			restored.remove(TOTAL_EXPERIENCE_TAG);
+			restored.remove(EXPERIENCE_PROGRESS_TAG);
+		}
+		if (!restored.equals(snapshot)) {
 			throw new IllegalStateException("Restored player inventory/cursor/crafting/selection differs from journal");
 		}
 	}
@@ -250,12 +280,12 @@ public final class RegressionMutationJournal {
 			return;
 		}
 		CompoundTag entry = new CompoundTag();
-		entry.putString("dimension", level.dimension().location().toString());
-		entry.putLong("position", pos.asLong());
-		entry.put("state", NbtUtils.writeBlockState(level.getBlockState(pos)));
+		entry.putString(DIMENSION_TAG, level.dimension().location().toString());
+		entry.putLong(POSITION_TAG, pos.asLong());
+		entry.put(BLOCK_STATE_TAG, NbtUtils.writeBlockState(level.getBlockState(pos)));
 		BlockEntity blockEntity = level.getBlockEntity(pos);
 		if (blockEntity != null) {
-			entry.put("blockEntity", blockEntity.saveWithFullMetadata(level.registryAccess()));
+			entry.put(BLOCK_ENTITY_TAG, blockEntity.saveWithFullMetadata(level.registryAccess()));
 		}
 		blocks.put(key, entry);
 		try {
@@ -310,8 +340,8 @@ public final class RegressionMutationJournal {
 			return;
 		}
 		CompoundTag entry = new CompoundTag();
-		entry.putString("dimension", entity.level().dimension().location().toString());
-		entry.putUUID("uuid", entity.getUUID());
+		entry.putString(DIMENSION_TAG, entity.level().dimension().location().toString());
+		entry.putUUID(ENTITY_UUID_TAG, entity.getUUID());
 		if (snapshot != null) {
 			entry.put("original", snapshot);
 		}
@@ -328,6 +358,21 @@ public final class RegressionMutationJournal {
 		restore(player, support, true, true);
 	}
 
+	public void recordCreatedTankGroup(ServerLevel level, TankBlockEntity tank) {
+		LinkedStorageEndpointData endpoint = tank.getLinkedStorageEndpointData();
+		CompoundTag original = blocks.get(level.dimension().location() + ":" + tank.getBlockPos().asLong());
+		if (endpoint == null || original == null || original.getCompound(BLOCK_ENTITY_TAG).contains("linkedStorageEndpoint")
+				|| createdTankGroups.containsKey(endpoint.groupId())
+				|| !LinkedStorageGroupsSavedData.get(level).manager().isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId()))
+			return;
+		CompoundTag group = new CompoundTag();
+		group.putString(DIMENSION_TAG, level.dimension().location().toString());
+		group.putUUID(GROUP_ID_TAG, endpoint.groupId());
+		group.putUUID(PRIMARY_ENDPOINT_ID_TAG, endpoint.endpointId());
+		createdTankGroups.put(endpoint.groupId(), group);
+		persist();
+	}
+
 	private void restore(ServerPlayer player, @Nullable BlockPos support, boolean restorePlayerState, boolean clearJournal) {
 		List<String> failures = new ArrayList<>();
 		for (CompoundTag entry : gameRules.values()) {
@@ -341,64 +386,10 @@ public final class RegressionMutationJournal {
 				failures.add("game rule " + entry.getString("dimension") + ": " + e.getMessage());
 			}
 		}
-		List<CompoundTag> entityEntries = new ArrayList<>(entities.values());
-		for (int i = entityEntries.size() - 1; i >= 0; i--) {
-			CompoundTag entry = entityEntries.get(i);
-			try {
-				ServerLevel level = level(player, entry);
-				UUID id = entry.getUUID("uuid");
-				Entity current = level.getEntity(id);
-				if (current != null) {
-					current.discard();
-				}
-				if (entry.contains("original", 10)) {
-					Entity original = EntityType.loadEntityRecursive(entry.getCompound("original"), level, entity -> entity);
-					if (original == null || !level.addFreshEntity(original)) {
-						throw new IllegalStateException("Could not restore entity " + id);
-					}
-				}
-			} catch (RuntimeException e) {
-				failures.add("entity " + entry.getUUID("uuid") + ": " + e.getMessage());
-			}
-		}
-		List<CompoundTag> blockEntries = new ArrayList<>(blocks.values());
-		for (int i = blockEntries.size() - 1; i >= 0; i--) {
-			CompoundTag entry = blockEntries.get(i);
-			try {
-				ServerLevel level = level(player, entry);
-				BlockPos pos = BlockPos.of(entry.getLong("position"));
-				CompoundTag originalState = entry.getCompound("state");
-				if (!originalState.contains("Name", 8) || !BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(originalState.getString("Name")))) {
-					throw new IllegalStateException("Original block is unavailable at " + pos + ": " + originalState.getString("Name"));
-				}
-				BlockState state = NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), originalState);
-				AABB nearby = new AABB(pos).inflate(3);
-				Set<UUID> previousDrops = level.getEntitiesOfClass(ItemEntity.class, nearby).stream().map(Entity::getUUID).collect(Collectors.toSet());
-				level.setBlockAndUpdate(pos, state);
-				// Container replacement can emit its contents; discard only drops created by this restoration.
-				level.getEntitiesOfClass(ItemEntity.class, nearby).stream().filter(entity -> !previousDrops.contains(entity.getUUID()))
-						.forEach(Entity::discard);
-				if (entry.contains("blockEntity", 10)) {
-					BlockEntity blockEntity = BlockEntity.loadStatic(pos, state, entry.getCompound("blockEntity"), level.registryAccess());
-					if (blockEntity == null) {
-						throw new IllegalStateException("Could not restore block entity at " + pos);
-					}
-					level.setBlockEntity(blockEntity);
-					level.sendBlockUpdated(pos, state, state, 3);
-				}
-			} catch (RuntimeException e) {
-				failures.add("block " + BlockPos.of(entry.getLong("position")) + ": " + e.getMessage());
-			}
-		}
+		restoreEntities(player, failures);
+		restoreBlocks(player, failures);
 		if (support != null) {
-			for (int x = -4; x <= 4; x++) {
-				for (int z = -4; z <= 4; z++) {
-					BlockPos pos = support.offset(x, 0, z);
-					if (!player.serverLevel().getBlockState(pos).is(Blocks.STONE)) {
-						failures.add("protected support missing at " + pos);
-					}
-				}
-			}
+			verifyProtectedSupport(player, support, failures);
 		}
 		if (restorePlayerState) {
 			try {
@@ -411,8 +402,90 @@ public final class RegressionMutationJournal {
 		if (!failures.isEmpty()) {
 			throw new IllegalStateException("Cleanup of " + runId + " failed: " + String.join("; ", failures));
 		}
+		for (CompoundTag group : createdTankGroups.values()) {
+			LinkedStorageGroupsSavedData.get(level(player, group)).manager().discardUnboundGroup(group.getUUID(GROUP_ID_TAG),
+					group.getUUID(PRIMARY_ENDPOINT_ID_TAG));
+		}
 		if (clearJournal) {
 			clearJournal();
+		}
+	}
+
+	private void restoreEntities(ServerPlayer player, List<String> failures) {
+		List<CompoundTag> entityEntries = new ArrayList<>(entities.values());
+		for (int i = entityEntries.size() - 1; i >= 0; i--) {
+			CompoundTag entry = entityEntries.get(i);
+			try {
+				ServerLevel level = level(player, entry);
+				UUID id = entry.getUUID(ENTITY_UUID_TAG);
+				Entity current = level.getEntity(id);
+				if (current != null) {
+					current.discard();
+				}
+				if (entry.contains("original", 10)) {
+					Entity original = EntityType.loadEntityRecursive(entry.getCompound("original"), level, entity -> entity);
+					if (original == null || !level.addFreshEntity(original)) {
+						throw new IllegalStateException("Could not restore entity " + id);
+					}
+				}
+			} catch (RuntimeException e) {
+				failures.add("entity " + entry.getUUID(ENTITY_UUID_TAG) + ": " + e.getMessage());
+			}
+		}
+	}
+
+	private void restoreBlocks(ServerPlayer player, List<String> failures) {
+		List<CompoundTag> blockEntries = new ArrayList<>(blocks.values());
+		// Restoration owns all recorded tank positions; suppress product drops and capacity preflight for this rollback only.
+		for (CompoundTag entry : blockEntries) {
+			ServerLevel level = level(player, entry);
+			if (level.getBlockEntity(BlockPos.of(entry.getLong(POSITION_TAG))) instanceof TankBlockEntity tank) {
+				recordCreatedTankGroup(level, tank);
+				tank.suppressTransactionalRemoval();
+			}
+		}
+		for (int i = blockEntries.size() - 1; i >= 0; i--) {
+			CompoundTag entry = blockEntries.get(i);
+			try {
+				restoreBlock(player, entry);
+			} catch (RuntimeException e) {
+				failures.add("block " + BlockPos.of(entry.getLong(POSITION_TAG)) + ": " + e.getMessage());
+			}
+		}
+	}
+
+	private void restoreBlock(ServerPlayer player, CompoundTag entry) {
+		ServerLevel level = level(player, entry);
+		BlockPos pos = BlockPos.of(entry.getLong(POSITION_TAG));
+		CompoundTag originalState = entry.getCompound(BLOCK_STATE_TAG);
+		if (!originalState.contains(BLOCK_NAME_TAG, 8)
+				|| !BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(originalState.getString(BLOCK_NAME_TAG)))) {
+			throw new IllegalStateException("Original block is unavailable at " + pos + ": " + originalState.getString(BLOCK_NAME_TAG));
+		}
+		BlockState state = NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), originalState);
+		AABB nearby = new AABB(pos).inflate(3);
+		Set<UUID> previousDrops = level.getEntitiesOfClass(ItemEntity.class, nearby).stream().map(Entity::getUUID).collect(Collectors.toSet());
+		level.setBlockAndUpdate(pos, state);
+		// Container replacement can emit its contents; discard only drops created by this restoration.
+		level.getEntitiesOfClass(ItemEntity.class, nearby).stream().filter(entity -> !previousDrops.contains(entity.getUUID())).forEach(Entity::discard);
+		if (entry.contains(BLOCK_ENTITY_TAG, 10)) {
+			BlockEntity blockEntity = BlockEntity.loadStatic(pos, state, entry.getCompound(BLOCK_ENTITY_TAG), level.registryAccess());
+			if (blockEntity == null) {
+				throw new IllegalStateException("Could not restore block entity at " + pos);
+			}
+			level.setBlockEntity(blockEntity);
+			level.sendBlockUpdated(pos, state, state, 3);
+		}
+	}
+
+	private void verifyProtectedSupport(ServerPlayer player, BlockPos support, List<String> failures) {
+		for (int x = -4; x <= 4; x++) {
+			for (int z = -4; z <= 4; z++) {
+				BlockPos pos = support.offset(x, 0, z);
+				if (!player.serverLevel().getBlockState(pos).is(Blocks.STONE)) {
+					failures.add("protected support missing at " + pos);
+				}
+			}
 		}
 	}
 
@@ -425,7 +498,7 @@ public final class RegressionMutationJournal {
 	}
 
 	private static ServerLevel level(ServerPlayer player, CompoundTag entry) {
-		ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(entry.getString("dimension")));
+		ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(entry.getString(DIMENSION_TAG)));
 		ServerLevel level = player.getServer().getLevel(dimension);
 		if (level == null) {
 			throw new IllegalStateException("Dimension is unavailable: " + dimension.location());
@@ -452,12 +525,17 @@ public final class RegressionMutationJournal {
 			ListTag blockList = root.getList("blocks", 10);
 			for (int i = 0; i < blockList.size(); i++) {
 				CompoundTag entry = blockList.getCompound(i);
-				journal.blocks.put(entry.getString("dimension") + ":" + entry.getLong("position"), entry);
+				journal.blocks.put(entry.getString(DIMENSION_TAG) + ":" + entry.getLong(POSITION_TAG), entry);
 			}
 			ListTag entityList = root.getList("entities", 10);
 			for (int i = 0; i < entityList.size(); i++) {
 				CompoundTag entry = entityList.getCompound(i);
-				journal.entities.put(entry.getString("dimension") + ":" + entry.getUUID("uuid"), entry);
+				journal.entities.put(entry.getString(DIMENSION_TAG) + ":" + entry.getUUID(ENTITY_UUID_TAG), entry);
+			}
+			ListTag groups = root.getList(CREATED_TANK_GROUPS_TAG, 10);
+			for (int i = 0; i < groups.size(); i++) {
+				CompoundTag group = groups.getCompound(i);
+				journal.createdTankGroups.put(group.getUUID(GROUP_ID_TAG), group);
 			}
 			ListTag gameRuleList = root.getList("gameRules", 10);
 			for (int i = 0; i < gameRuleList.size(); i++) {
@@ -494,6 +572,9 @@ public final class RegressionMutationJournal {
 		ListTag gameRuleList = new ListTag();
 		gameRules.values().forEach(gameRuleList::add);
 		root.put("gameRules", gameRuleList);
+		ListTag groups = new ListTag();
+		createdTankGroups.values().forEach(groups::add);
+		root.put(CREATED_TANK_GROUPS_TAG, groups);
 		writeTag(path, root);
 	}
 

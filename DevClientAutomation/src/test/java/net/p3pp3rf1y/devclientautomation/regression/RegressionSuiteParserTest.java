@@ -60,13 +60,13 @@ class RegressionSuiteParserTest {
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
 			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
 					"backpack-jukebox-death.json", "reliquary-resurrection.json", "inventory-interactions-keybind.json", "item-entity-action-conformance.json",
-					"backpack-create-disassembly.json", "storage-menu.json", "storage-compression.json", "storage-break-drop-limit.json",
+					"backpack-create-disassembly.json", "storage-menu.json", "storage-tanks.json", "storage-compression.json", "storage-break-drop-limit.json",
 					"vanilla-double-chest-upgrade.json", "moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json",
 					"controller-deposit.json", "controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json",
 					"linked-storage-menu.json", "linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json",
 					"linked-storage-inception.json", "linked-storage-fluid-lock.json", "linked-storage-interoperability.json",
 					"linked-storage-mob-catcher.json", "linked-storage-settings.json", "jei-recipe-transfer.json"), indexedPaths);
-			assertEquals(31, indexedPaths.size());
+			assertEquals(32, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
@@ -75,7 +75,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(32, physicalJson.size());
+				assertEquals(33, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 
@@ -93,11 +93,12 @@ class RegressionSuiteParserTest {
 					}
 					if (indexedPath.equals("backpack-menu.json")) {
 						assertEquals(
-								List.of("held-backpack-tank-battery-swap-preserves-slot-layout", "backpack-actions-execute-with-valid-fixture",
-										"placed-backpack-opens-synchronized-menu", "held-backpack-opens-synchronized-item-menu",
-										"placed-backpack-menu-click-and-quick-move-stay-synchronized", "linked-held-backpack-opens-with-enchanted-book",
-										"linked-placed-backpack-opens-with-enchanted-book", "linked-held-backpack-quick-move-stays-synchronized",
-										"linked-placed-backpack-quick-move-stays-synchronized", "linked-held-backpack-menu-receives-slot-delta"),
+								List.of("held-backpack-tank-battery-swap-preserves-slot-layout", "held-backpack-memory-tank-shrink-restore",
+										"backpack-actions-execute-with-valid-fixture", "placed-backpack-opens-synchronized-menu",
+										"held-backpack-opens-synchronized-item-menu", "placed-backpack-menu-click-and-quick-move-stay-synchronized",
+										"linked-held-backpack-opens-with-enchanted-book", "linked-placed-backpack-opens-with-enchanted-book",
+										"linked-held-backpack-quick-move-stays-synchronized", "linked-placed-backpack-quick-move-stays-synchronized",
+										"linked-held-backpack-menu-receives-slot-delta"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
 					}
 					if (indexedPath.equals("inventory-interactions-keybind.json")) {
@@ -112,7 +113,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(172, testCount);
+			assertEquals(204, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}

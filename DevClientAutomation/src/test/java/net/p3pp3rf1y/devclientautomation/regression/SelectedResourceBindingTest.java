@@ -35,11 +35,11 @@ class SelectedResourceBindingTest {
 				Set.of("backpack-filters.json", "backpack-restock.json", "backpack-pickup.json", "backpack-jukebox-death.json",
 						"inventory-interactions-keybind.json", "item-entity-action-conformance.json", "controller-deposit.json", "tier-upgrade-recipes.json",
 						"vanilla-double-chest-upgrade.json", "linked-storage-sorting.json", "backpack-crafting.json", "storage-compression.json",
-						"storage-break-drop-limit.json", "jei-recipe-transfer.json"),
+						"storage-break-drop-limit.json", "jei-recipe-transfer.json", "storage-tanks.json"),
 				entries.stream().filter(entry -> Arrays.stream(SELECTED).noneMatch(id -> entry.equals(id + ".json")))
 						.collect(java.util.stream.Collectors.toSet()));
-		assertEquals(31, entries.size());
-		assertEquals(10, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
+		assertEquals(32, entries.size());
+		assertEquals(11, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(2, JsonParser.parseString(resource("storage-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 	}
 
