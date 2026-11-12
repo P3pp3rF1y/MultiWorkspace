@@ -1,0 +1,33 @@
+{
+  "invocation": {
+    "executable": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+    "arguments": ["-NoProfile", "-File", "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\run-regression.ps1", "-RegressionSuite", "linked-storage-resources,linked-storage-fluid-lock", "-ReportPath", "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live\\run.json"],
+    "workingDirectory": "D:\\Development\\MultiWorkspace26.3",
+    "timeoutMs": 1800000,
+    "standardOutput": "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live\\stdout.log",
+    "standardError": "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live\\stderr.log"
+  },
+  "cleanup": {
+    "executable": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+    "arguments": ["-NoProfile", "-File", "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\stop-owned-client.ps1", "-OwnershipPath", "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live\\client-ownership.json"],
+    "workingDirectory": "D:\\Development\\MultiWorkspace26.3",
+    "timeoutMs": 120000
+  },
+  "ownershipRecord": "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live\\client-ownership.json",
+  "immutableInputs": [
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\run-regression.ps1",
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\regression.ps1",
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\start-and-ready.ps1",
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\client-lifecycle.ps1",
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\stop-owned-client.ps1",
+    "D:\\Development\\MultiWorkspace26.3\\scripts\\dev-client\\port-fluid-options-26.3.txt",
+    "D:\\Development\\MultiWorkspace26.3\\workspace\\build.gradle",
+    "D:\\Development\\MultiWorkspace26.3\\DevClientAutomation\\src\\main\\resources\\devclientautomation\\regressions\\index.json",
+    "D:\\Development\\MultiWorkspace26.3\\DevClientAutomation\\src\\main\\resources\\devclientautomation\\regressions\\linked-storage-resources.json",
+    "D:\\Development\\MultiWorkspace26.3\\DevClientAutomation\\src\\main\\resources\\devclientautomation\\regressions\\linked-storage-fluid-lock.json"
+  ],
+  "writableRoots": [
+    "D:\\Development\\MultiWorkspace26.3\\build\\port-fluid-732e1226-26.3\\live",
+    "D:\\Development\\MultiWorkspace26.3\\workspace\\runs\\port-fluid-732e1226-26.3"
+  ]
+}

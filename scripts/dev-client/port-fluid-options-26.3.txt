@@ -1,0 +1,4 @@
+version:5023
+onboardAccessibility:true
+pauseOnLostFocus:false
+fullscreen:false
