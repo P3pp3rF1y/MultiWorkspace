@@ -1,26 +1,50 @@
 package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ActionFoundationContractTest {
-	@Test
-	void blockPlacementBindsRelativeTargetsAndRejectsMalformedCoordinates() {
+	@ParameterizedTest
+	@MethodSource("placementArguments")
+	void bindBlockPlacementReadsTheRelativeTargetAndSneaking(PlacementArguments params) {
 		var action = new PlaceHeldBlockAction();
-		PlaceHeldBlockAction.Arguments defaultTarget = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"),
+		PlaceHeldBlockAction.Arguments arguments = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, params.json()),
 				PlaceHeldBlockAction.Arguments.class);
-		PlaceHeldBlockAction.Arguments adjacentTarget = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,-1]}"),
-				PlaceHeldBlockAction.Arguments.class);
-		assertEquals(0, defaultTarget.z());
-		assertEquals(-1, adjacentTarget.z());
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0]}"));
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,0.5]}"));
-		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,\"-1\"]}"));
+		assertEquals(0, arguments.x());
+		assertEquals(params.y(), arguments.y());
+		assertEquals(params.z(), arguments.z());
+		assertEquals(params.sneaking(), arguments.sneaking());
+	}
+
+	private static Stream<PlacementArguments> placementArguments() {
+		return Stream.of(new PlacementArguments("{}", 0, 0, false), new PlacementArguments("{\"offset\":[0,0,-1]}", 0, -1, false),
+				new PlacementArguments("{\"offset\":[0,1,0],\"sneaking\":true}", 1, 0, true));
+	}
+
+	private record PlacementArguments(String json, int y, int z, boolean sneaking) {
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"{\"sneaking\":\"true\"}", "{\"offset\":[0,0]}", "{\"offset\":[0,0,0.5]}", "{\"offset\":[0,0,\"-1\"]}"})
+	void bindBlockPlacementRejectsMalformedArguments(String json) {
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new PlaceHeldBlockAction(), json));
+	}
+
+	@Test
+	void bindDoubleChestAcceptsDefaultArguments() {
 		RegressionActionTestSupport.bind(new AssertDoubleChestAction(), "{}");
+	}
+
+	@Test
+	void bindDoubleChestRejectsForceJoin() {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(new AssertDoubleChestAction(), "{\"forceJoin\":true}"));
 	}
 
@@ -34,9 +58,8 @@ class ActionFoundationContractTest {
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"saveAs\": 1}"));
 	}
 	@Test
-	void heldUseAndBlockPlacementRejectArguments() {
+	void heldUseAndMenuCloseRejectArguments() {
 		assertNoArguments(new UseHeldItemAction(), "player.useHeldItem");
-		assertNoArguments(new PlaceHeldBlockAction(), "player.placeHeldBlock");
 		assertNoArguments(new CloseMenuAction(), "menu.close");
 	}
 
