@@ -26,6 +26,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
+import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
+import net.p3pp3rf1y.sophisticatedstorage.block.TankBlockEntity;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -49,6 +52,7 @@ public final class RegressionMutationJournal {
 	private final Map<String, CompoundTag> blocks = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
+	private final Map<UUID, CompoundTag> createdTankGroups = new LinkedHashMap<>();
 	private CompoundTag playerSnapshot;
 	private CompoundTag playerConditionSnapshot;
 	private CompoundTag preparedPlayer;
@@ -282,6 +286,31 @@ public final class RegressionMutationJournal {
 	public void recordCreatedEntity(Entity entity) {
 		recordEntity(entity, null);
 	}
+
+	public void recordNewItemDrops(ServerLevel level, AABB bounds, Set<UUID> existingItemEntityIds) {
+		level.getEntitiesOfClass(ItemEntity.class, bounds, entity -> !existingItemEntityIds.contains(entity.getUUID())).forEach(this::recordCreatedEntity);
+	}
+
+	public void recordCreatedTankGroup(ServerLevel level, TankBlockEntity tank) {
+		LinkedStorageEndpointData endpoint = tank.getLinkedStorageEndpointData();
+		CompoundTag original = blocks.get(level.dimension().location() + ":" + tank.getBlockPos().asLong());
+		if (endpoint == null || original == null || original.getCompound("blockEntity").contains("linkedStorageEndpoint")
+				|| createdTankGroups.containsKey(endpoint.groupId())
+				|| !LinkedStorageGroupsSavedData.get(level).manager().isPrimaryEndpoint(endpoint.groupId(), endpoint.endpointId())) {
+			return;
+		}
+		CompoundTag group = new CompoundTag();
+		group.putString("dimension", level.dimension().location().toString());
+		group.putUUID("group", endpoint.groupId());
+		group.putUUID("primary", endpoint.endpointId());
+		createdTankGroups.put(endpoint.groupId(), group);
+		try {
+			persist();
+		} catch (RuntimeException e) {
+			createdTankGroups.remove(endpoint.groupId());
+			throw e;
+		}
+	}
 	public void recordDeathRespawnRules(ServerLevel level) {
 		String key = level.dimension().location().toString();
 		if (gameRules.containsKey(key)) {
@@ -370,6 +399,13 @@ public final class RegressionMutationJournal {
 			}
 		}
 		List<CompoundTag> blockEntries = new ArrayList<>(blocks.values());
+		for (CompoundTag entry : blockEntries) {
+			ServerLevel level = level(player, entry);
+			if (level.getBlockEntity(BlockPos.of(entry.getLong("position"))) instanceof TankBlockEntity tank) {
+				recordCreatedTankGroup(level, tank);
+				tank.suppressTransactionalRemoval();
+			}
+		}
 		for (int i = blockEntries.size() - 1; i >= 0; i--) {
 			CompoundTag entry = blockEntries.get(i);
 			try {
@@ -417,6 +453,9 @@ public final class RegressionMutationJournal {
 		}
 		if (!failures.isEmpty()) {
 			throw new IllegalStateException("Cleanup of " + runId + " failed: " + String.join("; ", failures));
+		}
+		for (CompoundTag group : createdTankGroups.values()) {
+			LinkedStorageGroupsSavedData.get(level(player, group)).manager().discardUnboundGroup(group.getUUID("group"), group.getUUID("primary"));
 		}
 		if (clearJournal) {
 			clearJournal();
@@ -471,6 +510,11 @@ public final class RegressionMutationJournal {
 				CompoundTag entry = entityList.getCompound(i);
 				journal.entities.put(entry.getString("dimension") + ":" + entry.getUUID("uuid"), entry);
 			}
+			ListTag groups = root.getList("createdTankGroups", 10);
+			for (int i = 0; i < groups.size(); i++) {
+				CompoundTag group = groups.getCompound(i);
+				journal.createdTankGroups.put(group.getUUID("group"), group);
+			}
 			return journal;
 		} catch (IOException e) {
 			throw new IllegalStateException("Could not read recovery journal " + path, e);
@@ -501,6 +545,9 @@ public final class RegressionMutationJournal {
 		ListTag entityList = new ListTag();
 		entities.values().forEach(entityList::add);
 		root.put("entities", entityList);
+		ListTag groups = new ListTag();
+		createdTankGroups.values().forEach(groups::add);
+		root.put("createdTankGroups", groups);
 		writeTag(path, root);
 	}
 

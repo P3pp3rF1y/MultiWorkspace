@@ -9,7 +9,9 @@ import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
 import net.p3pp3rf1y.sophisticatedstorage.client.gui.StorageScreen;
+import net.p3pp3rf1y.sophisticatedstorage.client.gui.TankScreen;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
+import net.p3pp3rf1y.sophisticatedstorage.common.gui.TankContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.client.gui.MovingStorageScreen;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
 
@@ -166,10 +168,15 @@ public final class RegressionExecutionContext {
 					&& menu.getBlockPosition().filter(target()::equals).isPresent();
 			case "backpackItem" -> minecraft.screen instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
 					&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK && menu.getBlockPosition().isEmpty();
-			case "storageBlock" -> minecraft.screen instanceof StorageScreen && minecraft.player.containerMenu instanceof StorageContainerMenu menu
-					&& menu.getBlockPosition().filter(target()::equals).isPresent();
+			case "storageBlock" -> (minecraft.screen instanceof StorageScreen || minecraft.screen instanceof TankScreen)
+					&& minecraft.player.containerMenu instanceof StorageContainerMenu menu && menu.getBlockPosition().filter(target()::equals).isPresent();
 			default -> throw new IllegalArgumentException("Unknown menu kind " + kind);
 		};
+	}
+	public boolean isExpectedMenuTank() {
+		Minecraft minecraft = minecraft();
+		return minecraft.player != null && minecraft.screen instanceof TankScreen && minecraft.player.containerMenu instanceof TankContainerMenu menu
+				&& menu.getBlockPosition().filter(target()::equals).isPresent();
 	}
 	public boolean isExpectedMenu(String kind, String ref) {
 		if (!kind.equals("moving")) {

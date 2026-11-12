@@ -1,5 +1,6 @@
 package net.p3pp3rf1y.devclientautomation.regression;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackAutomationExtractableAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackPickupAction;
@@ -156,6 +157,16 @@ public final class RegressionActionRegistry {
 	private static final Pattern RECIPE_RESOURCE_LOCATION = Pattern.compile("(?:[a-z0-9_.-]+:)?[a-z0-9/._-]+");
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 	public RegressionActionRegistry() {
+		register(lazyTankAction("assert.tank", "AssertTankAction"));
+		register(lazyTankAction("player.useTankSegment", "UseTankSegmentAction"));
+		register(lazyTankAction("capability.tankFluid", "TankFluidTransferAction"));
+		register(lazyTankAction("fixture.tank.recoverDrop", "RecoverTankDropAction"));
+		register(lazyTankAction("world.removeTargetBlock", "RemoveTargetBlockAction"));
+		register(lazyTankAction("fixture.tank.spawnExperience", "SpawnTankExperienceAction"));
+		register(lazyTankAction("fixture.tank.reload", "ReloadTankAction"));
+		register(lazyTankAction("diagnostic.screenshot", "CaptureScreenshotAction"));
+		register(lazyTankAction("menu.clickPumpControl", "ClickPumpControlAction"));
+		register(lazyTankAction("menu.clickTankGauge", "ClickTankGaugeAction"));
 		register(new ClickSortControlAction());
 		register(new AssertSortModeAction());
 		register(new ClickSettingsControlAction());
@@ -336,6 +347,16 @@ public final class RegressionActionRegistry {
 		actions.putAll(ordered);
 	}
 	private static final String CATALOG_ORDER = """
+			assert.tank
+			player.useTankSegment
+			capability.tankFluid
+			fixture.tank.recoverDrop
+			world.removeTargetBlock
+			fixture.tank.spawnExperience
+			fixture.tank.reload
+			diagnostic.screenshot
+			menu.clickPumpControl
+			menu.clickTankGauge
 			menu.clickSortControl
 			assert.sortMode
 			menu.clickStorageSettings
@@ -510,6 +531,128 @@ public final class RegressionActionRegistry {
 					LazyOptionalRegressionAction.requireOnly(args, Set.of("slot"), description);
 					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "slot", description);
 				});
+	}
+
+	private static RegressionAction lazyTankAction(String id, String implementation) {
+		Set<String> dependencies = switch (id) {
+			case "diagnostic.screenshot" -> Set.of("minecraft:client");
+			case "menu.clickPumpControl" -> Set.of("minecraft:client", "sophisticatedcore");
+			default -> Set.of("minecraft:client", "sophisticatedstorage");
+		};
+		return new LazyOptionalRegressionAction(id, "1", dependencies, "net.p3pp3rf1y.devclientautomation.regression.actions." + implementation,
+				(args, description) -> validateTankArguments(id, args, description));
+	}
+
+	private static void validateTankArguments(String id, JsonObject args, String description) {
+		switch (id) {
+			case "assert.tank" -> {
+				LazyOptionalRegressionAction.requireOnly(args,
+						Set.of("offset", "present", "amount", "capacity", "height", "upgrades", "tier", "tankDrops", "droppedFluid", "droppedHeight",
+								"droppedUpgrades", "menu", "emission", "light", "tabs", "switches", "cursorItem", "cursorCount", "containerSlot",
+								"containerItem", "containerCount", "droppedFluidType"),
+						description);
+				validateOffset(args, description);
+				for (String name : Set.of("amount", "capacity", "height", "upgrades", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
+						"emission", "light", "tabs", "switches", "cursorCount", "containerCount", "containerSlot")) {
+					optionalTankInteger(args, name, false, description);
+				}
+				if (args.has("containerSlot") && RegressionJsonNumbers.integer(args.get("containerSlot")) > 3)
+					throw new IllegalArgumentException("Tank container slot must be from 0 through 3");
+				for (String name : Set.of("tier", "cursorItem", "containerItem", "droppedFluidType"))
+					optionalTankString(args, name, description);
+				for (String name : Set.of("present", "menu"))
+					optionalTankBoolean(args, name, description);
+			}
+			case "player.useTankSegment", "capability.tankFluid" -> {
+				LazyOptionalRegressionAction.requireOnly(args,
+						id.equals("capability.tankFluid")
+								? Set.of("offset", "face", "fluid", "amount", "expected", "drain", "simulate")
+								: Set.of("offset", "face"),
+						description);
+				validateOffset(args, description);
+				String face = args.has("face") ? tankString(args, "face", description) : "up";
+				if (!Set.of("up", "down", "north", "south", "east", "west").contains(face))
+					throw new IllegalArgumentException("Invalid face on " + description);
+				if (id.equals("capability.tankFluid")) {
+					LazyOptionalRegressionAction.requirePositiveInt(args, "amount", description);
+					optionalTankInteger(args, "expected", false, description);
+					if (args.has("fluid") && !RECIPE_RESOURCE_LOCATION.matcher(tankString(args, "fluid", description)).matches())
+						throw new IllegalArgumentException("Invalid fluid on " + description);
+					optionalTankBoolean(args, "drain", description);
+					optionalTankBoolean(args, "simulate", description);
+				}
+			}
+			case "fixture.tank.recoverDrop", "menu.clickTankGauge" -> LazyOptionalRegressionAction.requireOnly(args, Set.of(), description);
+			case "world.removeTargetBlock" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("offset", "mode"), description);
+				validateOffset(args, description);
+				String mode = args.has("mode") ? tankString(args, "mode", description) : "destroy";
+				if (!Set.of("destroy", "setAir", "explosion").contains(mode))
+					throw new IllegalArgumentException("Invalid removal mode on " + description);
+			}
+			case "fixture.tank.spawnExperience" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("experience"), description);
+				optionalTankInteger(args, "experience", true, description);
+				if (args.has("experience") && RegressionJsonNumbers.integer(args.get("experience")) > 100)
+					throw new IllegalArgumentException("Experience exceeds the bounded fixture on " + description);
+			}
+			case "fixture.tank.reload" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("offset", "sneaking"), description);
+				validateOffset(args, description);
+				optionalTankBoolean(args, "sneaking", description);
+			}
+			case "diagnostic.screenshot" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("name"), description);
+				if (!tankString(args, "name", description).matches("[a-z0-9_-]{1,80}"))
+					throw new IllegalArgumentException("Invalid screenshot name on " + description);
+			}
+			case "menu.clickPumpControl" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("control", "upgrade"), description);
+				if (!Set.of("input", "handlers", "world", "hand").contains(tankString(args, "control", description)))
+					throw new IllegalArgumentException("Unknown pump control on " + description);
+				optionalTankInteger(args, "upgrade", false, description);
+			}
+			default -> throw new IllegalArgumentException("Unknown regression action " + id);
+		}
+	}
+
+	private static String tankString(JsonObject args, String name, String description) {
+		LazyOptionalRegressionAction.requireString(args, name, description);
+		return args.get(name).getAsString();
+	}
+	private static void optionalTankString(JsonObject args, String name, String description) {
+		if (args.has(name))
+			tankString(args, name, description);
+	}
+	private static void optionalTankInteger(JsonObject args, String name, boolean positive, String description) {
+		if (args.has(name)) {
+			if (positive)
+				LazyOptionalRegressionAction.requirePositiveInt(args, name, description);
+			else
+				LazyOptionalRegressionAction.optionalNonNegativeInt(args, name, description);
+		}
+	}
+	private static void optionalTankBoolean(JsonObject args, String name, String description) {
+		if (args.has(name) && (!args.get(name).isJsonPrimitive() || !args.getAsJsonPrimitive(name).isBoolean()))
+			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be boolean");
+	}
+	private static void validateOffset(JsonObject args, String description) {
+		if (!args.has("offset"))
+			return;
+		if (!args.get("offset").isJsonArray())
+			throw new IllegalArgumentException("Argument offset on " + description + " must be an [x, y, z] array");
+		JsonArray offset = args.getAsJsonArray("offset");
+		if (offset.size() != 3)
+			throw new IllegalArgumentException("Argument offset on " + description + " must be an [x, y, z] array");
+		for (int index = 0; index < 3; index++) {
+			if (!offset.get(index).isJsonPrimitive() || !offset.get(index).getAsJsonPrimitive().isNumber())
+				throw new IllegalArgumentException("Argument offset on " + description + " must contain integers");
+			try {
+				RegressionJsonNumbers.integer(offset.get(index));
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException("Argument offset on " + description + " must contain integers", e);
+			}
+		}
 	}
 	private static RegressionAction lazyJeiTransferAction() {
 		return new LazyOptionalRegressionAction("recipeviewer.transferRecipe", "1", Set.of("minecraft:client", "jei"),

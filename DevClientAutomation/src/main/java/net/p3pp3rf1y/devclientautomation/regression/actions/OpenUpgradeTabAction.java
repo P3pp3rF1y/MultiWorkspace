@@ -38,8 +38,8 @@ public final class OpenUpgradeTabAction extends TypedRegressionAction<OpenUpgrad
 					return fail("Menu has no upgrade " + arguments.upgrade());
 				}
 				if (!upgrade.isOpen()) {
-					// UpgradeSettingsTabControl puts the storage-settings tab first, then the upgrades in menu order.
-					int tabIndex = new ArrayList<>(upgrades.keySet()).indexOf(arguments.upgrade()) + 1;
+					int settingsTabs = screen.getMenu().getStorageWrapper().supportsItemContents() ? 1 : 0;
+					int tabIndex = new ArrayList<>(upgrades.keySet()).indexOf(arguments.upgrade()) + settingsTabs;
 					if (!(screen.getUpgradeSettingsControl().children().get(tabIndex) instanceof Tab tab)) {
 						return fail("Upgrade tab is missing from the storage screen");
 					}

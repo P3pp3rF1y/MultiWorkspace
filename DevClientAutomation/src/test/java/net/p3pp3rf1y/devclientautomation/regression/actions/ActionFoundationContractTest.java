@@ -14,6 +14,9 @@ class ActionFoundationContractTest {
 		assertEquals(0, RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{}"), PlaceHeldBlockAction.Arguments.class).z());
 		assertEquals(-1, RegressionActionTestSupport
 				.arguments(RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,-1]}"), PlaceHeldBlockAction.Arguments.class).z());
+		assertEquals(true, RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(action, "{\"sneaking\":true}"), PlaceHeldBlockAction.Arguments.class).sneaking());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"sneaking\":1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0]}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,0.5]}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,\"-1\"]}"));
@@ -42,9 +45,9 @@ class ActionFoundationContractTest {
 		assertNoArguments(new UseHeldItemAction(), "player.useHeldItem");
 		assertNoArguments(new CloseMenuAction(), "menu.close");
 		PlaceHeldBlockAction placement = new PlaceHeldBlockAction();
-		assertEquals(new PlaceHeldBlockAction.Arguments(0, 0, 0),
+		assertEquals(new PlaceHeldBlockAction.Arguments(0, 0, 0, false),
 				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(placement, "{}"), PlaceHeldBlockAction.Arguments.class));
-		assertEquals(new PlaceHeldBlockAction.Arguments(0, 0, -1), RegressionActionTestSupport
+		assertEquals(new PlaceHeldBlockAction.Arguments(0, 0, -1, false), RegressionActionTestSupport
 				.arguments(RegressionActionTestSupport.bind(placement, "{\"offset\":[0,0,-1]}"), PlaceHeldBlockAction.Arguments.class));
 		RegressionActionTestSupport.assertMetadata(placement, "player.placeHeldBlock", Set.of("minecraft:client"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(placement, "{\"offset\":[0,0]}"));
