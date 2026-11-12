@@ -65,7 +65,7 @@ class MenuClickActionBindingTest {
 	void clickStorageSlotBindsRealMenuAreasAndClickModes() {
 		RegressionAction action = new RegressionActionRegistry().require("menu.clickStorageSlot");
 		for (String args : new String[]{"{\"area\":\"storage\",\"click\":\"pickup\"}", "{\"area\":\"player\",\"slot\":35,\"click\":\"quickMove\"}",
-				"{\"area\":\"upgrade\",\"slot\":1,\"click\":\"pickup\"}"}) {
+				"{\"area\":\"upgrade\",\"slot\":1,\"click\":\"pickup\"}", "{\"area\":\"extra\",\"slot\":2,\"click\":\"quickMove\"}"}) {
 			assertSame(action, RegressionActionTestSupport.bind(action, args).action());
 		}
 		for (String args : new String[]{"{}", "{\"area\":\"other\",\"click\":\"pickup\"}", "{\"area\":\"storage\",\"click\":\"other\"}",
