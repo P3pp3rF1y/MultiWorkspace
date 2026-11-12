@@ -7,6 +7,7 @@ param(
     [string]$Suite,
     [Parameter(Mandatory = $false)]
     [string]$Test,
+    [string[]]$Tests = @(),
     [string]$BaseUrl,
     [string]$ConformanceFailureAction,
     [string]$ActionFailureAfter,
@@ -455,6 +456,14 @@ function Wait-ForTerminalRegressionResult {
 
 Add-SensitiveValues $scriptInvocation.BoundParameters
 
+if ($PSBoundParameters.ContainsKey('Tests')) {
+    if ($Command -ne 'run' -or $Test -or $Tests.Count -eq 0 -or
+        @($Tests | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -or
+        [System.Collections.Generic.HashSet[string]]::new([string[]]$Tests, [System.StringComparer]::Ordinal).Count -ne $Tests.Count) {
+        throw 'Tests requires distinct nonempty case IDs for run and cannot be combined with Test.'
+    }
+}
+
 if ($Command -eq "run" -and [string]::IsNullOrWhiteSpace($Suite)) {
     $selection = [pscustomobject]@{
         invocation = Get-InvocationProvenance
@@ -609,6 +618,13 @@ try {
     throw (ConvertTo-SanitizedText "Regression catalog retrieval failed: $($_.Exception.Message)")
 }
 $testIds = @($catalog.suiteTests.$Suite)
+if ($Tests.Count) {
+    $available = [System.Collections.Generic.HashSet[string]]::new([string[]]$testIds, [System.StringComparer]::Ordinal)
+    foreach ($id in $Tests) {
+        if (-not $available.Contains($id)) { throw "Unknown regression test $Suite/$id." }
+    }
+    $testIds = @($Tests)
+}
 if ($testIds.Count -eq 0 -or [string]::IsNullOrWhiteSpace($testIds[0])) {
     $selection = [pscustomobject]@{
         invocation = Get-InvocationProvenance
