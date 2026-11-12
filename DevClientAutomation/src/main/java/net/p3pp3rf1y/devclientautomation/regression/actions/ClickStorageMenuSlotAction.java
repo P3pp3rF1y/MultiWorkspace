@@ -23,7 +23,7 @@ public final class ClickStorageMenuSlotAction extends TypedRegressionAction<Clic
 		requireOnly(args, Set.of("area", "slot", "click"), description);
 		String area = requireString(args, "area", description);
 		String click = requireString(args, "click", description);
-		if (!Set.of("storage", "player", "upgrade").contains(area) || !Set.of("pickup", "quickMove").contains(click)) {
+		if (!Set.of("storage", "player", "upgrade", "extra").contains(area) || !Set.of("pickup", "quickMove").contains(click)) {
 			throw new IllegalArgumentException("Unsupported storage menu area or click on " + description);
 		}
 		int slot = optionalNonNegativeInt(args, "slot", 0, description);
@@ -45,10 +45,12 @@ public final class ClickStorageMenuSlotAction extends TypedRegressionAction<Clic
 				int slot = switch (arguments.area()) {
 					case "player" -> menu.getNumberOfStorageInventorySlots() + (arguments.slot() < 9 ? 27 + arguments.slot() : arguments.slot() - 9);
 					case "upgrade" -> menu.getInventorySlotsSize() + arguments.slot();
+					case "extra" -> menu.getNumberOfStorageInventorySlots() + 36 + arguments.slot();
 					default -> arguments.slot();
 				};
 				if (arguments.area().equals("upgrade") && arguments.slot() >= menu.getNumberOfUpgradeSlots()
-						|| arguments.area().equals("storage") && arguments.slot() >= menu.getNumberOfStorageInventorySlots()) {
+						|| arguments.area().equals("storage") && arguments.slot() >= menu.getNumberOfStorageInventorySlots()
+						|| arguments.area().equals("extra") && arguments.slot() >= menu.getExtraSlots().size()) {
 					return fail("Storage menu has no requested slot");
 				}
 				String slotBefore = menu.getSlot(slot).getItem().toString();

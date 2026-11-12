@@ -159,6 +159,72 @@ public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
+		register(lazyTankAction("assert.tank", "AssertTankAction",
+				Set.of("offset", "present", "amount", "capacity", "height", "upgrades", "tier", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
+						"menu", "emission", "light", "tabs", "switches", "cursorItem", "cursorCount", "containerSlot", "containerItem", "containerCount",
+						"droppedFluidType"),
+				(args, description) -> {
+					validateOffset(args, description);
+					for (String name : Set.of("amount", "capacity", "height", "upgrades", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
+							"emission", "light", "tabs", "switches", "cursorCount", "containerSlot", "containerCount"))
+						LazyOptionalRegressionAction.optionalNonNegativeInt(args, name, description);
+					for (String name : Set.of("present", "menu"))
+						validateBoolean(args, name, description);
+					for (String name : Set.of("tier", "cursorItem", "containerItem", "droppedFluidType"))
+						validateOptionalString(args, name, description);
+					if (args.has("containerSlot") && args.get("containerSlot").getAsInt() > 3)
+						throw new IllegalArgumentException("Tank container slot must be from 0 through 3");
+				}));
+		register(lazyTankAction("player.useTankSegment", "UseTankSegmentAction", Set.of("offset", "face"), (args, description) -> {
+			validateOffset(args, description);
+			validateFace(args, description);
+		}));
+		register(lazyTankAction("capability.tankFluid", "TankFluidTransferAction", Set.of("offset", "face", "fluid", "amount", "expected", "drain", "simulate"),
+				(args, description) -> {
+					validateOffset(args, description);
+					validateFace(args, description);
+					validateOptionalString(args, "fluid", description);
+					LazyOptionalRegressionAction.requirePositiveInt(args, "amount", description);
+					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "expected", description);
+					validateBoolean(args, "drain", description);
+					validateBoolean(args, "simulate", description);
+				}));
+		register(lazyTankAction("fixture.tank.recoverDrop", "RecoverTankDropAction", Set.of(), (args, description) -> {
+		}));
+		register(lazyTankAction("world.removeTargetBlock", "RemoveTargetBlockAction", Set.of("offset", "mode"), (args, description) -> {
+			validateOffset(args, description);
+			validateOptionalString(args, "mode", description);
+			if (args.has("mode") && !Set.of("destroy", "setAir", "explosion").contains(args.get("mode").getAsString()))
+				throw new IllegalArgumentException("Invalid removal mode on " + description);
+		}));
+		register(lazyTankAction("fixture.tank.spawnExperience", "SpawnTankExperienceAction", Set.of("experience"), (args, description) -> {
+			if (args.has("experience")) {
+				LazyOptionalRegressionAction.requirePositiveInt(args, "experience", description);
+				if (args.get("experience").getAsInt() > 100)
+					throw new IllegalArgumentException("Experience exceeds the bounded fixture on " + description);
+			}
+		}));
+		register(lazyTankAction("fixture.tank.reload", "ReloadTankAction", Set.of("offset", "sneaking"), (args, description) -> {
+			validateOffset(args, description);
+			validateBoolean(args, "sneaking", description);
+		}));
+		register(new LazyOptionalRegressionAction("diagnostic.screenshot", "1", Set.of(RegressionAction.CLIENT_CAPABILITY),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.CaptureScreenshotAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("name"), description);
+					LazyOptionalRegressionAction.requireString(args, "name", description);
+					if (!args.get("name").getAsString().matches("[a-z0-9_-]{1,80}"))
+						throw new IllegalArgumentException("Invalid screenshot name on " + description);
+				}));
+		register(new LazyOptionalRegressionAction("menu.clickPumpControl", "1", Set.of(RegressionAction.CLIENT_CAPABILITY, "sophisticatedcore"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions.ClickPumpControlAction", (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, Set.of("upgrade", "control"), description);
+					LazyOptionalRegressionAction.requireString(args, "control", description);
+					if (!Set.of("input", "handlers", "world", "hand").contains(args.get("control").getAsString()))
+						throw new IllegalArgumentException("Unknown pump control on " + description);
+					LazyOptionalRegressionAction.optionalNonNegativeInt(args, "upgrade", description);
+				}));
+		register(lazyTankAction("menu.clickTankGauge", "ClickTankGaugeAction", Set.of(), (args, description) -> {
+		}));
 		register(new ClickSortControlAction());
 		register(new AssertSortModeAction());
 		register(new ClickStorageSettingsAction());
@@ -360,6 +426,47 @@ public final class RegressionActionRegistry {
 
 	private void register(RegressionAction action) {
 		actions.put(action.metadata().id(), action);
+	}
+
+	private static RegressionAction lazyTankAction(String id, String implementation, Set<String> names,
+			java.util.function.BiConsumer<JsonObject, String> validate) {
+		return new LazyOptionalRegressionAction(id, "1", Set.of(RegressionAction.CLIENT_CAPABILITY, "sophisticatedstorage"),
+				"net.p3pp3rf1y.devclientautomation.regression.actions." + implementation, (args, description) -> {
+					LazyOptionalRegressionAction.requireOnly(args, names, description);
+					validate.accept(args, description);
+				});
+	}
+
+	private static void validateOptionalString(JsonObject args, String name, String description) {
+		if (args.has(name))
+			LazyOptionalRegressionAction.requireString(args, name, description);
+	}
+
+	private static void validateBoolean(JsonObject args, String name, String description) {
+		if (args.has(name) && (!args.get(name).isJsonPrimitive() || !args.getAsJsonPrimitive(name).isBoolean()))
+			throw new IllegalArgumentException("Argument " + name + " on " + description + " must be boolean");
+	}
+
+	private static void validateFace(JsonObject args, String description) {
+		validateOptionalString(args, "face", description);
+		if (args.has("face") && !Set.of("up", "down", "north", "south", "east", "west").contains(args.get("face").getAsString()))
+			throw new IllegalArgumentException("Invalid face on " + description);
+	}
+
+	private static void validateOffset(JsonObject args, String description) {
+		if (!args.has("offset"))
+			return;
+		if (!args.get("offset").isJsonArray() || args.getAsJsonArray("offset").size() != 3)
+			throw new IllegalArgumentException("Argument offset on " + description + " must be an [x, y, z] array");
+		for (var coordinate : args.getAsJsonArray("offset")) {
+			if (!coordinate.isJsonPrimitive() || !coordinate.getAsJsonPrimitive().isNumber())
+				throw new IllegalArgumentException("Argument offset on " + description + " must contain integers");
+			try {
+				Integer.parseInt(coordinate.getAsString());
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException("Argument offset on " + description + " must contain integers", e);
+			}
+		}
 	}
 
 	private static RegressionAction lazyJeiAction() {

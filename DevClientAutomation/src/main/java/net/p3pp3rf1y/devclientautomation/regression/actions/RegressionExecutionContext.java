@@ -9,6 +9,7 @@ import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.BackpackScreen;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContainer;
 import net.p3pp3rf1y.sophisticatedbackpacks.common.gui.BackpackContext;
 import net.p3pp3rf1y.sophisticatedstorage.client.gui.StorageScreen;
+import net.p3pp3rf1y.sophisticatedstorage.client.gui.TankScreen;
 import net.p3pp3rf1y.sophisticatedstorage.common.gui.StorageContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.client.gui.MovingStorageScreen;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
@@ -180,8 +181,8 @@ public final class RegressionExecutionContext {
 					&& menu.getBlockPosition().filter(target()::equals).isPresent();
 			case BACKPACK_ITEM -> minecraft.gui.screen() instanceof BackpackScreen && minecraft.player.containerMenu instanceof BackpackContainer menu
 					&& menu.getBackpackContext().getType() == BackpackContext.ContextType.ITEM_BACKPACK && menu.getBlockPosition().isEmpty();
-			case STORAGE_BLOCK -> minecraft.gui.screen() instanceof StorageScreen && minecraft.player.containerMenu instanceof StorageContainerMenu menu
-					&& menu.getBlockPosition().filter(target()::equals).isPresent();
+			case STORAGE_BLOCK -> (minecraft.gui.screen() instanceof StorageScreen || minecraft.gui.screen() instanceof TankScreen)
+					&& minecraft.player.containerMenu instanceof StorageContainerMenu menu && menu.getBlockPosition().filter(target()::equals).isPresent();
 			case MOVING ->
 				minecraft.gui.screen() instanceof MovingStorageScreen && minecraft.player.containerMenu instanceof MovingStorageContainerMenu<?> menu && menu
 						.getStorageEntity().filter(entity -> entity == values.require(ref, MovingStorageEntityHandle.class).findClient(minecraft)).isPresent();

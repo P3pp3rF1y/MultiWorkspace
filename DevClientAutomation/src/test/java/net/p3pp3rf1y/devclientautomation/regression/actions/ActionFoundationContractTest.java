@@ -15,8 +15,14 @@ class ActionFoundationContractTest {
 				PlaceHeldBlockAction.Arguments.class);
 		PlaceHeldBlockAction.Arguments adjacentTarget = RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,-1]}"),
 				PlaceHeldBlockAction.Arguments.class);
+		PlaceHeldBlockAction.Arguments sneakingTarget = RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(action, "{\"offset\":[0,1,0],\"sneaking\":true}"), PlaceHeldBlockAction.Arguments.class);
 		assertEquals(0, defaultTarget.z());
+		assertEquals(false, defaultTarget.sneaking());
 		assertEquals(-1, adjacentTarget.z());
+		assertEquals(1, sneakingTarget.y());
+		assertEquals(true, sneakingTarget.sneaking());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"sneaking\":\"true\"}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0]}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,0.5]}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"offset\":[0,0,\"-1\"]}"));
