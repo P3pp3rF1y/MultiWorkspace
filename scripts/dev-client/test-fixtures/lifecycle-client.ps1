@@ -47,7 +47,7 @@ try {
                 @{ playerLoaded = $true; screenSimpleName = 'TitleScreen' }
             }
             '/capabilities' { @{ ok = ($Mode -ne 'invalid-startup'); protocolVersion = 1; loader = 'neoforge'; minecraftVersion = 'test'; backgroundInput = $true } }
-            '/regression/catalog' { @{ suiteTests = @{ 'proof-first' = @('one'); 'proof-second' = $(if ($Mode -in 'shared-mixed-skip','shared-mixed-error') { @('one','two','three') } else { @('one') }); 'proof-third' = @('one') } } }
+            '/regression/catalog' { @{ suiteTests = @{ 'proof-first' = @('one'); 'proof-second' = $(if ($Mode -in 'shared-mixed-skip','shared-mixed-error','shared-selection') { @('one','two','three') } else { @('one') }); 'proof-third' = @('one') } } }
             '/regression/run' {
                 if ($Mode -in @('transport', 'teardown-poll', 'cleanup-timeout')) { $active = $true; $exchange.Response.StatusCode = 503; @{ message = 'Injected transport failure' }; break }
                 $active = $true
@@ -83,7 +83,7 @@ try {
             }
             default { $exchange.Response.StatusCode = 404; @{ message = 'Unexpected fixture request' } }
         }
-        @{ path = $path; suiteId = $(if ($body) { $body.suiteId } else { $null }); outcome = $outcome; at = [datetime]::UtcNow.ToString('o'); ownershipBeforeCase = $(if ($path -eq '/regression/run' -and $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY) {
+        @{ path = $path; suiteId = $(if ($body) { $body.suiteId } else { $null }); testId = $(if ($body) { $body.testId } else { $null }); outcome = $outcome; at = [datetime]::UtcNow.ToString('o'); ownershipBeforeCase = $(if ($path -eq '/regression/run' -and $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY) {
                     (Test-Path -LiteralPath $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY -PathType Container) -and
                         [IO.Directory]::GetFiles($env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY, 'client-ownership.json', [IO.SearchOption]::AllDirectories).Count -eq 1
                 } else { $null }) } | ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $Directory 'requests.jsonl')

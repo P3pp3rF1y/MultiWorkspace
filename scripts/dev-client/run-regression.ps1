@@ -6,6 +6,8 @@ param(
     [string[]]$Suite = @(),
     # Declarative runtime suites share one client; manifest wrappers retain their own lifecycle.
     [string[]]$RegressionSuite = @(),
+    # JSON object: suite ID -> exact ordered case IDs. Omitted suites run in full.
+    [string]$RegressionSelection,
     [string]$BaseUrl,
     [switch]$KeepClientOpen,
     [string]$ArtifactDirectory = (Join-Path $WorkspaceRoot "build/reports/dev-client-regression"),
@@ -254,6 +256,19 @@ function Invoke-SharedRegression {
         throw "RegressionSuite requires distinct nonempty runtime suite IDs."
     }
     . "$PSScriptRoot/client-lifecycle.ps1"
+    $caseSelection = @{}
+    if ($scriptInvocation.BoundParameters.ContainsKey('RegressionSelection')) {
+        $caseSelection = ConvertFrom-Json -InputObject $RegressionSelection -AsHashtable
+        if ($caseSelection -isnot [System.Collections.IDictionary]) { throw 'RegressionSelection must be a JSON object.' }
+        foreach ($entry in $caseSelection.GetEnumerator()) {
+            $ids = $entry.Value
+            if ($entry.Key -cnotin $RegressionSuite -or $ids -isnot [array] -or $ids.Count -eq 0 -or
+                @($ids | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) }).Count -or
+                [System.Collections.Generic.HashSet[string]]::new([string[]]$ids, [System.StringComparer]::Ordinal).Count -ne $ids.Count) {
+                throw 'RegressionSelection needs requested suite IDs and distinct nonempty case-ID arrays.'
+            }
+        }
+    }
     $directory = Join-Path $ArtifactDirectory $runIdentity.controllerRunId
     $null = New-Item -ItemType Directory -Force -Path $directory
     $results = @(); $ownership = $null; $failure = $null
@@ -271,8 +286,10 @@ function Invoke-SharedRegression {
             $suiteDirectory = Join-Path $directory ([guid]::NewGuid().ToString('N'))
             $casePath = Join-Path $suiteDirectory (($id -replace '[^A-Za-z0-9_.-]', '_') + '.json')
             $errorMessage = $null
+            $caseArguments = @{}
+            if ($caseSelection.Contains($id)) { $caseArguments.Tests = [string[]]$caseSelection[$id] }
             try {
-                $null = & "$PSScriptRoot/regression.ps1" -WorkspaceRoot $WorkspaceRoot -Suite $id -BaseUrl $BaseUrl -KeepClientOpen -TimeoutSeconds $TimeoutSeconds -ArtifactDirectory $suiteDirectory -CandidateIdentity $CandidateIdentity -RuntimeBuildIdentity $RuntimeBuildIdentity
+                $null = & "$PSScriptRoot/regression.ps1" -WorkspaceRoot $WorkspaceRoot -Suite $id @caseArguments -BaseUrl $BaseUrl -KeepClientOpen -TimeoutSeconds $TimeoutSeconds -ArtifactDirectory $suiteDirectory -CandidateIdentity $CandidateIdentity -RuntimeBuildIdentity $RuntimeBuildIdentity
             } catch { $errorMessage = ConvertTo-SanitizedText $_.Exception.Message }
             $product = if (Test-Path -LiteralPath $casePath) { Get-Content -LiteralPath $casePath -Raw | ConvertFrom-Json -Depth 64 } else { $null }
             # A suite with only passed cases and qualified unavailable cases may continue; retain its native result unchanged.
@@ -329,6 +346,7 @@ function Invoke-SharedRegression {
     if (-not $ok) { throw "Regression batch failed; see individual suite reports under $directory. $failure" }
 }
 
+if ($PSBoundParameters.ContainsKey('RegressionSelection') -and -not $RegressionSuite.Count) { throw 'RegressionSelection requires RegressionSuite.' }
 if ($RegressionSuite.Count) {
     Invoke-SharedRegression
     return

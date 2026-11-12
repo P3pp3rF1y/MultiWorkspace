@@ -1,24 +1,30 @@
-param([string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot/../..").Path)
+param(
+    [string]$WorkspaceRoot = (Resolve-Path "$PSScriptRoot/../..").Path,
+    [string]$RunnerDirectory = $PSScriptRoot,
+    [string[]]$Modes = @('success','fail-fast','continue','borrowed','keep','qualified-skip','unqualified-skip','mixed-skip','mixed-error','whole-selection','focused','ordered')
+)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/client-lifecycle.ps1"
 $root = Join-Path $WorkspaceRoot "build/reports/dev-client-regression/shared-client/$([guid]::NewGuid())"
 $harness = Join-Path $root 'scripts/dev-client'
 $null = New-Item -ItemType Directory -Force -Path $harness
-Copy-Item "$PSScriptRoot/run-regression.ps1", "$PSScriptRoot/regression.ps1", "$PSScriptRoot/client-lifecycle.ps1" $harness
+Copy-Item "$RunnerDirectory/run-regression.ps1", "$RunnerDirectory/regression.ps1", "$RunnerDirectory/client-lifecycle.ps1" $harness
 Copy-Item "$PSScriptRoot/test-fixtures/lifecycle-launch.ps1" (Join-Path $harness 'start-and-ready.ps1')
 $old = @{}
 foreach ($name in 'DCA_LIFECYCLE_SOURCE','DCA_LIFECYCLE_DIRECTORY','DCA_LIFECYCLE_MODE','DCA_LIFECYCLE_ARTIFACT_DIRECTORY') { $old[$name] = [Environment]::GetEnvironmentVariable($name) }
 $env:DCA_LIFECYCLE_SOURCE = $PSScriptRoot
 $cases = @()
 try {
-    foreach ($mode in 'success','fail-fast','continue','borrowed','keep','qualified-skip','unqualified-skip','mixed-skip','mixed-error') {
+    foreach ($mode in @($Modes | ForEach-Object { $_ -split ',' })) {
         $directory = Join-Path $root $mode
         $null = New-Item -ItemType Directory -Force -Path (Join-Path $directory 'workspace/run')
         $env:DCA_LIFECYCLE_DIRECTORY = $directory
-        $env:DCA_LIFECYCLE_MODE = if ($mode -in 'fail-fast','continue') { 'shared-cleanup-error' } elseif ($mode -eq 'qualified-skip') { 'shared-qualified-skip' } elseif ($mode -eq 'unqualified-skip') { 'shared-unqualified-skip' } elseif ($mode -in 'mixed-skip','mixed-error') { "shared-$mode" } else { 'success' }
+        $env:DCA_LIFECYCLE_MODE = if ($mode -in 'fail-fast','continue') { 'shared-cleanup-error' } elseif ($mode -eq 'qualified-skip') { 'shared-qualified-skip' } elseif ($mode -eq 'unqualified-skip') { 'shared-unqualified-skip' } elseif ($mode -in 'mixed-skip','mixed-error') { "shared-$mode" } elseif ($mode -in 'whole-selection','focused','ordered') { 'shared-selection' } else { 'success' }
         $fixture = Join-Path $PSScriptRoot 'test-fixtures/lifecycle-client.ps1'
         "@pwsh -NoProfile -File `"$fixture`" -Directory `"$directory`" -Mode `"$env:DCA_LIFECYCLE_MODE`"" | Set-Content -LiteralPath (Join-Path $directory 'gradlew.bat')
         $arguments = @('-NoProfile','-File',"$harness/run-regression.ps1",'-WorkspaceRoot',$WorkspaceRoot,'-RegressionSuite','proof-first,proof-second,proof-third','-ArtifactDirectory',"$directory/reports",'-CandidateIdentity','candidate-proof','-RuntimeBuildIdentity','runtime-proof')
+        if ($mode -eq 'focused') { $arguments += @('-RegressionSelection','{"proof-second":["two"]}') }
+        if ($mode -eq 'ordered') { $arguments += @('-RegressionSelection','{"proof-second":["three","one"]}') }
         $env:DCA_LIFECYCLE_ARTIFACT_DIRECTORY = "$directory/reports"
         if ($mode -eq 'unqualified-skip') { $arguments += '-ContinueOnFailure' }
         $ownership = $null
@@ -41,6 +47,12 @@ try {
             $urls = @($reports.launchIdentity.baseUrl | Select-Object -Unique)
             if ($urls.Count -ne 1) { throw "${mode}: suites did not reuse one client" }
             foreach ($report in $reports) { if ($report.bindings.candidateIdentity -ne 'candidate-proof' -or $report.bindings.runtimeBuildIdentity -ne 'runtime-proof') { throw 'Native report binding was lost' } }
+            if ($mode -in 'whole-selection','focused','ordered') {
+                $expectedIds = if ($mode -eq 'focused') { @('two') } elseif ($mode -eq 'ordered') { @('three','one') } else { @('one','two','three') }
+                if (($reports[1].selection.testIds -join ',') -cne ($expectedIds -join ',') -or $reports[1].accounting.selected -ne $expectedIds.Count -or
+                    ($reports[1].results.testId -join ',') -cne ($expectedIds -join ',')) { throw "${mode}: exact ordered case selection was lost" }
+                if ($mode -ne 'whole-selection' -and ($reports[1].selection.invocation.boundParameters.Tests -join ',') -cne ($expectedIds -join ',')) { throw 'Native case-filter provenance was lost' }
+            }
             if ($mode -in 'fail-fast','continue') {
                 if ($reports[0].outcome -ne 'passed' -or $reports[1].outcome -ne 'error' -or $reports[1].results[0].category -ne 'cleanup') { throw 'Framework cleanup error was hidden or reinterpreted' }
             }
@@ -71,14 +83,32 @@ try {
             $stops = @($requests | Where-Object path -EQ '/client/stop').Count
             if ($stops -ne $(if ($mode -in 'borrowed','keep') { 0 } else { 1 })) { throw "${mode}: wrong owned-client shutdown count" }
             $expectedRequests = $expected + $(if ($mode -in 'mixed-skip','mixed-error') { 2 } else { 0 })
+            if ($mode -eq 'whole-selection') { $expectedRequests += 2 }
+            if ($mode -eq 'ordered') { $expectedRequests++ }
             if (@($requests | Where-Object path -EQ '/regression/run').Count -ne $expectedRequests) { throw 'Unexpected extra regression checks were executed' }
+            if ($mode -in 'whole-selection','focused','ordered') {
+                if (@($requests | Where-Object path -EQ '/regression/catalog').Count -ne 3) { throw 'Case selection added catalog queries' }
+                $actualIds = @($requests | Where-Object { $_.path -eq '/regression/run' -and $_.suiteId -eq 'proof-second' } | ForEach-Object testId)
+                if (($actualIds -join ',') -cne ($expectedIds -join ',')) { throw 'Unselected cases ran or case execution order changed' }
+            }
             $suiteOrder = @($requests | Where-Object path -EQ '/regression/run' | ForEach-Object suiteId | Select-Object -Unique)
             if (($suiteOrder -join ',') -ne (@('proof-first','proof-second','proof-third')[0..($expected - 1)] -join ',')) { throw 'Suite execution order changed' }
+            if ($mode -eq 'keep') {
+                $rejected = $false
+                try { $null = & "$harness/regression.ps1" -WorkspaceRoot $WorkspaceRoot -Suite proof-second -Tests missing -BaseUrl $urls[0] -KeepClientOpen -ArtifactDirectory "$directory/unknown-case" } catch { $rejected = $_.Exception.Message -like '*Unknown regression test*' }
+                $afterUnknown = @(Get-Content -LiteralPath "$directory/requests.jsonl" | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object path -EQ '/regression/run')
+                if (-not $rejected -or $afterUnknown.Count -ne $expectedRequests) { throw 'Unknown case selection fell back to other cases' }
+            }
             $cases += @{ mode = $mode; suites = $expected; shutdowns = $stops; ok = $true }
         } finally {
             if (-not $ownership -and (Test-Path -LiteralPath "$directory/ownership.json")) { $ownership = Get-Content -LiteralPath "$directory/ownership.json" -Raw | ConvertFrom-Json }
             if ($ownership) { $null = Stop-OwnedClient $ownership -WaitForRegression:$false -TimeoutSeconds 2 }
         }
+    }
+    foreach ($selection in '[]','null','{"other":["one"]}','{"proof-second":[]}','{"proof-second":"one"}','{"proof-second":["one","one"]}','{"proof-second":[1]}') {
+        $invalid = Join-Path $root ([guid]::NewGuid().ToString('N'))
+        $output = @(& pwsh -NoProfile -File "$harness/run-regression.ps1" -WorkspaceRoot $WorkspaceRoot -RegressionSuite proof-second -RegressionSelection $selection -ArtifactDirectory $invalid 2>&1)
+        if ($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath $invalid)) { throw "Invalid case selection reached launch: $selection" }
     }
     @{ ok = $true; cases = $cases; artifacts = $root } | ConvertTo-Json -Depth 8
 } finally {
