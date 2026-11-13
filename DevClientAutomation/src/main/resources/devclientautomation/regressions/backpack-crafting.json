@@ -171,7 +171,7 @@
         {"id": "missing-click-slot", "action": "menu.clickUpgradeSlot", "args": {"slot": 10}, "expectFailure": "Menu has no upgrade 0 slot 10"},
         {"id": "missing-assertion-slot", "action": "assert.upgradeSlot", "args": {"slot": 10, "item": "minecraft:air", "count": 0}, "expectFailure": "Menu has no upgrade 0 slot 10"},
         {"id": "timeout", "action": "assert.upgradeSlot", "args": {"slot": 9, "item": "minecraft:diamond", "timeoutTicks": 5}, "expectFailure": "Upgrade slot did not synchronize expected"},
-        {"id": "empty-result-after-timeout", "action": "assert.upgradeSlot", "args": {"slot": 9, "item": "minecraft:air", "count": 0}}
+        {"id": "empty-result-after-timeout", "action": "assert.upgradeSlot", "args": {"slot": 9, "item": "minecraft:air", "count": 0, "stableTicks": 3}}
       ]
     },
     {

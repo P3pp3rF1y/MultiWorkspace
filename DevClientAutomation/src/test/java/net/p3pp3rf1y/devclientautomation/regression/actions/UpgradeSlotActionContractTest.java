@@ -54,10 +54,12 @@ class UpgradeSlotActionContractTest {
 				AssertUpgradeSlotAction.Arguments.class);
 		assertEquals(1, defaults.count());
 		assertEquals(100, defaults.timeoutTicks());
-		RegressionActionTestSupport.bind(action, "{\"slot\":9,\"item\":\"minecraft:air\",\"count\":0,\"timeoutTicks\":5}");
+		assertEquals(0, defaults.stableTicks());
+		RegressionActionTestSupport.bind(action, "{\"slot\":9,\"item\":\"minecraft:air\",\"count\":0,\"timeoutTicks\":5,\"stableTicks\":3}");
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"item\":\"minecraft:air\",\"count\":-1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"item\":\"minecraft:air\",\"timeoutTicks\":0}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"item\":\"minecraft:air\",\"stableTicks\":-1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"item\":\"minecraft:air\",\"unknown\":1}"));
 	}
 }

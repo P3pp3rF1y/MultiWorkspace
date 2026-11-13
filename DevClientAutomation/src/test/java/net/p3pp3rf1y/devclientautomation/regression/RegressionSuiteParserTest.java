@@ -93,7 +93,7 @@ class RegressionSuiteParserTest {
 										"held-backpack-opens-synchronized-item-menu", "placed-backpack-menu-click-and-quick-move-stay-synchronized",
 										"linked-held-backpack-opens-with-enchanted-book", "linked-placed-backpack-opens-with-enchanted-book",
 										"linked-held-backpack-quick-move-stays-synchronized", "linked-placed-backpack-quick-move-stays-synchronized",
-										"linked-held-backpack-menu-receives-slot-delta"),
+										"linked-held-backpack-menu-receives-slot-delta", "tank-upgrade-bucket-processing-is-atomic-and-persistent"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
 					}
 					if (indexedPath.equals("inventory-interactions-keybind.json")) {
@@ -108,7 +108,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(210, testCount);
+			assertEquals(211, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}
