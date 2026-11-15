@@ -7,6 +7,7 @@
   "backpack-restock.json",
   "backpack-pickup.json",
   "inventory-interactions-keybind.json",
+  "inventory-interactions-layout.json",
   "item-entity-action-conformance.json",
   "backpack-create-disassembly.json",
   "storage-menu.json",

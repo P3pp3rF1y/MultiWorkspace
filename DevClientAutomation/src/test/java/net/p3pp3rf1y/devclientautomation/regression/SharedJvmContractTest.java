@@ -25,6 +25,7 @@ class SharedJvmContractTest {
 			assert.backpackPickupConfiguration|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalBackpackTemplate|1|minecraft:client,sophisticatedbackpacks
 			assert.canonicalCapturedMobs|1|minecraft:client,sophisticatedbackpacks
+			assert.chatCompletion|1|minecraft:client
 			assert.controllerLinkGroups|1|minecraft:client,sophisticatedstorage
 			assert.controllerLinkLine|1|minecraft:client,sophisticatedstorage
 			assert.controllerSharedGroup|2|minecraft:client,sophisticatedstorage
@@ -34,7 +35,8 @@ class SharedJvmContractTest {
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackJukeboxPlayback|2|minecraft:client,sophisticatedbackpacks
 			assert.inventoryCount|2|minecraft:client,sophisticatedbackpacks,sophisticatedstorage
-			assert.inventoryInteractionCount|2|minecraft:client
+			assert.inventoryInteractionCount|3|minecraft:client
+			assert.inventoryInteractionLayout|1|minecraft:client,sophisticatedinventoryinteractions
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
@@ -107,6 +109,7 @@ class SharedJvmContractTest {
 			fixture.create.setMountedBackpackSlot|1|minecraft:client,sophisticatedbackpackscreateintegration
 			fixture.create.setMountedSlot|1|minecraft:client,sophisticatedstoragecreateintegration
 			fixture.entity.spawnPig|1|minecraft:client
+			fixture.inventoryInteractionSettings|1|minecraft:client,sophisticatedinventoryinteractions
 			fixture.itemEntity.spawn|1|minecraft:client
 			fixture.linked.replaceRoot|1|minecraft:client,sophisticatedcore
 			fixture.moving.captureNestedLinkedCarrier|1|minecraft:client,sophisticatedstorageinmotion
@@ -127,7 +130,11 @@ class SharedJvmContractTest {
 			fixture.tank.recoverDrop|1|minecraft:client,sophisticatedstorage
 			fixture.tank.reload|1|minecraft:client,sophisticatedstorage
 			fixture.tank.spawnExperience|1|minecraft:client,sophisticatedstorage
+			input.chatCommand|1|minecraft:client
+			input.dragInventoryInteractionGroup|1|minecraft:client,sophisticatedinventoryinteractions
 			input.inventoryInteractionKeybind|2|minecraft:client,sophisticatedinventoryinteractions
+			input.inventoryInteractionLayoutControl|1|minecraft:client,sophisticatedinventoryinteractions
+			menu.captureInventoryInteractionLayout|1|minecraft:client,sophisticatedinventoryinteractions
 			menu.captureLinkedRevision|1|minecraft:client
 			menu.clickCapturedMob|1|minecraft:client,sophisticatedbackpacks
 			menu.clickPlayerInventorySlot|1|minecraft:client
@@ -180,6 +187,13 @@ class SharedJvmContractTest {
 			world.removeTargetBlock|1|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
+			input.chatCommand
+			fixture.inventoryInteractionSettings
+			assert.chatCompletion
+			menu.captureInventoryInteractionLayout
+			assert.inventoryInteractionLayout
+			input.dragInventoryInteractionGroup
+			input.inventoryInteractionLayoutControl
 			assert.tank
 			fixture.storage.dropPacked
 			player.useTankSegment
@@ -338,11 +352,11 @@ class SharedJvmContractTest {
 			await.menuClosed
 			recipeviewer.transferRecipe
 			""";
-	private static final Set<String> REVISION_TWO = Set.of("assert.tank", "assert.inventoryCount", "assert.inventoryInteractionCount", "await.vanillaMenu",
-			"input.inventoryInteractionKeybind", "assert.doubleChest", "assert.menu", "assert.settingsSelection", "assert.movingStorageTierUpgradeRecipe",
-			"assert.storageTierUpgradeRecipe", "await.menu", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
-			"player.setInventorySlot", "player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected", "assert.controllerSharedGroup",
-			"player.useHeldItemOnTarget", "fixture.backpack.setHeldJukeboxDisc", "assert.heldBackpackJukeboxPlayback");
+	private static final Set<String> REVISION_TWO = Set.of("assert.tank", "assert.inventoryCount", "await.vanillaMenu", "input.inventoryInteractionKeybind",
+			"assert.doubleChest", "assert.menu", "assert.settingsSelection", "assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe",
+			"await.menu", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities", "player.setInventorySlot",
+			"player.breakTargetBlock", "storage.setBlockSlot", "assert.movingForgedRejected", "assert.controllerSharedGroup", "player.useHeldItemOnTarget",
+			"fixture.backpack.setHeldJukeboxDisc", "assert.heldBackpackJukeboxPlayback");
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-jukebox-death:held-backpack-jukebox-keep-inventory-death-stops-and-replays,advanced-held-backpack-jukebox-death-replays-immediately,advanced-jukebox-death-replays-after-expiry
@@ -352,6 +366,7 @@ class SharedJvmContractTest {
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
 			inventory-interactions-keybind:vanilla-transfer-to-storage-filtered,vanilla-transfer-to-storage-all,vanilla-transfer-to-player-filtered,vanilla-transfer-to-player-all,backpack-transfer-to-storage-filtered,backpack-transfer-to-storage-all,backpack-transfer-to-player-filtered,backpack-transfer-to-player-all,vanilla-container-sort,player-inventory-sort,crafting-player-inventory-sort,furnace-player-inventory-sort,backpack-storage-sort,closed-screen-keybind-rejected,stale-menu-handle-rejected,wrong-hover-region-rejected,vanilla-menu-await-times-out-cleanly
+			inventory-interactions-layout:independent-visibility-and-legacy-rules,small-machine-transfers,drag-reset-cancel-and-reinit,close-save-and-absolute-command-offsets,native-player-group-and-shortcut-suppression,actual-class-autocomplete-recent-first,pending-adjustment-cancel,drag-outside-editor-rejected
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
@@ -382,11 +397,11 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		Map<String, RegressionActionMetadata> actions = new RegressionActionRegistry().all();
-		assertEquals(157, actions.size());
+		assertEquals(164, actions.size());
 		String actual = actions.values().stream().sorted(Comparator.comparing(RegressionActionMetadata::id))
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
-		assertEquals(157, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(164, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(REVISION_TWO, actions.values().stream().filter(metadata -> metadata.revision().equals("2")).map(RegressionActionMetadata::id)
 				.collect(java.util.stream.Collectors.toSet()));
@@ -458,10 +473,10 @@ class SharedJvmContractTest {
 	void catalogMapsStrictlyParsedSuiteTestsForTheOfficialRunner() {
 		Map<String, RegressionSuite> suites = RegressionCoordinator.loadSuites();
 		JsonObject catalog = json(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites));
-		assertEquals(33, suites.size());
-		assertEquals(212, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(34, suites.size());
+		assertEquals(220, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
-		assertEquals(157, catalog.getAsJsonObject("actions").size());
+		assertEquals(164, catalog.getAsJsonObject("actions").size());
 		assertEquals(CANONICAL_SUITE_TESTS.strip().lines().toList(), suites.values().stream()
 				.map(suite -> suite.suiteId() + ":" + String.join(",", suite.tests().stream().map(RegressionTest::id).toList())).toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), catalog.getAsJsonObject("actions").keySet().stream().toList());

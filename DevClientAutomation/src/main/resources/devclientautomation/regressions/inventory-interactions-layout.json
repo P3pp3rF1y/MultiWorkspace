@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "inventory-interactions-layout",
+  "requires": [],
+  "isolation": "testCell",
+  "tests": [
+    {
+      "id": "independent-visibility-and-legacy-rules",
+      "tags": ["behavior", "visibility", "commands"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "open-baseline", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "baseline"}},
+        {"id": "await-baseline", "action": "await.vanillaMenu", "args": {"ref": "baseline", "saveAs": "baseline-menu"}},
+        {"id": "baseline-visible", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true}},
+        {"id": "close-baseline", "action": "menu.close"},
+        {"id": "block-container", "action": "input.chatCommand", "args": {"command": "sii screens block-last container"}},
+        {"id": "open-container-blocked", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "container-blocked"}},
+        {"id": "await-container-blocked", "action": "await.vanillaMenu", "args": {"ref": "container-blocked", "saveAs": "container-blocked-menu"}},
+        {"id": "container-only-hidden", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true}},
+        {"id": "close-container-blocked", "action": "menu.close"},
+        {"id": "block-transfers", "action": "input.chatCommand", "args": {"command": "sii screens block-last transfers"}},
+        {"id": "open-transfers-blocked", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "transfers-blocked"}},
+        {"id": "await-transfers-blocked", "action": "await.vanillaMenu", "args": {"ref": "transfers-blocked", "saveAs": "transfers-blocked-menu"}},
+        {"id": "only-player-visible", "action": "assert.inventoryInteractionLayout", "args": {"playerSort": true}},
+        {"id": "close-transfers-blocked", "action": "menu.close"},
+        {"id": "block-player", "action": "input.chatCommand", "args": {"command": "sii screens block-last player-sort"}},
+        {"id": "open-all-blocked", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "all-blocked"}},
+        {"id": "await-all-blocked", "action": "await.vanillaMenu", "args": {"ref": "all-blocked", "saveAs": "all-blocked-menu"}},
+        {"id": "all-hidden", "action": "assert.inventoryInteractionLayout"},
+        {"id": "close-all-blocked", "action": "menu.close"},
+        {"id": "reset-scopes", "action": "input.chatCommand", "args": {"command": "sii screens reset-last all"}},
+        {"id": "legacy-block", "action": "input.chatCommand", "args": {"command": "sii screens block-last"}},
+        {"id": "open-legacy", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "legacy"}},
+        {"id": "await-legacy", "action": "await.vanillaMenu", "args": {"ref": "legacy", "saveAs": "legacy-menu"}},
+        {"id": "legacy-preserves-player", "action": "assert.inventoryInteractionLayout", "args": {"playerSort": true}},
+        {"id": "close-legacy", "action": "menu.close"},
+        {"id": "scoped-allow", "action": "input.chatCommand", "args": {"command": "sii screens allow-last container"}},
+        {"id": "open-scoped-allow", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "scoped"}},
+        {"id": "await-scoped-allow", "action": "await.vanillaMenu", "args": {"ref": "scoped", "saveAs": "scoped-menu"}},
+        {"id": "scope-overrides-legacy", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "playerSort": true}}
+      ]
+    },
+    {
+      "id": "small-machine-transfers",
+      "tags": ["behavior", "transfers", "vanilla"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "furnace", "fixture": "playerSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "small-controls", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true}},
+        {"id": "deposit", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "shift", "ref": "menu"}},
+        {"id": "deposited", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 3}},
+        {"id": "player-empty", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 0}}
+      ]
+    },
+    {
+      "id": "drag-reset-cancel-and-reinit",
+      "tags": ["behavior", "layout", "input"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "arm", "action": "input.chatCommand", "args": {"command": "sii layout adjust-next"}},
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "active", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "editing": true}},
+        {"id": "capture", "action": "menu.captureInventoryInteractionLayout", "args": {"saveAs": "before"}},
+        {"id": "drag-container", "action": "input.dragInventoryInteractionGroup", "args": {"group": "container", "x": -17, "y": 9}},
+        {"id": "drag-player", "action": "input.dragInventoryInteractionGroup", "args": {"group": "player", "x": 11, "y": -5}},
+        {"id": "moved-together", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "editing": true, "ref": "before", "containerX": -17, "containerY": 9, "playerX": 11, "playerY": -5}},
+        {"id": "sort-while-editing", "action": "input.inventoryInteractionKeybind", "args": {"operation": "sort", "target": "container", "slot": 0, "ref": "menu"}},
+        {"id": "sort-suppressed", "action": "assert.inventoryInteractionCount", "args": {"target": "container", "ref": "menu", "item": "minecraft:cobblestone", "count": 3, "stacks": 2}},
+        {"id": "reinitialize", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "reinit"}},
+        {"id": "still-editing", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "editing": true, "ref": "before", "containerX": -17, "containerY": 9, "playerX": 11, "playerY": -5}},
+        {"id": "screenshot", "action": "diagnostic.screenshot", "args": {"name": "sii-layout-editor"}},
+        {"id": "reset-container", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "reset-container"}},
+        {"id": "container-reset-only", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "editing": true, "ref": "before", "playerX": 11, "playerY": -5}},
+        {"id": "cancel", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "cancel"}},
+        {"id": "original-restored", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "ref": "before"}}
+      ]
+    },
+    {
+      "id": "close-save-and-absolute-command-offsets",
+      "tags": ["behavior", "layout", "persistence"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "arm", "action": "input.chatCommand", "args": {"command": "sii layout adjust-next"}},
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "capture", "action": "menu.captureInventoryInteractionLayout", "args": {"saveAs": "before"}},
+        {"id": "drag-container", "action": "input.dragInventoryInteractionGroup", "args": {"group": "container", "x": 13, "y": -7}},
+        {"id": "drag-player", "action": "input.dragInventoryInteractionGroup", "args": {"group": "player", "x": -8, "y": 6}},
+        {"id": "escape-save", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "escape"}},
+        {"id": "await-close", "action": "await.menuClosed"},
+        {"id": "reopen", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "reopened"}},
+        {"id": "await-reopen", "action": "await.vanillaMenu", "args": {"ref": "reopened", "saveAs": "reopened-menu"}},
+        {"id": "saved-no-rearm", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "ref": "before", "containerX": 13, "containerY": -7, "playerX": -8, "playerY": 6}},
+        {"id": "close", "action": "menu.close"},
+        {"id": "set-container-offset", "action": "input.chatCommand", "args": {"command": "sii layout offset-last container -4 2"}},
+        {"id": "open-command-offset", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "command-opened"}},
+        {"id": "await-command-offset", "action": "await.vanillaMenu", "args": {"ref": "command-opened", "saveAs": "command-menu"}},
+        {"id": "absolute-offset", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true, "ref": "before", "containerX": -4, "containerY": 2, "playerX": -8, "playerY": 6}}
+      ]
+    },
+    {
+      "id": "native-player-group-and-shortcut-suppression",
+      "tags": ["behavior", "layout", "backpack"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "backpack", "action": "backpack.createInMainHand", "args": {"tier": "diamond"}},
+        {"id": "storage", "action": "backpack.setStorageSlot", "args": {"slot": 0, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player", "action": "player.setInventorySlot", "args": {"slot": 9, "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "arm", "action": "input.chatCommand", "args": {"command": "sii layout adjust-next"}},
+        {"id": "open", "action": "player.useHeldItem"},
+        {"id": "await", "action": "await.menu", "args": {"kind": "backpackItem"}},
+        {"id": "active", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true, "editing": true}},
+        {"id": "capture", "action": "menu.captureInventoryInteractionLayout", "args": {"saveAs": "before"}},
+        {"id": "drag", "action": "input.dragInventoryInteractionGroup", "args": {"group": "player", "x": -15, "y": 8}},
+        {"id": "native-pair-and-sort-moved", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true, "editing": true, "ref": "before", "playerX": -15, "playerY": 8}},
+        {"id": "transfer-while-editing", "action": "input.inventoryInteractionKeybind", "args": {"operation": "transferToContainer", "modifier": "shift"}},
+        {"id": "transfer-suppressed", "action": "assert.inventoryInteractionCount", "args": {"target": "backpack", "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "player-preserved", "action": "assert.inventoryInteractionCount", "args": {"target": "player", "item": "minecraft:cobblestone", "count": 1}},
+        {"id": "reinit", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "reinit"}},
+        {"id": "native-reinit", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true, "editing": true, "ref": "before", "playerX": -15, "playerY": 8}},
+        {"id": "reset-player", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "reset-player"}},
+        {"id": "native-reset", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true, "editing": true, "ref": "before"}},
+        {"id": "cancel", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "cancel"}},
+        {"id": "native-restored", "action": "assert.inventoryInteractionLayout", "args": {"transfers": true, "playerSort": true, "ref": "before"}}
+      ]
+    },
+    {
+      "id": "actual-class-autocomplete-recent-first",
+      "tags": ["behavior", "commands", "autocomplete"],
+      "timeoutTicks": 400,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "chest", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "chest"}},
+        {"id": "await-chest", "action": "await.vanillaMenu", "args": {"ref": "chest", "saveAs": "chest-menu"}},
+        {"id": "close-chest", "action": "menu.close"},
+        {"id": "furnace", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "furnace", "fixture": "playerSort", "saveAs": "furnace"}},
+        {"id": "await-furnace", "action": "await.vanillaMenu", "args": {"ref": "furnace", "saveAs": "furnace-menu"}},
+        {"id": "reinit-dedup", "action": "input.inventoryInteractionLayoutControl", "args": {"control": "reinit"}},
+        {"id": "close-furnace", "action": "menu.close"},
+        {"id": "allow", "action": "assert.chatCompletion", "args": {"input": "/sii screens allow ", "first": "/sii screens allow net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii screens allow net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "block", "action": "assert.chatCompletion", "args": {"input": "/sii screens block ", "first": "/sii screens block net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii screens block net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "reset", "action": "assert.chatCompletion", "args": {"input": "/sii screens reset ", "first": "/sii screens reset net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii screens reset net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "offset", "action": "assert.chatCompletion", "args": {"input": "/sii layout offset ", "first": "/sii layout offset net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii layout offset net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "show", "action": "assert.chatCompletion", "args": {"input": "/sii layout show ", "first": "/sii layout show net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii layout show net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "layout-reset", "action": "assert.chatCompletion", "args": {"input": "/sii layout reset ", "first": "/sii layout reset net.minecraft.client.gui.screens.inventory.FurnaceScreen", "second": "/sii layout reset net.minecraft.client.gui.screens.inventory.ContainerScreen"}},
+        {"id": "prefix", "action": "assert.chatCompletion", "args": {"input": "/sii screens block net.minecraft.client.gui.screens.inventory.F", "first": "/sii screens block net.minecraft.client.gui.screens.inventory.FurnaceScreen"}}
+      ]
+    },
+    {
+      "id": "pending-adjustment-cancel",
+      "tags": ["behavior", "layout", "commands"],
+      "timeoutTicks": 300,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "arm", "action": "input.chatCommand", "args": {"command": "sii layout adjust-next"}},
+        {"id": "cancel-pending", "action": "input.chatCommand", "args": {"command": "sii layout cancel"}},
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "not-editing", "action": "assert.inventoryInteractionLayout", "args": {"container": true, "transfers": true, "playerSort": true}}
+      ]
+    },
+    {
+      "id": "drag-outside-editor-rejected",
+      "tags": ["conformance", "prevalidation"],
+      "timeoutTicks": 200,
+      "steps": [
+        {"id": "settings", "action": "fixture.inventoryInteractionSettings"},
+        {"id": "open", "action": "fixture.openInventoryInteractionMenu", "args": {"kind": "chest", "fixture": "storageSort", "saveAs": "opened"}},
+        {"id": "await", "action": "await.vanillaMenu", "args": {"ref": "opened", "saveAs": "menu"}},
+        {"id": "drag", "action": "input.dragInventoryInteractionGroup", "args": {"group": "container", "x": 3, "y": 2}, "expectFailure": "Layout editor is not active"}
+      ]
+    }
+  ]
+}

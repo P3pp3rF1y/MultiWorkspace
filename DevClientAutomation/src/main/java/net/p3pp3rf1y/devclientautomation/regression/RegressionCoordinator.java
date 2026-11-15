@@ -543,7 +543,11 @@ public final class RegressionCoordinator {
 			boolean cleaned;
 			String cleanupMessage;
 			try {
-				cleanupFuture.join();
+				try {
+					cleanupFuture.join();
+				} finally {
+					executionContext.cleanupClientState();
+				}
 				cleaned = true;
 				cleanupMessage = "World mutations restored";
 			} catch (RuntimeException e) {

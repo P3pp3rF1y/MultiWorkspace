@@ -15,6 +15,7 @@ import net.p3pp3rf1y.sophisticatedstorage.common.gui.TankContainerMenu;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.client.gui.MovingStorageScreen;
 import net.p3pp3rf1y.sophisticatedstorageinmotion.common.gui.MovingStorageContainerMenu;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +27,31 @@ public final class RegressionExecutionContext {
 	private final String runId;
 	private final Map<String, Object> diagnostics;
 	private final RegressionValueStore values = new RegressionValueStore();
+	private final Map<String, Runnable> clientRestorations = new LinkedHashMap<>();
+
+	/** Register before changing client state so failure and cancellation restore it too. */
+	public void registerClientRestoration(String key, Runnable restoration) {
+		clientRestorations.putIfAbsent(key, restoration);
+	}
+
+	public void cleanupClientState() {
+		RuntimeException failure = null;
+		for (Runnable restoration : clientRestorations.values()) {
+			try {
+				restoration.run();
+			} catch (RuntimeException e) {
+				if (failure == null) {
+					failure = e;
+				} else {
+					failure.addSuppressed(e);
+				}
+			}
+		}
+		clientRestorations.clear();
+		if (failure != null) {
+			throw failure;
+		}
+	}
 	private BlockPos support;
 	private RegressionMutationJournal journal;
 	private PlayerStatePolicy playerState = PlayerStatePolicy.ISOLATED;
