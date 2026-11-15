@@ -57,7 +57,7 @@ class SharedJvmContractTest {
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
 			assert.tank|1|minecraft:client,sophisticatedstorage
-			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
+			assert.upgradeSlot|2|minecraft:client,sophisticatedcore
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
 			await.itemEntity|1|minecraft:client
 			await.menu|2|minecraft:client
@@ -174,7 +174,7 @@ class SharedJvmContractTest {
 			world.removeTargetBlock|1|minecraft:client,sophisticatedstorage
 			""";
 	private static final String CANONICAL_SUITE_TESTS = """
-			backpack-menu:gold-to-diamond-to-netherite-uses-real-workstations,iron-to-gold-to-diamond-uses-real-crafting-table,vanilla-workstation-actions-execute-with-valid-fixture,vanilla-workstation-actions-reject-invalid-context,vanilla-workstation-actions-cleanup-closes-screen,vanilla-workstation-harness-cleanup-restores-baseline,held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
+			backpack-menu:gold-to-diamond-to-netherite-uses-real-workstations,iron-to-gold-to-diamond-uses-real-crafting-table,vanilla-workstation-actions-execute-with-valid-fixture,vanilla-workstation-actions-reject-invalid-context,vanilla-workstation-actions-cleanup-closes-screen,vanilla-workstation-harness-cleanup-restores-baseline,held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta,tank-upgrade-bucket-processing-is-atomic-and-persistent
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
@@ -241,7 +241,7 @@ class SharedJvmContractTest {
 			"assert.settingsSelection", "assert.menu", "assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu",
 			"assert.heldBackpackState", "input.inventoryInteractionKeybind", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
 			"player.setInventorySlot", "assert.movingForgedRejected", "player.breakTargetBlock", "storage.setBlockSlot", "assert.controllerSharedGroup",
-			"player.useHeldItemOnTarget", "assert.heldBackpackJukeboxPlayback", "fixture.backpack.setHeldJukeboxDisc");
+			"player.useHeldItemOnTarget", "assert.heldBackpackJukeboxPlayback", "fixture.backpack.setHeldJukeboxDisc", "assert.upgradeSlot");
 
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
@@ -313,14 +313,14 @@ class SharedJvmContractTest {
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
 		assertEquals(32, suites.size());
-		assertEquals(210, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(211, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
 		assertEquals(158, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(3, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-jukebox-death").size());
-		assertEquals(17, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
+		assertEquals(18, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
 		String actualSuiteTests = catalog
 				.getAsJsonObject("suiteTests").entrySet().stream().map(entry -> entry.getKey() + ":" + entry.getValue().getAsJsonArray().asList().stream()
 						.map(value -> value.getAsString()).collect(java.util.stream.Collectors.joining(",")))
