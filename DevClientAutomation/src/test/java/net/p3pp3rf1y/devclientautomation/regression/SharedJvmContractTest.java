@@ -56,7 +56,7 @@ class SharedJvmContractTest {
 			assert.storage.compression|1|minecraft:client,sophisticatedstorage
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
-			assert.tank|1|minecraft:client,sophisticatedstorage
+			assert.tank|2|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|2|minecraft:client,sophisticatedcore
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
 			await.itemEntity|1|minecraft:client
@@ -115,6 +115,7 @@ class SharedJvmContractTest {
 			fixture.storage.compression|1|minecraft:client,sophisticatedstorage
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
+			fixture.storage.dropPacked|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
 			fixture.tank.recoverDrop|1|minecraft:client,sophisticatedstorage
 			fixture.tank.reload|1|minecraft:client,sophisticatedstorage
@@ -185,7 +186,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
-			storage-tanks:native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
+			storage-tanks:drop-packed-column-break-replace,drop-packed-single-retains-ejectable-upgrade,drop-packed-single-only-when-upgrade-needs-packing,drop-packed-linked-secondary-column,native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
 			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -208,7 +209,7 @@ class SharedJvmContractTest {
 			jei-recipe-transfer:backpack-empty-storage-single-closed,backpack-empty-player-max-open,backpack-partial-storage-max-open,backpack-partial-player-single-closed,storage-empty-storage-single-closed,storage-empty-player-max-open,storage-partial-storage-max-open,storage-partial-player-single-closed,transfer-rejects-invalid-screen,transfer-rejects-unknown-recipe
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
-			assert.tank player.useTankSegment capability.tankFluid fixture.tank.recoverDrop world.removeTargetBlock
+			assert.tank fixture.storage.dropPacked player.useTankSegment capability.tankFluid fixture.tank.recoverDrop world.removeTargetBlock
 			fixture.tank.spawnExperience fixture.tank.reload diagnostic.screenshot menu.clickPumpControl menu.clickTankGauge
 			menu.clickSortControl assert.sortMode
 			menu.clickStorageSettings menu.clickSettingsControl recipeviewer.dropSettingsGhost recipeviewer.transferRecipe assert.settingsSelection assert.linkedSettings
@@ -237,7 +238,7 @@ class SharedJvmContractTest {
 			menu.setUpgradeTab menu.setCraftingRefill assert.upgradeSlot assert.movingMenuPresentation menu.clickSlot
 			menu.quickMovePlayerInventorySlot menu.quickMoveBackpackStorageSlot menu.close await.menuClosed
 			""";
-	private static final Set<String> REVISION_TWO = Set.of("assert.doubleChest", "assert.inventoryCount", "assert.inventoryInteractionCount",
+	private static final Set<String> REVISION_TWO = Set.of("assert.tank", "assert.doubleChest", "assert.inventoryCount", "assert.inventoryInteractionCount",
 			"assert.settingsSelection", "assert.menu", "assert.movingStorageTierUpgradeRecipe", "assert.storageTierUpgradeRecipe", "await.menu",
 			"assert.heldBackpackState", "input.inventoryInteractionKeybind", "backpack.placeHeld", "backpack.useOnStorage", "fixture.chunk.reloadBlockEntities",
 			"player.setInventorySlot", "assert.movingForgedRejected", "player.breakTargetBlock", "storage.setBlockSlot", "assert.controllerSharedGroup",
@@ -246,8 +247,8 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(158, all.size());
-		assertEquals(158, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(159, all.size());
+		assertEquals(159, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -313,11 +314,11 @@ class SharedJvmContractTest {
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
 		assertEquals(32, suites.size());
-		assertEquals(211, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(215, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(158, actions.size());
+		assertEquals(159, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(3, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-jukebox-death").size());
 		assertEquals(18, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());

@@ -42,7 +42,9 @@ class TankActionBindingTest {
 	}
 
 	private static Stream<Binding> validBindings() {
-		return Stream.of(new Binding("menu.clickTankGauge", "{}"),
+		return Stream.of(new Binding("menu.clickTankGauge", "{}"), new Binding("fixture.storage.dropPacked", "{\"enabled\":true}"),
+				new Binding("fixture.storage.dropPacked", "{\"enabled\":false}"),
+				new Binding("assert.tank", "{\"present\":false,\"tankDrops\":1,\"droppedPacked\":0}"),
 				new Binding("menu.clickStorageSlot", "{\"area\":\"extra\",\"slot\":2,\"click\":\"quickMove\"}"),
 				new Binding("assert.tank", "{\"cursorItem\":\"minecraft:bucket\",\"containerSlot\":3,\"containerItem\":\"minecraft:experience_bottle\"}"),
 				new Binding("menu.clickPumpControl", "{\"control\":\"input\"}"), new Binding("menu.clickPumpControl", "{\"control\":\"hand\",\"upgrade\":1}"),
@@ -56,7 +58,8 @@ class TankActionBindingTest {
 
 	private static Stream<Binding> invalidBindings() {
 		return Stream.of(new Binding("menu.clickTankGauge", "{\"fill\":true}"), new Binding("assert.tank", "{\"containerSlot\":4}"),
-				new Binding("menu.clickPumpControl", "{\"control\":\"unknown\"}"),
+				new Binding("fixture.storage.dropPacked", "{\"enabled\":\"true\"}"), new Binding("fixture.storage.dropPacked", "{\"unknown\":true}"),
+				new Binding("assert.tank", "{\"droppedPacked\":-1}"), new Binding("menu.clickPumpControl", "{\"control\":\"unknown\"}"),
 				new Binding("menu.clickPumpControl", "{\"control\":\"world\",\"upgrade\":-1}"),
 				new Binding("diagnostic.screenshot", "{\"name\":\"../escape\"}"), new Binding("diagnostic.screenshot", "{}"),
 				new Binding("fixture.tank.spawnExperience", "{\"experience\":0}"), new Binding("fixture.tank.spawnExperience", "{\"experience\":101}"),

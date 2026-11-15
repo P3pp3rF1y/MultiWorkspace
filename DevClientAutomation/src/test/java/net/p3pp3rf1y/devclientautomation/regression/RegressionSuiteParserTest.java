@@ -108,7 +108,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(211, testCount);
+			assertEquals(215, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}
