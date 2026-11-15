@@ -53,6 +53,8 @@ class TankActionBindingTest {
 				new Binding("fixture.tank.reload", "{\"offset\":[0,2,0]}"), new Binding("fixture.tank.reload", "{\"offset\":[0,2,0],\"sneaking\":true}"),
 				new Binding("assert.tank", "{\"present\":false,\"tankDrops\":1,\"droppedHeight\":5,\"droppedUpgrades\":2}"),
 				new Binding("assert.tank", "{\"droppedFluid\":20000,\"droppedFluidType\":\"minecraft:water\"}"),
+				new Binding("assert.tank", "{\"droppedPacked\":0}"), new Binding("fixture.storage.dropPacked", "{\"enabled\":true}"),
+				new Binding("fixture.storage.dropPacked", "{\"enabled\":false}"),
 				new Binding("player.useTankSegment", "{\"offset\":[0,2,0],\"face\":\"west\"}"),
 				new Binding("capability.tankFluid", "{\"offset\":[0,4,0],\"face\":\"north\",\"amount\":1000,\"expected\":0,\"simulate\":true}"));
 	}
@@ -71,9 +73,10 @@ class TankActionBindingTest {
 				new Binding("capability.tankFluid", "{\"amount\":1,\"simulate\":\"true\"}"),
 				new Binding("capability.tankFluid", "{\"amount\":1,\"fluid\":\"not a resource id\"}"),
 				new Binding("capability.tankFluid", "{\"amount\":1,\"fluid\":3}"), new Binding("assert.tank", "{\"amount\":-1}"),
-				new Binding("assert.tank", "{\"present\":\"false\"}"), new Binding("assert.tank", "{\"droppedFluidType\":1000}"),
-				new Binding("player.useTankSegment", "{\"offset\":[0,1]}"), new Binding("player.useTankSegment", "{\"face\":\"diagonal\"}"),
-				new Binding("player.useTankSegment", "{\"pack\":true}"));
+				new Binding("assert.tank", "{\"droppedPacked\":-1}"), new Binding("fixture.storage.dropPacked", "{\"enabled\":\"true\"}"),
+				new Binding("fixture.storage.dropPacked", "{\"unknown\":true}"), new Binding("assert.tank", "{\"present\":\"false\"}"),
+				new Binding("assert.tank", "{\"droppedFluidType\":1000}"), new Binding("player.useTankSegment", "{\"offset\":[0,1]}"),
+				new Binding("player.useTankSegment", "{\"face\":\"diagonal\"}"), new Binding("player.useTankSegment", "{\"pack\":true}"));
 	}
 
 	private record Binding(String id, String json) {

@@ -158,6 +158,7 @@ public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 	public RegressionActionRegistry() {
 		register(lazyTankAction("assert.tank", "AssertTankAction"));
+		register(lazyTankAction("fixture.storage.dropPacked", "SetStorageDropPackedAction"));
 		register(lazyTankAction("player.useTankSegment", "UseTankSegmentAction"));
 		register(lazyTankAction("capability.tankFluid", "TankFluidTransferAction"));
 		register(lazyTankAction("fixture.tank.recoverDrop", "RecoverTankDropAction"));
@@ -348,6 +349,7 @@ public final class RegressionActionRegistry {
 	}
 	private static final String CATALOG_ORDER = """
 			assert.tank
+			fixture.storage.dropPacked
 			player.useTankSegment
 			capability.tankFluid
 			fixture.tank.recoverDrop
@@ -539,8 +541,8 @@ public final class RegressionActionRegistry {
 			case "menu.clickPumpControl" -> Set.of("minecraft:client", "sophisticatedcore");
 			default -> Set.of("minecraft:client", "sophisticatedstorage");
 		};
-		return new LazyOptionalRegressionAction(id, "1", dependencies, "net.p3pp3rf1y.devclientautomation.regression.actions." + implementation,
-				(args, description) -> validateTankArguments(id, args, description));
+		return new LazyOptionalRegressionAction(id, id.equals("assert.tank") ? "2" : "1", dependencies,
+				"net.p3pp3rf1y.devclientautomation.regression.actions." + implementation, (args, description) -> validateTankArguments(id, args, description));
 	}
 
 	private static void validateTankArguments(String id, JsonObject args, String description) {
@@ -549,11 +551,11 @@ public final class RegressionActionRegistry {
 				LazyOptionalRegressionAction.requireOnly(args,
 						Set.of("offset", "present", "amount", "capacity", "height", "upgrades", "tier", "tankDrops", "droppedFluid", "droppedHeight",
 								"droppedUpgrades", "menu", "emission", "light", "tabs", "switches", "cursorItem", "cursorCount", "containerSlot",
-								"containerItem", "containerCount", "droppedFluidType"),
+								"containerItem", "containerCount", "droppedFluidType", "droppedPacked"),
 						description);
 				validateOffset(args, description);
 				for (String name : Set.of("amount", "capacity", "height", "upgrades", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
-						"emission", "light", "tabs", "switches", "cursorCount", "containerCount", "containerSlot")) {
+						"emission", "light", "tabs", "switches", "cursorCount", "containerCount", "containerSlot", "droppedPacked")) {
 					optionalTankInteger(args, name, false, description);
 				}
 				if (args.has("containerSlot") && RegressionJsonNumbers.integer(args.get("containerSlot")) > 3)
@@ -562,6 +564,10 @@ public final class RegressionActionRegistry {
 					optionalTankString(args, name, description);
 				for (String name : Set.of("present", "menu"))
 					optionalTankBoolean(args, name, description);
+			}
+			case "fixture.storage.dropPacked" -> {
+				LazyOptionalRegressionAction.requireOnly(args, Set.of("enabled"), description);
+				optionalTankBoolean(args, "enabled", description);
 			}
 			case "player.useTankSegment", "capability.tankFluid" -> {
 				LazyOptionalRegressionAction.requireOnly(args,

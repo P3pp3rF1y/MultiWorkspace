@@ -39,6 +39,7 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 	private static final String DROPPED_FLUID_TYPE_KEY = "droppedFluidType";
 	private static final String DROPPED_HEIGHT_KEY = "droppedHeight";
 	private static final String DROPPED_UPGRADES_KEY = "droppedUpgrades";
+	private static final String DROPPED_PACKED_KEY = "droppedPacked";
 	private static final String MENU_KEY = "menu";
 	private static final String EMISSION_KEY = "emission";
 	private static final String LIGHT_KEY = "light";
@@ -53,14 +54,14 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 			int containerSlot, String containerItem, int containerCount, String droppedFluidType) {
 	}
 	public AssertTankAction() {
-		super("assert.tank", "1", Set.of(CLIENT_CAPABILITY, SophisticatedStorage.MOD_ID));
+		super("assert.tank", "2", Set.of(CLIENT_CAPABILITY, SophisticatedStorage.MOD_ID));
 	}
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
 		requireOnly(args,
 				Set.of("offset", PRESENT_KEY, AMOUNT_KEY, CAPACITY_KEY, HEIGHT_KEY, UPGRADES_KEY, TIER_KEY, TANK_DROPS_KEY, DROPPED_FLUID_KEY,
 						DROPPED_HEIGHT_KEY, DROPPED_UPGRADES_KEY, MENU_KEY, EMISSION_KEY, LIGHT_KEY, TABS_KEY, SWITCHES_KEY, CURSOR_ITEM_KEY, CURSOR_COUNT_KEY,
-						CONTAINER_SLOT_KEY, CONTAINER_ITEM_KEY, CONTAINER_COUNT_KEY, DROPPED_FLUID_TYPE_KEY),
+						CONTAINER_SLOT_KEY, CONTAINER_ITEM_KEY, CONTAINER_COUNT_KEY, DROPPED_FLUID_TYPE_KEY, DROPPED_PACKED_KEY),
 				description);
 		JsonObject position = new JsonObject();
 		if (args.has("offset"))
@@ -68,7 +69,7 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 		PlaceHeldBlockAction.Arguments offset = new PlaceHeldBlockAction().parseArguments(position, description);
 		Map<String, Integer> numbers = new LinkedHashMap<>();
 		for (String name : Set.of(AMOUNT_KEY, CAPACITY_KEY, HEIGHT_KEY, UPGRADES_KEY, TANK_DROPS_KEY, DROPPED_FLUID_KEY, DROPPED_HEIGHT_KEY,
-				DROPPED_UPGRADES_KEY, EMISSION_KEY, LIGHT_KEY, TABS_KEY, SWITCHES_KEY)) {
+				DROPPED_UPGRADES_KEY, DROPPED_PACKED_KEY, EMISSION_KEY, LIGHT_KEY, TABS_KEY, SWITCHES_KEY)) {
 			if (args.has(name))
 				numbers.put(name, requireNonNegativeInt(args, name, description));
 		}
@@ -155,6 +156,7 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 				int amount = 0;
 				int droppedHeight = 0;
 				int droppedUpgrades = 0;
+				int droppedPacked = 0;
 				for (ItemEntity item : player.serverLevel().getEntitiesOfClass(ItemEntity.class, new AABB(context.target()).inflate(6))) {
 					if (item.getItem().getItem() instanceof TankBlockItem) {
 						count += item.getItem().getCount();
@@ -165,12 +167,15 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 									.equals(BuiltInRegistries.FLUID.getKey(wrapper.getTankFluidHandler().getFluidInTank(0).getFluid()).toString());
 						droppedHeight += TankItemContents.height(item.getItem());
 						droppedUpgrades += countUpgrades(wrapper);
+						if (TankItemContents.flag(item.getItem(), "packed", false))
+							droppedPacked += item.getItem().getCount();
 					}
 				}
 				actual.put(TANK_DROPS_KEY, count);
 				actual.put(DROPPED_FLUID_KEY, amount);
 				actual.put(DROPPED_HEIGHT_KEY, droppedHeight);
 				actual.put(DROPPED_UPGRADES_KEY, droppedUpgrades);
+				actual.put(DROPPED_PACKED_KEY, droppedPacked);
 				return fluidMatches;
 			}
 			private boolean matchesClientState(BlockPos position) {
@@ -187,10 +192,11 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 						&& dropsMatch;
 			}
 			private boolean matchesClientDroppedTanks() {
-				if (args.droppedFluidType().isEmpty())
+				if (args.droppedFluidType().isEmpty() && !args.numbers().containsKey(DROPPED_PACKED_KEY))
 					return true;
 				int count = 0;
 				int amount = 0;
+				int packed = 0;
 				boolean fluidMatches = true;
 				for (ItemEntity item : context.minecraft().level.getEntitiesOfClass(ItemEntity.class, new AABB(context.target()).inflate(6))) {
 					if (item.getItem().getItem() instanceof TankBlockItem) {
@@ -199,13 +205,17 @@ public final class AssertTankAction extends TypedRegressionAction<AssertTankActi
 						amount += wrapper.getTankFluidHandler().getFluidInTank(0).getAmount();
 						String fluid = BuiltInRegistries.FLUID.getKey(wrapper.getTankFluidHandler().getFluidInTank(0).getFluid()).toString();
 						clientDrops.put(DROPPED_FLUID_TYPE_KEY, fluid);
-						fluidMatches &= args.droppedFluidType().equals(fluid);
+						fluidMatches &= args.droppedFluidType().isEmpty() || args.droppedFluidType().equals(fluid);
+						if (TankItemContents.flag(item.getItem(), "packed", false))
+							packed += item.getItem().getCount();
 					}
 				}
 				clientDrops.put(TANK_DROPS_KEY, count);
 				clientDrops.put(DROPPED_FLUID_KEY, amount);
+				clientDrops.put(DROPPED_PACKED_KEY, packed);
 				return count > 0 && fluidMatches && (!args.numbers().containsKey(TANK_DROPS_KEY) || count == args.numbers().get(TANK_DROPS_KEY))
-						&& (!args.numbers().containsKey(DROPPED_FLUID_KEY) || amount == args.numbers().get(DROPPED_FLUID_KEY));
+						&& (!args.numbers().containsKey(DROPPED_FLUID_KEY) || amount == args.numbers().get(DROPPED_FLUID_KEY))
+						&& (!args.numbers().containsKey(DROPPED_PACKED_KEY) || packed == args.numbers().get(DROPPED_PACKED_KEY));
 			}
 			private boolean matchesClientTank(TankBlockEntity client, BlockPos position) {
 				boolean clientMatches = true;
