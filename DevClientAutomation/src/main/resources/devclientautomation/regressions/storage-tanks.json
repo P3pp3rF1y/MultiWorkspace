@@ -9,6 +9,7 @@
       "tags":["tank","packing","break"],
       "timeoutTicks":1000,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"enable","action":"fixture.storage.dropPacked","args":{"enabled":true}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:gold_tank","count":3}},
         {"id":"base","action":"player.placeHeldBlock"},
@@ -37,6 +38,7 @@
       "tags":["tank","packing","break"],
       "timeoutTicks":700,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"enable","action":"fixture.storage.dropPacked","args":{"enabled":true}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:iron_tank"}},
         {"id":"place","action":"player.placeHeldBlock"},
@@ -56,6 +58,7 @@
       "tags":["tank","packing","stack","break"],
       "timeoutTicks":1000,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"enable","action":"fixture.storage.dropPacked","args":{"enabled":true}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:iron_tank"}},
         {"id":"place","action":"player.placeHeldBlock"},
@@ -84,6 +87,7 @@
       "tags":["tank","packing","linked","break"],
       "timeoutTicks":1200,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"enable","action":"fixture.storage.dropPacked","args":{"enabled":true}},
         {"id":"primary-item","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:iron_tank"}},
         {"id":"primary","action":"player.placeHeldBlock"},
@@ -171,6 +175,7 @@
       "tags": ["tank", "break", "fluid"],
       "timeoutTicks": 1000,
       "steps": [
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:iron_tank","count":3}},
         {"id":"place-1","action":"player.placeHeldBlock"},
         {"id":"await-1","action":"assert.tank","args":{"height":1}},
@@ -218,6 +223,7 @@
       "tags":["tank","stack","break"],
       "timeoutTicks":900,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:iron_tank","count":3}},
         {"id":"base","action":"player.placeHeldBlock"},
         {"id":"await-base","action":"assert.tank","args":{"height":1}},
@@ -266,6 +272,7 @@
       "tags":["tank","packing","break"],
       "timeoutTicks":800,
       "steps":[
+        {"id":"survival","action":"fixture.player.setGameMode","args":{"mode":"survival"}},
         {"id":"hold","action":"player.createMainHandItem","args":{"item":"sophisticatedstorage:gold_tank","count":3}},
         {"id":"base","action":"player.placeHeldBlock"},
         {"id":"await-base","action":"assert.tank","args":{"height":1}},
