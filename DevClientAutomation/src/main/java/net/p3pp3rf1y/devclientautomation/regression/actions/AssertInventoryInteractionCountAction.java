@@ -9,6 +9,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -26,7 +27,7 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 	}
 
 	public AssertInventoryInteractionCountAction() {
-		super("assert.inventoryInteractionCount", "2", Set.of("minecraft:client"));
+		super("assert.inventoryInteractionCount", "3", Set.of("minecraft:client"));
 	}
 
 	@Override
@@ -117,6 +118,9 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 						.orElseThrow(() -> new IllegalArgumentException("Unknown item " + arguments.item()));
 				if (arguments.target().equals("container")) {
 					AbstractContainerMenu menu = requireMenu(player);
+					if (menu instanceof FurnaceMenu) {
+						return count(menu.slots.subList(0, 3).stream().map(Slot::getItem).toList(), item);
+					}
 					if (!(menu instanceof ChestMenu chest) || !(chest.getContainer() instanceof SimpleContainer inventory)) {
 						throw RegressionActionFailure.infrastructure("Expected synthetic chest menu");
 					}
