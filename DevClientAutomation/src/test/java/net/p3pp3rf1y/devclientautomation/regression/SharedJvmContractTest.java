@@ -61,7 +61,7 @@ class SharedJvmContractTest {
 			assert.storage.compression|1|minecraft:client,sophisticatedstorage
 			assert.storageResources|1|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.storageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage
-			assert.tank|1|minecraft:client,sophisticatedstorage
+			assert.tank|2|minecraft:client,sophisticatedstorage
 			assert.upgradeSlot|1|minecraft:client,sophisticatedcore
 			await.backpackBlock|1|minecraft:client,sophisticatedbackpacks
 			await.itemEntity|1|minecraft:client
@@ -119,6 +119,7 @@ class SharedJvmContractTest {
 			fixture.storage.compression|1|minecraft:client,sophisticatedstorage
 			fixture.storage.contentsFilter|1|minecraft:client,sophisticatedstorage
 			fixture.storage.createLockTool|1|minecraft:client,sophisticatedstorage
+			fixture.storage.dropPacked|1|minecraft:client,sophisticatedstorage
 			fixture.storage.setUpgrade|1|minecraft:client,sophisticatedstorage
 			fixture.tank.recoverDrop|1|minecraft:client,sophisticatedstorage
 			fixture.tank.reload|1|minecraft:client,sophisticatedstorage
@@ -177,6 +178,7 @@ class SharedJvmContractTest {
 			""";
 	private static final String CANONICAL_ACTION_ORDER = """
 			assert.tank
+			fixture.storage.dropPacked
 			player.useTankSegment
 			capability.tankFluid
 			fixture.tank.recoverDrop
@@ -343,7 +345,7 @@ class SharedJvmContractTest {
 			item-entity-action-conformance:exact-item-identity-survives-same-item-neighbor
 			backpack-create-disassembly:cart-disassembly-preserves-iron-backpack-contents,cart-disassembly-preserves-iron-backpack-break-drop
 			storage-menu:place-and-open-barrel-synchronized-menu,placed-linked-block-open-menu-receives-live-slot-delta
-			storage-tanks:native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
+			storage-tanks:drop-packed-column-break-replace,drop-packed-single-retains-ejectable-upgrade,drop-packed-single-only-when-upgrade-needs-packing,drop-packed-linked-secondary-column,native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
 			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
@@ -373,7 +375,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(154, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(155, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -433,12 +435,12 @@ class SharedJvmContractTest {
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
 		assertEquals(32, suites.size());
-		assertEquals(204, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(208, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(154, actions.size());
+		assertEquals(155, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 

@@ -41,7 +41,9 @@ class TankActionBindingTest {
 	}
 
 	private static Stream<Binding> validBindings() {
-		return Stream.of(new Binding(new ClickTankGaugeAction(), "{}"),
+		return Stream.of(new Binding(new ClickTankGaugeAction(), "{}"), new Binding(new SetStorageDropPackedAction(), "{\"enabled\":true}"),
+				new Binding(new SetStorageDropPackedAction(), "{\"enabled\":false}"),
+				new Binding(new AssertTankAction(), "{\"present\":false,\"tankDrops\":1,\"droppedPacked\":0}"),
 				new Binding(new ClickStorageMenuSlotAction(), "{\"area\":\"extra\",\"slot\":2,\"click\":\"quickMove\"}"),
 				new Binding(new AssertTankAction(),
 						"{\"cursorItem\":\"minecraft:bucket\",\"containerSlot\":3,\"containerItem\":\"minecraft:experience_bottle\"}"),
@@ -57,7 +59,8 @@ class TankActionBindingTest {
 
 	private static Stream<Binding> invalidBindings() {
 		return Stream.of(new Binding(new ClickTankGaugeAction(), "{\"fill\":true}"), new Binding(new AssertTankAction(), "{\"containerSlot\":4}"),
-				new Binding(new ClickPumpControlAction(), "{\"control\":\"unknown\"}"),
+				new Binding(new SetStorageDropPackedAction(), "{\"enabled\":\"true\"}"), new Binding(new SetStorageDropPackedAction(), "{\"unknown\":true}"),
+				new Binding(new AssertTankAction(), "{\"droppedPacked\":-1}"), new Binding(new ClickPumpControlAction(), "{\"control\":\"unknown\"}"),
 				new Binding(new ClickPumpControlAction(), "{\"control\":\"world\",\"upgrade\":-1}"),
 				new Binding(new CaptureScreenshotAction(), "{\"name\":\"../escape\"}"), new Binding(new CaptureScreenshotAction(), "{}"),
 				new Binding(new SpawnTankExperienceAction(), "{\"experience\":0}"), new Binding(new SpawnTankExperienceAction(), "{\"experience\":101}"),

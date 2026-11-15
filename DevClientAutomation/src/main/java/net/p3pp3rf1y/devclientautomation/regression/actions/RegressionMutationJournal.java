@@ -30,6 +30,7 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.AABB;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageEndpointData;
 import net.p3pp3rf1y.sophisticatedcore.linkedstorage.LinkedStorageGroupsSavedData;
+import net.p3pp3rf1y.sophisticatedstorage.Config;
 import net.p3pp3rf1y.sophisticatedstorage.block.TankBlockEntity;
 
 import javax.annotation.Nullable;
@@ -69,6 +70,9 @@ public final class RegressionMutationJournal {
 	private final Map<String, CompoundTag> entities = new LinkedHashMap<>();
 	private final Map<String, CompoundTag> gameRules = new LinkedHashMap<>();
 	private final Map<UUID, CompoundTag> createdTankGroups = new LinkedHashMap<>();
+	// ConfigValue.set only changes this process; normal cleanup restores it and a restart reloads the file value.
+	@Nullable
+	private Boolean storageDropPacked;
 	@Nullable
 	private CompoundTag playerSnapshot;
 	@Nullable
@@ -358,6 +362,13 @@ public final class RegressionMutationJournal {
 		restore(player, support, true, true);
 	}
 
+	public void setStorageDropPacked(boolean enabled) {
+		if (storageDropPacked == null) {
+			storageDropPacked = Config.COMMON.dropPacked.get();
+		}
+		Config.COMMON.dropPacked.set(enabled);
+	}
+
 	public void recordCreatedTankGroup(ServerLevel level, TankBlockEntity tank) {
 		LinkedStorageEndpointData endpoint = tank.getLinkedStorageEndpointData();
 		CompoundTag original = blocks.get(level.dimension().location() + ":" + tank.getBlockPos().asLong());
@@ -375,6 +386,10 @@ public final class RegressionMutationJournal {
 
 	private void restore(ServerPlayer player, @Nullable BlockPos support, boolean restorePlayerState, boolean clearJournal) {
 		List<String> failures = new ArrayList<>();
+		if (storageDropPacked != null) {
+			Config.COMMON.dropPacked.set(storageDropPacked);
+			storageDropPacked = null;
+		}
 		for (CompoundTag entry : gameRules.values()) {
 			try {
 				ServerLevel level = level(player, entry);

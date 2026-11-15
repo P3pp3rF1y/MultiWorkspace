@@ -134,6 +134,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.SetMovingStorageUpgr
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerGameModeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetPlayerInventorySlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageBlockSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageDropPackedAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetStorageUpgradeAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetUpgradeTabAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SpawnFixturePigAction;
@@ -175,6 +176,7 @@ public final class RegressionActionRegistry {
 
 	public RegressionActionRegistry() {
 		register(new AssertTankAction());
+		register(new SetStorageDropPackedAction());
 		register(new UseTankSegmentAction());
 		register(new TankFluidTransferAction());
 		register(new RecoverTankDropAction());
