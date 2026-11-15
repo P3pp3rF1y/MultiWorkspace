@@ -159,14 +159,14 @@ public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
-		register(lazyTankAction("assert.tank", "AssertTankAction",
+		register(lazyTankAction("assert.tank", "2", "AssertTankAction",
 				Set.of("offset", "present", "amount", "capacity", "height", "upgrades", "tier", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
 						"menu", "emission", "light", "tabs", "switches", "cursorItem", "cursorCount", "containerSlot", "containerItem", "containerCount",
-						"droppedFluidType"),
+						"droppedFluidType", "droppedPacked"),
 				(args, description) -> {
 					validateOffset(args, description);
 					for (String name : Set.of("amount", "capacity", "height", "upgrades", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
-							"emission", "light", "tabs", "switches", "cursorCount", "containerSlot", "containerCount"))
+							"emission", "light", "tabs", "switches", "cursorCount", "containerSlot", "containerCount", "droppedPacked"))
 						LazyOptionalRegressionAction.optionalNonNegativeInt(args, name, description);
 					for (String name : Set.of("present", "menu"))
 						validateBoolean(args, name, description);
@@ -175,6 +175,8 @@ public final class RegressionActionRegistry {
 					if (args.has("containerSlot") && args.get("containerSlot").getAsInt() > 3)
 						throw new IllegalArgumentException("Tank container slot must be from 0 through 3");
 				}));
+		register(lazyTankAction("fixture.storage.dropPacked", "SetStorageDropPackedAction", Set.of("enabled"),
+				(args, description) -> validateBoolean(args, "enabled", description)));
 		register(lazyTankAction("player.useTankSegment", "UseTankSegmentAction", Set.of("offset", "face"), (args, description) -> {
 			validateOffset(args, description);
 			validateFace(args, description);
@@ -430,7 +432,12 @@ public final class RegressionActionRegistry {
 
 	private static RegressionAction lazyTankAction(String id, String implementation, Set<String> names,
 			java.util.function.BiConsumer<JsonObject, String> validate) {
-		return new LazyOptionalRegressionAction(id, "1", Set.of(RegressionAction.CLIENT_CAPABILITY, "sophisticatedstorage"),
+		return lazyTankAction(id, "1", implementation, names, validate);
+	}
+
+	private static RegressionAction lazyTankAction(String id, String revision, String implementation, Set<String> names,
+			java.util.function.BiConsumer<JsonObject, String> validate) {
+		return new LazyOptionalRegressionAction(id, revision, Set.of(RegressionAction.CLIENT_CAPABILITY, "sophisticatedstorage"),
 				"net.p3pp3rf1y.devclientautomation.regression.actions." + implementation, (args, description) -> {
 					LazyOptionalRegressionAction.requireOnly(args, names, description);
 					validate.accept(args, description);

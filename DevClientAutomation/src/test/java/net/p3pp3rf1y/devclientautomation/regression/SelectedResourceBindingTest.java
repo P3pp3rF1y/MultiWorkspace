@@ -85,7 +85,7 @@ class SelectedResourceBindingTest {
 			}
 		}
 		assertEquals(18, SELECTED.length);
-		assertEquals(31, JsonParser.parseString(resource("storage-tanks.json")).getAsJsonObject().getAsJsonArray("tests").size());
+		assertEquals(35, JsonParser.parseString(resource("storage-tanks.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(cases, selectedCases.size());
 		assertTrue(cases >= 60);
 		assertTrue(fixtures >= 9);
