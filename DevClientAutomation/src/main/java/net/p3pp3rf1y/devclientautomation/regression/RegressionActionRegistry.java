@@ -5,6 +5,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackAutoma
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertBackpackPickupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalBackpackTemplateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCanonicalCapturedMobsAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertChatCompletionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertCompressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkGroupsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertControllerLinkLineAction;
@@ -16,6 +17,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackJu
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertHeldBackpackStateAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionCountAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionLayoutAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackHostAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedItemContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedJukeboxPlaybackAction;
@@ -53,6 +55,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.BreakControllerLinkL
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakPlacedBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.BreakTargetBlockAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureHeldBackpackUuidAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureInventoryInteractionLayoutAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureLinkedMenuRevisionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CaptureNestedMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ClearMainHandAction;
@@ -78,11 +81,14 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.CreateBackpackInMain
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateLockToolAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.CreateMainHandItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.DestroyMovingStorageAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.DragInventoryInteractionGroupAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ExerciseCompressionAutomationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ExerciseCompressionFrontAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.FillBackpackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureCompressionAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.FixtureInventoryInteractionSettingsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.HoldRecoveredMovingStorageInnerAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.InventoryInteractionLayoutControlAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.KeepInventoryDeathRespawnAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LazyOptionalRegressionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.LethalDamageAction;
@@ -117,6 +123,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.ResetRegionAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.RestoreMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.ScanFixtureControllerAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SelectHotbarSlotAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.SendChatCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SendPlayerCommandAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetBackpackStorageSlotAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.SetCraftingRefillAction;
@@ -160,6 +167,13 @@ public final class RegressionActionRegistry {
 	private final Map<String, RegressionAction> actions = new LinkedHashMap<>();
 
 	public RegressionActionRegistry() {
+		register(new SendChatCommandAction());
+		register(new FixtureInventoryInteractionSettingsAction());
+		register(new AssertChatCompletionAction());
+		register(new CaptureInventoryInteractionLayoutAction());
+		register(new AssertInventoryInteractionLayoutAction());
+		register(new DragInventoryInteractionGroupAction());
+		register(new InventoryInteractionLayoutControlAction());
 		register(lazyTankAction("assert.tank", "2", "AssertTankAction",
 				Set.of("offset", "present", "amount", "capacity", "height", "upgrades", "tier", "tankDrops", "droppedFluid", "droppedHeight", "droppedUpgrades",
 						"menu", "emission", "light", "tabs", "switches", "cursorItem", "cursorCount", "containerSlot", "containerItem", "containerCount",

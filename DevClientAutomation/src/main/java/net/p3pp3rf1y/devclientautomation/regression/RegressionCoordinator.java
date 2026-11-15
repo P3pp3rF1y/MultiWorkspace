@@ -524,7 +524,11 @@ public final class RegressionCoordinator {
 				return;
 			}
 			try {
-				cleanupFuture.join();
+				try {
+					cleanupFuture.join();
+				} finally {
+					executionContext.cleanupClientState();
+				}
 				completeAfterCleanup(true, "World mutations restored");
 			} catch (RuntimeException e) {
 				cleanupError = RegressionResultModel.Failure.exception("cleanup", e);
