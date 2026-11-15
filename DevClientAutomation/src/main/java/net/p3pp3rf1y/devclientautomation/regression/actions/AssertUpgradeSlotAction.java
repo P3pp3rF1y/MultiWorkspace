@@ -14,22 +14,23 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class AssertUpgradeSlotAction extends TypedRegressionAction<AssertUpgradeSlotAction.Arguments> {
-	public record Arguments(int upgrade, int slot, String item, int count, int timeoutTicks) {
+	public record Arguments(int upgrade, int slot, String item, int count, int timeoutTicks, int stableTicks) {
 	}
 
 	public AssertUpgradeSlotAction() {
-		super("assert.upgradeSlot", "1", Set.of("minecraft:client", "sophisticatedcore"));
+		super("assert.upgradeSlot", "2", Set.of("minecraft:client", "sophisticatedcore"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("upgrade", "slot", "item", "count", "timeoutTicks"), description);
+		requireOnly(args, Set.of("upgrade", "slot", "item", "count", "timeoutTicks", "stableTicks"), description);
 		int timeout = optionalNonNegativeInt(args, "timeoutTicks", 100, description);
 		if (timeout == 0) {
 			throw new IllegalArgumentException(description + " timeoutTicks must be positive");
 		}
 		return new Arguments(optionalNonNegativeInt(args, "upgrade", 0, description), optionalNonNegativeInt(args, "slot", 0, description),
-				requireString(args, "item", description), optionalNonNegativeInt(args, "count", 1, description), timeout);
+				requireString(args, "item", description), optionalNonNegativeInt(args, "count", 1, description), timeout,
+				optionalNonNegativeInt(args, "stableTicks", 0, description));
 	}
 
 	@Override
@@ -39,6 +40,7 @@ public final class AssertUpgradeSlotAction extends TypedRegressionAction<AssertU
 			private CompletableFuture<Void> serverStack;
 			private ItemStack observedServerStack = ItemStack.EMPTY;
 			private int ticks;
+			private int stableSince = -1;
 
 			@Override
 			public RegressionActionProgress tick() {
@@ -56,7 +58,14 @@ public final class AssertUpgradeSlotAction extends TypedRegressionAction<AssertU
 				observe(Map.of("upgrade", arguments.upgrade(), "slot", arguments.slot(), "item", arguments.item(), "count", arguments.count()),
 						Map.of("server", server.toString(), "client", client.toString(), "elapsedTicks", ticks));
 				if (matches(server) && matches(client)) {
-					return RegressionActionProgress.PASSED;
+					if (stableSince < 0) {
+						stableSince = ticks;
+					}
+					if (ticks - stableSince >= arguments.stableTicks()) {
+						return RegressionActionProgress.PASSED;
+					}
+				} else {
+					stableSince = -1;
 				}
 				serverStack = null;
 				return ticks >= arguments.timeoutTicks()
