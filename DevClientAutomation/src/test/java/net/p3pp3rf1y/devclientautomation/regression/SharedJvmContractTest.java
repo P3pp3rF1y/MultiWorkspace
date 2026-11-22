@@ -29,7 +29,7 @@ class SharedJvmContractTest {
 			assert.controllerLinkLine|1|minecraft:client,sophisticatedstorage
 			assert.controllerSharedGroup|2|minecraft:client,sophisticatedstorage
 			assert.createMountedLinkedStorage|1|minecraft:client,sophisticatedstoragecreateintegration
-			assert.doubleChest|2|minecraft:client,sophisticatedstorage
+			assert.doubleChest|3|minecraft:client,sophisticatedstorage
 			assert.heldBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackFilter|1|minecraft:client,sophisticatedbackpacks
 			assert.heldBackpackJukeboxPlayback|2|minecraft:client,sophisticatedbackpacks
@@ -55,6 +55,7 @@ class SharedJvmContractTest {
 			assert.movingStorageCompatibilityProfile|1|minecraft:client,sophisticatedstorageinmotion
 			assert.movingStorageTierUpgradeRecipe|2|minecraft:client,sophisticatedstorage,sophisticatedstorageinmotion
 			assert.movingUnlinked|1|minecraft:client,sophisticatedstorageinmotion
+			assert.packedDoubleChestDrop|1|minecraft:client,sophisticatedstorage
 			assert.placedBackpackContents|1|minecraft:client,sophisticatedbackpacks
 			assert.playerHealth|1|minecraft:client
 			assert.playerInventoryBaseline|1|minecraft:client
@@ -180,6 +181,7 @@ class SharedJvmContractTest {
 			player.useMovingStorage|1|minecraft:client,sophisticatedstorageinmotion
 			player.useTankSegment|1|minecraft:client,sophisticatedstorage
 			player.useTargetBlock|1|minecraft:client
+			player.useWaterBucketAtTarget|1|minecraft:client
 			profile.storage.compression|1|minecraft:client,sophisticatedstorage
 			recipeviewer.dropSettingsGhost|1|jei,minecraft:client
 			recipeviewer.transferRecipe|1|jei,minecraft:client
@@ -319,6 +321,7 @@ class SharedJvmContractTest {
 			player.clearMainHand
 			player.selectHotbarSlot
 			player.useHeldItem
+			player.useWaterBucketAtTarget
 			player.useTargetBlock
 			await.menu
 			await.vanillaMenu
@@ -338,6 +341,7 @@ class SharedJvmContractTest {
 			fixture.chunk.reloadBlockEntities
 			await.playerCraftingResult
 			assert.doubleChest
+			assert.packedDoubleChestDrop
 			fixture.storage.createLockTool
 			player.openInventory
 			fixture.player.setGameMode
@@ -371,6 +375,7 @@ class SharedJvmContractTest {
 			storage-tanks:drop-packed-column-break-replace,drop-packed-single-retains-ejectable-upgrade,drop-packed-single-only-when-upgrade-needs-packing,drop-packed-linked-secondary-column,native-fluid-action-conformance,top-extension-hard-limit-and-secondary-fluid,middle-break-conserves-visible-shares,lock-rules-through-secondary,stack-dependent-split-drops-whole-group,primary-break-transfers-required-stack-once,packed-secondary-routes-to-one-complete-drop,tier-upgrade-updates-complete-physical-group,controller-discovers-native-primary-once,controller-io-ports-route-fluids-with-directional-restrictions,secondary-opens-native-menu,tank-only-link-shares-primary-capacity,pump-ticks-native-fluid-without-item-rows,non-player-removal-preserves-whole-groups-and-safe-splits,packed-obstruction-and-complete-reconstruction,magnet-collects-xp-through-native-fluid,xp-pump-collects-player-experience,advanced-pump-hand-direction-through-menu,basic-pump-output-through-menu,controller-multiple-tanks-removal-and-reload,every-segment-every-capability-face,different-tier-columns-stay-independent,advanced-pump-world-input-through-menu,filled-top-placement-keeps-lower-upgrades,filled-top-placement-transfers-required-stack,top-placement-keeps-two-upgrade-owners-independent,luminous-fluid-updates-world-light-and-reloads,bottom-placement-joins-upper-fluid-and-upgrades,pump-menu-removal-and-reinsertion-stays-synchronized,gauge-click-transfers-buckets-and-custom-experience-bottles,container-input-output-results-process-stacks-and-quick-move
 			storage-compression:locked-limited-barrel-menu-compacts-and-tracks,bounded-hot-path-profile,fifty-storages-same-tick-profile
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
+			storage-packed-chest-waterlogging:fill-and-drain-first-packed-half,fill-and-drain-other-packed-half
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
 			moving-linked-storage:boat-link-through-entity-interaction,minecart-link-through-entity-interaction,primary-tier-migrates-once-secondary-rejected,recoverable-boat-destruction-reopens-same-group,recoverable-minecart-destruction-reopens-same-group,horse-attach-and-drop-preserves-linked-carrier,nonrecoverable-secondary-detaches-without-erasing-group,removed-primary-pauses-authority-but-secondary-remains-usable,carried-primary-pauses-authority-but-secondary-remains-usable,forged-endpoint-and-tooltip-request-denied,limited-barrel-moving-links-with-compatible-profile,only-active-primary-runs-canonical-pickup-upgrade,packed-primary-pauses-pickup-secondary-menu-stays-usable,recovered-moving-carrier-places-original-linked-block,create-cart-mount-opens-original-linked-group,limited-barrel-mount-opens-linked-group,secondary-minecart-sees-boat-canonical-contents,serialized-moving-entity-reloads-same-canonical-group,moving-endpoints-share-upgrade-settings-and-display,removed-endpoint-invalidates-open-menu,moving-primary-open-menu-receives-live-slot-delta,moving-secondary-open-menu-receives-primary-slot-delta,mounted-open-menu-receives-live-slot-delta,linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot,linked-carrier-copy-preserves-identity-and-limited-profile
 			tier-upgrade-recipes:storage-tier-upgrade-recipe-linkage-matrix,moving-storage-tier-upgrade-recipe-linkage-matrix,linked-backpack-tier-upgrade-quick-move-delivery
@@ -398,7 +403,7 @@ class SharedJvmContractTest {
 				.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
 				.reduce((first, second) -> first + "\n" + second).orElseThrow();
 
-		assertEquals(166, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(168, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(), actual);
 		assertEquals(CANONICAL_ACTION_ORDER.strip(), String.join("\n", registry.all().keySet()));
 	}
@@ -457,13 +462,13 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(33, suites.size());
-		assertEquals(217, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(34, suites.size());
+		assertEquals(219, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\R")), actions.keySet().stream().toList());
-		assertEquals(166, actions.size());
+		assertEquals(168, actions.size());
 		assertCatalogActionMetadata(actions);
 	}
 

@@ -14,6 +14,7 @@
   "storage-tanks.json",
   "storage-compression.json",
   "storage-break-drop-limit.json",
+  "storage-packed-chest-waterlogging.json",
   "vanilla-double-chest-upgrade.json",
   "moving-linked-storage.json",
   "tier-upgrade-recipes.json",

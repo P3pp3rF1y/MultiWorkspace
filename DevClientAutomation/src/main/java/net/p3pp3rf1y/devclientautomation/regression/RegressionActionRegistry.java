@@ -33,6 +33,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingMenuPres
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageCompatibilityProfileAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStoragePresentationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertNestedMovingStorageIdentityAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPackedDoubleChestDropAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlacedBackpackContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerHealthAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventoryBaselineAction;
@@ -163,6 +164,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.UseHeldItemOnTargetA
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseTankSegmentAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseTargetBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.UseWaterBucketAtTargetAction;
 import net.p3pp3rf1y.sophisticatedstorage.SophisticatedStorage;
 
 import java.util.Collections;
@@ -341,6 +343,7 @@ public final class RegressionActionRegistry {
 		register(new ClearMainHandAction());
 		register(new SelectHotbarSlotAction());
 		register(new UseHeldItemAction());
+		register(new UseWaterBucketAtTargetAction());
 		register(new UseTargetBlockAction());
 		register(new AwaitMenuAction());
 		register(new AwaitVanillaMenuAction());
@@ -360,6 +363,7 @@ public final class RegressionActionRegistry {
 		register(new ReloadChunkBlockEntitiesAction());
 		register(new AwaitPlayerCraftingResultAction());
 		register(new AssertDoubleChestAction());
+		register(new AssertPackedDoubleChestDropAction());
 		register(new CreateLockToolAction());
 		register(new OpenPlayerInventoryAction());
 		register(new SetPlayerGameModeAction());

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 2,
+  "suiteId": "storage-packed-chest-waterlogging",
+  "requires": [],
+  "isolation": "testCell",
+  "fixtures": {
+    "packed-double-chest": [
+      {"id": "chests", "action": "player.sendCommand", "args": {"command": "item replace entity @s weapon.mainhand with sophisticatedstorage:diamond_chest[sophisticatedstorage:wood_type=\"acacia\"] 2"}},
+      {"id": "place-first", "action": "player.placeHeldBlock"},
+      {"id": "place-other", "action": "player.placeHeldBlock", "args": {"offset": [0,0,1]}},
+      {"id": "joined", "action": "assert.doubleChest", "args": {"packed": false}},
+      {"id": "stock", "action": "storage.setBlockSlot", "args": {"item": "minecraft:diamond", "count": 7}},
+      {"id": "upgrade", "action": "fixture.storage.setUpgrade", "args": {"item": "sophisticatedstorage:stack_upgrade_tier_1"}},
+      {"id": "disable-auto-pack", "action": "fixture.storage.dropPacked", "args": {"enabled": false}},
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "tape", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:packing_tape"}},
+      {"id": "pack", "action": "player.useHeldItemOnTarget"},
+      {"id": "packed-and-dry", "action": "assert.doubleChest", "args": {"packed": true, "firstWaterlogged": false, "otherWaterlogged": false, "noDrops": true}},
+      {"id": "water-bucket", "action": "player.createMainHandItem", "args": {"item": "minecraft:water_bucket"}}
+    ],
+    "restore-packed-drop": [
+      {"id": "packed-drop", "action": "assert.packedDoubleChestDrop", "args": {"item": "minecraft:diamond", "count": 7, "upgrade": "sophisticatedstorage:stack_upgrade_tier_1"}},
+      {"id": "clear-axe", "action": "player.clearMainHand"},
+      {"id": "bring-drop-within-pickup-range", "action": "player.sendCommand", "args": {"command": "tp @e[type=minecraft:item,distance=..4,sort=nearest,limit=1] @s"}},
+      {"id": "replace", "action": "player.placeHeldBlock"},
+      {"id": "restored-pair", "action": "assert.doubleChest", "args": {"packed": false, "upgrade": "sophisticatedstorage:stack_upgrade_tier_1", "noDrops": true}},
+      {"id": "restored-inventory", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 7}}
+    ]
+  },
+  "tests": [
+    {
+      "id": "fill-and-drain-first-packed-half",
+      "tags": ["double-chest", "packing", "waterlogging"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "setup", "fixture": "packed-double-chest"},
+        {"id": "fill", "action": "player.useWaterBucketAtTarget"},
+        {"id": "intact-when-wet", "action": "assert.doubleChest", "args": {"packed": true, "firstWaterlogged": true, "otherWaterlogged": false, "noDrops": true, "upgrade": "sophisticatedstorage:stack_upgrade_tier_1"}},
+        {"id": "drain", "action": "player.useWaterBucketAtTarget", "args": {"drain": true}},
+        {"id": "intact-when-dry", "action": "assert.doubleChest", "args": {"packed": true, "firstWaterlogged": false, "otherWaterlogged": false, "noDrops": true}},
+        {"id": "inventory-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-axe", "action": "player.createMainHandItem", "args": {"item": "minecraft:netherite_axe"}},
+        {"id": "break-first", "action": "player.breakTargetBlock"},
+        {"id": "restore", "fixture": "restore-packed-drop"}
+      ]
+    },
+    {
+      "id": "fill-and-drain-other-packed-half",
+      "tags": ["double-chest", "packing", "waterlogging"],
+      "timeoutTicks": 500,
+      "steps": [
+        {"id": "setup", "fixture": "packed-double-chest"},
+        {"id": "fill", "action": "player.useWaterBucketAtTarget", "args": {"offset": [0,0,1]}},
+        {"id": "intact-when-wet", "action": "assert.doubleChest", "args": {"packed": true, "firstWaterlogged": false, "otherWaterlogged": true, "noDrops": true, "upgrade": "sophisticatedstorage:stack_upgrade_tier_1"}},
+        {"id": "drain", "action": "player.useWaterBucketAtTarget", "args": {"offset": [0,0,1], "drain": true}},
+        {"id": "intact-when-dry", "action": "assert.doubleChest", "args": {"packed": true, "firstWaterlogged": false, "otherWaterlogged": false, "noDrops": true}},
+        {"id": "inventory-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 7}},
+        {"id": "hold-axe", "action": "player.createMainHandItem", "args": {"item": "minecraft:netherite_axe"}},
+        {"id": "break-other", "action": "player.breakTargetBlock", "args": {"offset": [0,0,1]}},
+        {"id": "restore", "fixture": "restore-packed-drop"}
+      ]
+    }
+  ]
+}
