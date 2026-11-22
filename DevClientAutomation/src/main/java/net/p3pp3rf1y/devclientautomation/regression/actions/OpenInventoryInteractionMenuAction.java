@@ -34,6 +34,9 @@ public final class OpenInventoryInteractionMenuAction extends TypedRegressionAct
 		} catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException("Invalid vanilla menu kind on " + description, e);
 		}
+		if (kind == VanillaMenuHandle.Kind.SMITHING) {
+			throw new IllegalArgumentException("Smithing is not an inventory-interaction fixture menu on " + description);
+		}
 		String fixture = requireString(args, "fixture", description);
 		if (!Set.of("transferToStorage", "transferToPlayer", "storageSort", "playerSort").contains(fixture)) {
 			throw new IllegalArgumentException("Invalid inventory-interaction fixture on " + description);
