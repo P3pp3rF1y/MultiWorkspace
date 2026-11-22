@@ -32,6 +32,8 @@ class SharedJvmContractTest {
 			assert.inventoryInteractionCount|3|minecraft:client
 			assert.inventoryInteractionLayout|1|minecraft:client,sophisticatedinventoryinteractions
 			assert.linkedBackpackHost|1|minecraft:client,sophisticatedbackpacks
+			assert.linkedBackpackTierUpgradeDelivery|1|minecraft:client,sophisticatedbackpacks
+			assert.linkedBackpackTierUpgradeResult|1|minecraft:client,sophisticatedbackpacks
 			assert.linkedItemContents|1|minecraft:client,sophisticatedcore
 			assert.linkedJukeboxPlayback|1|minecraft:client,sophisticatedstorageinmotion
 			assert.linkedMenuDelta|1|minecraft:client
@@ -199,7 +201,7 @@ class SharedJvmContractTest {
 			storage-break-drop-limit:break-full-linked-barrel-preserves-shared-inventory,break-full-linked-chest-preserves-shared-inventory,break-full-linked-double-chest-main-preserves-shared-inventory,break-full-linked-double-chest-other-preserves-shared-inventory,break-full-ordinary-barrel-is-blocked,break-small-ordinary-barrel-succeeds
 			vanilla-double-chest-upgrade:upgrade-main-controller-at-main,upgrade-main-controller-at-secondary,upgrade-secondary-controller-at-main,upgrade-secondary-controller-at-secondary
 			moving-linked-storage:boat-link-through-entity-interaction,minecart-link-through-entity-interaction,primary-tier-migrates-once-secondary-rejected,recoverable-boat-destruction-reopens-same-group,recoverable-minecart-destruction-reopens-same-group,horse-attach-and-drop-preserves-linked-carrier,nonrecoverable-secondary-detaches-without-erasing-group,removed-primary-pauses-authority-but-secondary-remains-usable,carried-primary-pauses-authority-but-secondary-remains-usable,forged-endpoint-and-tooltip-request-denied,limited-barrel-moving-links-with-compatible-profile,only-active-primary-runs-canonical-pickup-upgrade,packed-primary-pauses-pickup-secondary-menu-stays-usable,recovered-moving-carrier-places-original-linked-block,create-cart-mount-opens-original-linked-group,limited-barrel-mount-opens-linked-group,secondary-minecart-sees-boat-canonical-contents,serialized-moving-entity-reloads-same-canonical-group,moving-endpoints-share-upgrade-settings-and-display,removed-endpoint-invalidates-open-menu,moving-primary-open-menu-receives-live-slot-delta,moving-secondary-open-menu-receives-primary-slot-delta,mounted-open-menu-receives-live-slot-delta,linked-moving-jukebox-gui-play-stop-syncs-upgrade-slot,linked-carrier-copy-preserves-identity-and-limited-profile
-			tier-upgrade-recipes:storage-tier-upgrade-recipe-linkage-matrix,moving-storage-tier-upgrade-recipe-linkage-matrix
+			tier-upgrade-recipes:storage-tier-upgrade-recipe-linkage-matrix,moving-storage-tier-upgrade-recipe-linkage-matrix,linked-backpack-tier-upgrade-quick-move-delivery
 			controller-link:breaking-first-barrel-preserves-storage-link,two-links-survive-shared-group-split,two-separate-groups-remain-linked
 			controller-deposit:deposit-actions-conformance,deposit-after-chest-chunk-lifecycle,deposit-after-placed-backpack-chunk-lifecycle
 			controller-manual-deposit:contents-item-filter-manual-deposit-conformance,contents-mod-filter-double-click-preserves-items
@@ -242,7 +244,7 @@ class SharedJvmContractTest {
 			menu.jukeboxPlayback assert.heldBackpackJukeboxPlayback menu.heldBackpackJukeboxPlayback observe.heldBackpackJukeboxSound player.keepInventoryDeathRespawn player.lethalDamage fixture.backpack.setHeldJukeboxDisc assert.linkedJukeboxPlayback assert.movingPresentation assert.movingUnlinked assert.movingForgedRejected
 			fixture.moving.captureNestedLinkedCarrier assert.movingNestedLinkedIdentity assert.movingStorageCompatibilityProfile storage.setBlockSlot
 			fixture.storage.setUpgrade player.clearMainHand player.selectHotbarSlot player.useHeldItem player.useTargetBlock await.menu await.vanillaMenu fixture.openInventoryInteractionMenu input.inventoryInteractionKeybind assert.menu assert.menuUpgradeLayout assert.linkedBackpackHost
-			assert.linkedItemContents assert.canonicalBackpackTemplate player.sendCommand assert.controllerSharedGroup fixture.controller.reload
+			assert.linkedBackpackTierUpgradeResult assert.linkedBackpackTierUpgradeDelivery assert.linkedItemContents assert.canonicalBackpackTemplate player.sendCommand assert.controllerSharedGroup fixture.controller.reload
 			fixture.chunk.reloadBlockEntities await.playerCraftingResult assert.doubleChest fixture.storage.createLockTool player.openInventory
 			fixture.player.setGameMode menu.clickPlayerInventorySlot menu.clickVanillaSlot menu.clickStorageSlot menu.clickUpgradeSlot menu.openUpgradeTab
 			menu.setUpgradeTab menu.setCraftingRefill assert.upgradeSlot assert.movingMenuPresentation menu.clickSlot
@@ -257,8 +259,8 @@ class SharedJvmContractTest {
 	@Test
 	void registryMatchesCanonicalActionMetadata() {
 		var all = new RegressionActionRegistry().all();
-		assertEquals(166, all.size());
-		assertEquals(166, CANONICAL_ACTION_METADATA.lines().count());
+		assertEquals(168, all.size());
+		assertEquals(168, CANONICAL_ACTION_METADATA.lines().count());
 		assertEquals(CANONICAL_ACTION_METADATA.strip(),
 				all.values().stream().sorted(java.util.Comparator.comparing(metadata -> metadata.id()))
 						.map(metadata -> metadata.id() + "|" + metadata.revision() + "|" + String.join(",", metadata.dependencies().stream().sorted().toList()))
@@ -324,11 +326,11 @@ class SharedJvmContractTest {
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
 		assertEquals(33, suites.size());
-		assertEquals(223, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(224, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
-		assertEquals(166, actions.size());
+		assertEquals(168, actions.size());
 		assertCatalogActionMetadata(actions);
 		assertEquals(3, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-jukebox-death").size());
 		assertEquals(18, catalog.getAsJsonObject("suiteTests").getAsJsonArray("backpack-menu").size());
