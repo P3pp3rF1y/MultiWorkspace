@@ -10,6 +10,7 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.SmithingMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.p3pp3rf1y.sophisticatedbackpacks.backpack.BackpackItem;
@@ -186,6 +187,7 @@ public final class AssertInventoryInteractionCountAction extends TypedRegression
 			case CHEST -> menu instanceof ChestMenu;
 			case CRAFTING -> menu instanceof CraftingMenu;
 			case FURNACE -> menu instanceof FurnaceMenu;
+			case SMITHING -> menu instanceof SmithingMenu;
 		};
 	}
 

@@ -7,11 +7,13 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.inventory.SmithingScreen;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.SmithingMenu;
 import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
 import net.p3pp3rf1y.devclientautomation.input.VirtualInputState;
 import net.p3pp3rf1y.devclientautomation.platform.neoforge.NeoForgeInventoryInteractionHooks;
@@ -158,6 +160,7 @@ public final class PressInventoryInteractionKeybindAction extends TypedRegressio
 			case CHEST -> screen.getMenu() instanceof ChestMenu;
 			case CRAFTING -> screen instanceof CraftingScreen && screen.getMenu() instanceof CraftingMenu;
 			case FURNACE -> screen instanceof FurnaceScreen && screen.getMenu() instanceof FurnaceMenu;
+			case SMITHING -> screen instanceof SmithingScreen && screen.getMenu() instanceof SmithingMenu;
 		};
 	}
 }

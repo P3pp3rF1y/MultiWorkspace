@@ -114,7 +114,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(216, testCount);
+			assertEquals(217, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}
@@ -133,12 +133,17 @@ class RegressionSuiteParserTest {
 			RegressionSuite suite = RegressionSuiteParser.parse(json, new RegressionActionRegistry());
 			JsonArray tests = JsonParser.parseString(json).getAsJsonObject().getAsJsonArray("tests");
 
-			assertEquals(2, suite.tests().size());
-			assertEquals(24, suite.tests().stream().mapToInt(test -> test.steps().size()).sum());
+			assertEquals(3, suite.tests().size());
+			assertEquals(24, suite.tests().subList(0, 2).stream().mapToInt(test -> test.steps().size()).sum());
 			assertTierRecipeCells(tests.get(0).getAsJsonObject().getAsJsonArray("steps"), "assert.storageTierUpgradeRecipe", "form",
 					List.of("normal", "double"));
 			assertTierRecipeCells(tests.get(1).getAsJsonObject().getAsJsonArray("steps"), "assert.movingStorageTierUpgradeRecipe", "carrier",
 					List.of("boat", "minecart"));
+			assertEquals("linked-backpack-tier-upgrade-quick-move-delivery", tests.get(2).getAsJsonObject().get("id").getAsString());
+			assertEquals(2,
+					tests.get(2).getAsJsonObject().getAsJsonArray("steps").asList().stream()
+							.filter(step -> step.getAsJsonObject().get("action").getAsString().equals("menu.clickVanillaSlot"))
+							.filter(step -> step.getAsJsonObject().getAsJsonObject("args").has("quickMove")).count());
 		}
 	}
 
