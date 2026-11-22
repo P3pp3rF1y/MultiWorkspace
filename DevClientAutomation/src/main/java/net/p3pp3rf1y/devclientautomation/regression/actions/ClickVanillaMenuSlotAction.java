@@ -5,15 +5,19 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.SmithingScreen;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.SmithingMenu;
 import net.p3pp3rf1y.devclientautomation.input.VirtualInput;
+import org.lwjgl.sdl.SDLKeycode;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** Clicks a real crafting or smithing screen slot through its production hit testing. */
 public final class ClickVanillaMenuSlotAction extends TypedRegressionAction<ClickVanillaMenuSlotAction.Arguments> {
-	public record Arguments(int slot, int button) {
+	public record Arguments(int slot, int button, boolean quickMove) {
 	}
 
 	public ClickVanillaMenuSlotAction() {
@@ -22,45 +26,68 @@ public final class ClickVanillaMenuSlotAction extends TypedRegressionAction<Clic
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("slot", "button"), description);
-		int button = optionalNonNegativeInt(args, "button", 0, description);
-		if (button > 1) {
-			throw new IllegalArgumentException("button on " + description + " must be 0 or 1");
+		requireOnly(args, Set.of("slot", "button", "quickMove"), description);
+		int button = optionalNonNegativeInt(args, "button", InputConstants.MOUSE_BUTTON_LEFT, description);
+		if (button != InputConstants.MOUSE_BUTTON_LEFT) {
+			throw new IllegalArgumentException("button on " + description + " must be the left mouse button");
 		}
-		return new Arguments(requireNonNegativeInt(args, "slot", description), button);
+		return new Arguments(requireNonNegativeInt(args, "slot", description), button, optionalBoolean(args, "quickMove", false, description));
 	}
 
 	@Override
 	protected RegressionActionExecution start(RegressionExecutionContext context, Arguments arguments) {
 		return new TickRegressionActionExecution(context) {
-			private CompletableFuture<Void> server;
+			private CompletableFuture<Void> before;
+			private CompletableFuture<Void> after;
 			private int containerId = -1;
+			private boolean crafting;
 			private boolean clicked;
+
 			@Override
 			public RegressionActionProgress tick() {
-				if (!(context.minecraft().gui.screen() instanceof AbstractContainerScreen<?> screen)
-						|| !(screen instanceof CraftingScreen || screen instanceof SmithingScreen)) {
+				if (!(context.minecraft().gui.screen() instanceof CraftingScreen) && !(context.minecraft().gui.screen() instanceof SmithingScreen)) {
 					return fail("A real crafting or smithing screen is not active");
 				}
+				AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) context.minecraft().gui.screen();
 				if (arguments.slot() >= screen.getMenu().slots.size()) {
 					return fail("Vanilla menu slot " + arguments.slot() + " is outside the active menu");
+				}
+				if (containerId < 0) {
+					containerId = screen.getMenu().containerId;
+					crafting = screen instanceof CraftingScreen;
+				}
+				if (screen.getMenu().containerId != containerId || crafting != (screen instanceof CraftingScreen)) {
+					return fail("Vanilla menu identity changed before slot click");
+				}
+				if (before == null) {
+					before = context.onServer(player -> requireMatchingServerMenu(player.containerMenu));
+					return RegressionActionProgress.WAITING;
+				}
+				RegressionActionProgress beforeResult = await(before);
+				if (beforeResult != RegressionActionProgress.PASSED) {
+					return beforeResult;
 				}
 				if (!clicked) {
 					Slot slot = screen.getMenu().getSlot(arguments.slot());
 					VirtualInput.moveToSlot(screen, slot.index);
-					if (!VirtualInput.click(screen, screen.getLeftPos() + slot.x + 8, screen.getTopPos() + slot.y + 8,
-							arguments.button() == 0 ? InputConstants.MOUSE_BUTTON_LEFT : InputConstants.MOUSE_BUTTON_RIGHT, 0)) {
+					if (!VirtualInput.click(screen, screen.getLeftPos() + slot.x + 8, screen.getTopPos() + slot.y + 8, arguments.button(),
+							arguments.quickMove() ? SDLKeycode.SDL_KMOD_SHIFT : 0)) {
 						return fail("Vanilla menu slot click was not handled by the screen");
 					}
-					containerId = screen.getMenu().containerId;
+					if (context.minecraft().gui.screen() != screen || screen.getMenu().containerId != containerId) {
+						return fail("Vanilla menu identity changed during slot click");
+					}
 					clicked = true;
-					server = context.onServer(player -> {
-						if (player.containerMenu.containerId != containerId)
-							throw RegressionActionFailure.infrastructure("Vanilla menu closed before click synchronization");
-					});
+					after = context.onServer(player -> requireMatchingServerMenu(player.containerMenu));
 					return RegressionActionProgress.WAITING;
 				}
-				return await(server);
+				return await(after);
+			}
+
+			private void requireMatchingServerMenu(AbstractContainerMenu menu) {
+				if (menu.containerId != containerId || (crafting && !(menu instanceof CraftingMenu)) || (!crafting && !(menu instanceof SmithingMenu))) {
+					throw RegressionActionFailure.infrastructure("Server menu does not match vanilla menu identity");
+				}
 			}
 		};
 	}

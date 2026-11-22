@@ -19,6 +19,8 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryCount
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionCountAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertInventoryInteractionLayoutAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackHostAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackTierUpgradeDeliveryAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedBackpackTierUpgradeResultAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedItemContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedJukeboxPlaybackAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertLinkedMenuDeltaAction;
@@ -391,6 +393,8 @@ public final class RegressionActionRegistry {
 		register(new AssertMenuAction());
 		register(new AssertMenuUpgradeLayoutAction());
 		register(new AssertLinkedBackpackHostAction());
+		register(new AssertLinkedBackpackTierUpgradeResultAction());
+		register(new AssertLinkedBackpackTierUpgradeDeliveryAction());
 		register(new AssertLinkedItemContentsAction());
 		register(new AssertCanonicalBackpackTemplateAction());
 		register(new SendPlayerCommandAction());

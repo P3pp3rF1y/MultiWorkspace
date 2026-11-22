@@ -28,13 +28,21 @@ class VanillaWorkstationActionBindingTest {
 		CaptureHeldBackpackUuidAction capture = new CaptureHeldBackpackUuidAction();
 		AssertHeldBackpackStateAction state = new AssertHeldBackpackStateAction();
 
-		assertEquals(Set.of("minecraft:client"), RegressionActionTestSupport.bind(click, "{\"slot\":3,\"button\":1}").dependencies());
+		assertEquals(Set.of("minecraft:client"), RegressionActionTestSupport.bind(click, "{\"slot\":3}").dependencies());
+		assertEquals(1, RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(click, "{\"slot\":3}"), ClickVanillaMenuSlotAction.Arguments.class).button());
+		assertEquals(false, RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(click, "{\"slot\":3}"), ClickVanillaMenuSlotAction.Arguments.class).quickMove());
+		assertEquals(true, RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(click, "{\"slot\":0,\"quickMove\":true}"), ClickVanillaMenuSlotAction.Arguments.class).quickMove());
 		var captured = RegressionActionTestSupport.bind(capture, "{\"saveAs\":\"original\"}");
 		assertEquals(List.of(new RegressionValueContract.Value("original", RegressionValueTypes.UUID)), captured.values().produces());
 		var asserted = RegressionActionTestSupport.bind(state,
 				"{\"uuid\":\"original\",\"tier\":\"diamond\",\"storageSlots\":108,\"upgradeSlots\":5,\"contents\":[{\"slot\":0,\"item\":\"minecraft:emerald\",\"count\":7}],\"upgrade\":\"sophisticatedbackpacks:stack_upgrade_tier_2\",\"playerSlot\":8,\"playerItem\":\"minecraft:cobblestone\",\"playerCount\":13}");
 		assertEquals(List.of(new RegressionValueContract.Value("original", RegressionValueTypes.UUID)), asserted.values().consumes());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\":0,\"button\":2}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\":0,\"button\":0}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(click, "{\"slot\":0,\"quickMove\":1}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(capture, "{\"saveAs\":\"uuid\",\"extra\":true}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(state, "{\"uuid\":\"original\",\"tier\":\"diamond\"}"));
 		String base = "{\"uuid\":\"original\",\"tier\":\"diamond\",\"storageSlots\":108,\"upgradeSlots\":5,\"contents\":[{\"slot\":%d,\"item\":\"minecraft:emerald\",\"count\":7}],\"upgradeSlot\":%d,\"upgrade\":\"sophisticatedbackpacks:stack_upgrade_tier_2\",\"playerSlot\":%d,\"playerItem\":\"minecraft:cobblestone\",\"playerCount\":13}";
@@ -45,11 +53,25 @@ class VanillaWorkstationActionBindingTest {
 	}
 
 	@Test
+	void linkedBackpackTierUpgradeAssertionsBindOnlyCoveredTiers() {
+		AssertLinkedBackpackTierUpgradeResultAction result = new AssertLinkedBackpackTierUpgradeResultAction();
+		AssertLinkedBackpackTierUpgradeDeliveryAction delivery = new AssertLinkedBackpackTierUpgradeDeliveryAction();
+
+		assertEquals("diamond", RegressionActionTestSupport
+				.arguments(RegressionActionTestSupport.bind(result, "{\"tier\":\"diamond\"}"), AssertLinkedBackpackTierUpgradeResultAction.Arguments.class)
+				.tier());
+		assertEquals("netherite", RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(delivery, "{\"tier\":\"netherite\"}"),
+				AssertLinkedBackpackTierUpgradeDeliveryAction.Arguments.class).tier());
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(result, "{\"tier\":\"gold\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(delivery, "{\"tier\":\"gold\"}"));
+	}
+
+	@Test
 	void hotbarSelectionUsesAConfiguredSlotAndRejectsInvalidArguments() {
 		SelectHotbarSlotAction action = new SelectHotbarSlotAction();
 
-		assertEquals(1,
-				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":1}"), SelectHotbarSlotAction.Arguments.class).slot());
+		assertEquals(8,
+				RegressionActionTestSupport.arguments(RegressionActionTestSupport.bind(action, "{\"slot\":8}"), SelectHotbarSlotAction.Arguments.class).slot());
 		assertEquals(Set.of("minecraft:client"), RegressionActionTestSupport.bind(action, "{\"slot\":0}").dependencies());
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{}"));
 		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"slot\":-1}"));

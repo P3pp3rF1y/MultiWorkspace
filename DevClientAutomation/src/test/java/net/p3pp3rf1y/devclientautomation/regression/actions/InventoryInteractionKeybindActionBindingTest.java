@@ -40,6 +40,7 @@ class InventoryInteractionKeybindActionBindingTest {
 		var awaited = RegressionActionTestSupport.bind(await, "{\"ref\":\"opened\",\"saveAs\":\"menu\",\"timeoutTicks\":40}");
 		assertEquals("opened", RegressionActionTestSupport.arguments(opened, OpenInventoryInteractionMenuAction.Arguments.class).saveAs());
 		assertEquals(40, RegressionActionTestSupport.arguments(awaited, AwaitVanillaMenuAction.Arguments.class).timeoutTicks());
+		assertEquals(null, RegressionActionTestSupport.arguments(awaited, AwaitVanillaMenuAction.Arguments.class).kind());
 		assertEquals(List.of(new RegressionValueContract.Value("opened", RegressionValueTypes.VANILLA_MENU)), opened.values().produces());
 		assertEquals(opened.values().produces(), awaited.values().consumes());
 		assertEquals(List.of(new RegressionValueContract.Value("menu", RegressionValueTypes.VANILLA_MENU)), awaited.values().produces());
@@ -48,9 +49,27 @@ class InventoryInteractionKeybindActionBindingTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(open, "{\"kind\":\"furnace\",\"fixture\":\"storageSort\",\"saveAs\":\"menu\"}"));
 		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(open, "{\"kind\":\"smithing\",\"fixture\":\"playerSort\",\"saveAs\":\"menu\"}"));
+		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(open, "{\"kind\":\"unknown\",\"fixture\":\"playerSort\",\"saveAs\":\"menu\"}"));
 		assertThrows(IllegalArgumentException.class,
 				() -> RegressionActionTestSupport.bind(await, "{\"ref\":\"opened\",\"saveAs\":\"menu\",\"timeoutTicks\":0}"));
+	}
+
+	@Test
+	void awaitVanillaMenuCapturesSmithingByKind() {
+		AwaitVanillaMenuAction action = new AwaitVanillaMenuAction();
+
+		var invocation = RegressionActionTestSupport.bind(action, "{\"kind\":\"smithing\",\"saveAs\":\"smithing\"}");
+
+		AwaitVanillaMenuAction.Arguments arguments = RegressionActionTestSupport.arguments(invocation, AwaitVanillaMenuAction.Arguments.class);
+		assertEquals(null, arguments.ref());
+		assertEquals(VanillaMenuHandle.Kind.SMITHING, arguments.kind());
+		assertEquals(100, arguments.timeoutTicks());
+		assertTrue(invocation.values().consumes().isEmpty());
+		assertThrows(IllegalArgumentException.class,
+				() -> RegressionActionTestSupport.bind(action, "{\"ref\":\"opened\",\"kind\":\"smithing\",\"saveAs\":\"menu\"}"));
+		assertThrows(IllegalArgumentException.class, () -> RegressionActionTestSupport.bind(action, "{\"saveAs\":\"menu\"}"));
 	}
 
 	@Test
