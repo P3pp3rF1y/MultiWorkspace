@@ -32,6 +32,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingMenuPres
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStorageCompatibilityProfileAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertMovingStoragePresentationAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertNestedMovingStorageIdentityAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPackedDoubleChestDropAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlacedBackpackContentsAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerHealthAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.AssertPlayerInventoryBaselineAction;
@@ -151,6 +152,7 @@ import net.p3pp3rf1y.devclientautomation.regression.actions.UseHeldItemAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseHeldItemOnTargetAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseMovingStorageAction;
 import net.p3pp3rf1y.devclientautomation.regression.actions.UseTargetBlockAction;
+import net.p3pp3rf1y.devclientautomation.regression.actions.UseWaterBucketAtTargetAction;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -189,6 +191,7 @@ public final class RegressionActionRegistry {
 		register(lazyJeiTransferAction());
 		register(new AssertSettingsSelectionAction());
 		register(new AssertDoubleChestAction());
+		register(new AssertPackedDoubleChestDropAction());
 		register(new ClickStorageMenuSlotAction());
 		register(new ClickUpgradeSlotAction());
 		register(new OpenUpgradeTabAction());
@@ -245,6 +248,7 @@ public final class RegressionActionRegistry {
 		register(new SetStorageUpgradeAction());
 		register(new ClearMainHandAction());
 		register(new UseHeldItemAction());
+		register(new UseWaterBucketAtTargetAction());
 		register(new UseTargetBlockAction());
 		register(new AwaitMenuAction());
 		register(new AwaitVanillaMenuAction());
@@ -493,6 +497,7 @@ public final class RegressionActionRegistry {
 			storage.setBlockSlot
 			player.clearMainHand
 			player.useHeldItem
+			player.useWaterBucketAtTarget
 			player.useTargetBlock
 			await.menu
 			await.vanillaMenu
@@ -509,6 +514,7 @@ public final class RegressionActionRegistry {
 			fixture.chunk.reloadBlockEntities
 			await.playerCraftingResult
 			assert.doubleChest
+			assert.packedDoubleChestDrop
 			fixture.storage.createLockTool
 			player.openInventory
 			fixture.player.setGameMode

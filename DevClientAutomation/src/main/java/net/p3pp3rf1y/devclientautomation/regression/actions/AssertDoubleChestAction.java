@@ -2,9 +2,13 @@ package net.p3pp3rf1y.devclientautomation.regression.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.phys.AABB;
 import net.p3pp3rf1y.sophisticatedcore.controller.ControllerBlockEntityBase;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlock;
 import net.p3pp3rf1y.sophisticatedstorage.block.ChestBlockEntity;
@@ -18,17 +22,25 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class AssertDoubleChestAction extends TypedRegressionAction<AssertDoubleChestAction.Arguments> {
-	public record Arguments(boolean controller) {
+	public record Arguments(boolean controller, @Nullable Boolean packed, @Nullable Boolean firstWaterlogged, @Nullable Boolean otherWaterlogged,
+			boolean noDrops, @Nullable String upgrade) {
 	}
 
 	public AssertDoubleChestAction() {
-		super("assert.doubleChest", "2", Set.of("minecraft:client", "sophisticatedstorage"));
+		super("assert.doubleChest", "3", Set.of("minecraft:client", "sophisticatedstorage"));
 	}
 
 	@Override
 	protected Arguments parseArguments(JsonObject args, String description) {
-		requireOnly(args, Set.of("controller"), description);
-		return new Arguments(optionalBoolean(args, "controller", false, description));
+		requireOnly(args, Set.of("controller", "packed", "firstWaterlogged", "otherWaterlogged", "noDrops", "upgrade"), description);
+		return new Arguments(optionalBoolean(args, "controller", false, description), optionalExpectation(args, "packed", description),
+				optionalExpectation(args, "firstWaterlogged", description), optionalExpectation(args, "otherWaterlogged", description),
+				optionalBoolean(args, "noDrops", false, description), args.has("upgrade") ? requireString(args, "upgrade", description) : null);
+	}
+
+	@Nullable
+	private static Boolean optionalExpectation(JsonObject args, String key, String description) {
+		return args.has(key) ? optionalBoolean(args, key, false, description) : null;
 	}
 
 	@Override
@@ -62,6 +74,27 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 								|| main.getStorageWrapper().getInventoryHandler().getSlots() != chest.getNumberOfInventorySlots() * 2) {
 							throw RegressionActionFailure.assertion("Naturally joined chest did not acquire shared double capacity");
 						}
+						if (arguments.packed() != null && (firstEntity.isPacked() != arguments.packed() || secondEntity.isPacked() != arguments.packed())) {
+							throw RegressionActionFailure.assertion("Expected packed=" + arguments.packed() + " on both halves, got " + firstEntity.isPacked()
+									+ " and " + secondEntity.isPacked());
+						}
+						assertWaterlogged("First", first, arguments.firstWaterlogged());
+						assertWaterlogged("Other", second, arguments.otherWaterlogged());
+						if (arguments.upgrade() != null) {
+							var expected = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(arguments.upgrade()))
+									.orElseThrow(() -> RegressionActionFailure.infrastructure("Unknown expected upgrade: " + arguments.upgrade()));
+							var actual = main.getStorageWrapper().getUpgradeHandler().getStackInSlot(0);
+							if (!actual.is(expected) || actual.getCount() != 1) {
+								throw RegressionActionFailure.assertion("Expected one " + arguments.upgrade() + " in upgrade slot 0, got " + actual);
+							}
+						}
+						if (arguments.noDrops()) {
+							var drops = level.getEntitiesOfClass(ItemEntity.class, new AABB(context.target()).minmax(new AABB(otherPos)).inflate(1));
+							if (!drops.isEmpty()) {
+								throw RegressionActionFailure
+										.assertion("Unexpected drops around the double chest: " + drops.stream().map(ItemEntity::getItem).toList());
+							}
+						}
 						if (arguments.controller()) {
 							BlockPos controllerPos = main.getControllerPos()
 									.orElseThrow(() -> RegressionActionFailure.assertion("Double chest did not connect to its controller"));
@@ -78,6 +111,12 @@ public final class AssertDoubleChestAction extends TypedRegressionAction<AssertD
 					observe("joined double chest", observations);
 				}
 				return result;
+			}
+
+			private static void assertWaterlogged(String half, BlockState state, @Nullable Boolean expected) {
+				if (expected != null && !expected.equals(state.getValue(ChestBlock.WATERLOGGED))) {
+					throw RegressionActionFailure.assertion(half + " chest half expected waterlogged=" + expected + ", got " + state);
+				}
 			}
 		};
 	}
