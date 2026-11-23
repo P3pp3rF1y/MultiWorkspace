@@ -73,6 +73,58 @@
         {"id": "upgrade", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
         {"id": "verify", "fixture": "verify-upgraded-pair"}
       ]
+    },
+    {
+      "id": "tier-upgrade-main-keeps-controller-deposits",
+      "tags": ["chest", "controller", "tier-upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+        {"id": "convert-vanilla-chest", "action": "player.useHeldItemOnTarget"},
+        {"id": "connected-before-tier-upgrade", "action": "assert.doubleChest", "args": {"controller": true}},
+        {"id": "warm-diamond", "action": "player.createMainHandItem", "args": {"item": "minecraft:diamond"}},
+        {"id": "deposit-before-upgrade", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "deposited-before-upgrade", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}},
+        {"id": "iron-upgrades", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 2}},
+        {"id": "tier-upgrade-main", "action": "player.useHeldItemOnTarget"},
+        {"id": "tier-upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "connected-after-tier-upgrade", "action": "assert.doubleChest", "args": {"controller": true}},
+        {"id": "held-diamonds", "action": "player.createMainHandItem", "args": {"item": "minecraft:diamond", "count": 64}},
+        {"id": "inventory-diamonds", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:diamond", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}},
+        {"id": "main-received-all-diamonds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 79}},
+        {"id": "emeralds-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:emerald", "count": 9}}
+      ]
+    },
+    {
+      "id": "tier-upgrade-secondary-keeps-controller-deposits",
+      "tags": ["chest", "controller", "tier-upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "chest", "fixture": "filled-vanilla-double-chest"},
+        {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-1]}},
+        {"id": "convert-vanilla-chest", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "connected-before-tier-upgrade", "action": "assert.doubleChest", "args": {"controller": true}},
+        {"id": "warm-diamond", "action": "player.createMainHandItem", "args": {"item": "minecraft:diamond"}},
+        {"id": "deposit-before-upgrade", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-1]}},
+        {"id": "deposited-before-upgrade", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}},
+        {"id": "iron-upgrades", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 2}},
+        {"id": "tier-upgrade-secondary", "action": "player.useHeldItemOnTarget", "args": {"offsetZ": 1}},
+        {"id": "tier-upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "connected-after-tier-upgrade", "action": "assert.doubleChest", "args": {"controller": true}},
+        {"id": "held-diamonds", "action": "player.createMainHandItem", "args": {"item": "minecraft:diamond", "count": 64}},
+        {"id": "inventory-diamonds", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:diamond", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-1]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-1]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:diamond", "count": 0, "client": true}},
+        {"id": "main-received-all-diamonds", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:diamond", "count": 79}},
+        {"id": "emeralds-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:emerald", "count": 9}}
+      ]
     }
   ]
 }

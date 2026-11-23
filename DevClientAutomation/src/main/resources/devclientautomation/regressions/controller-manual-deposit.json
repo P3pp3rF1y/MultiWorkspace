@@ -7,6 +7,14 @@
     "barrel-and-controller": [
       {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [1,0,-2]}},
       {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [2,0,-2]}}
+    ],
+    "connect-and-warm-upgrade-barrel": [
+      {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+      {"id": "controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [3,0,-2]}},
+      {"id": "scan", "action": "fixture.controller.scanAdjacent", "args": {"offset": [3,0,-2]}},
+      {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone"}},
+      {"id": "deposit-before-upgrade", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+      {"id": "deposited-before-upgrade", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}}
     ]
   },
   "tests": [
@@ -41,6 +49,117 @@
         {"id": "all-diamonds-stored", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:diamond", "count": 7}},
         {"id": "all-gold-stored", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:gold_ingot", "count": 3}},
         {"id": "anchor-preserved", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [1,0,-2], "item": "minecraft:stone", "count": 1}}
+      ]
+    },
+    {
+      "id": "direct-barrel-tier-upgrade-keeps-controller-deposits",
+      "tags": ["controller", "manual-deposit", "barrel", "tier-upgrade", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+        {"id": "seed", "action": "storage.setBlockSlot", "args": {"item": "minecraft:stone", "count": 7}},
+        {"id": "connect", "fixture": "connect-and-warm-upgrade-barrel"},
+        {"id": "before-upgrade", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 8}},
+        {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade"}},
+        {"id": "upgrade-barrel-directly", "action": "player.useHeldItemOnTarget"},
+        {"id": "upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone", "count": 64}},
+        {"id": "inventory-stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "live-barrel-received-all", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 79}}
+      ]
+    },
+    {
+      "id": "direct-nearly-full-barrel-tier-upgrade-uses-new-capacity",
+      "tags": ["controller", "manual-deposit", "barrel", "tier-upgrade", "capacity", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+        {"id": "fill-old-slots", "action": "storage.setBlockSlot", "args": {"allSlots": true, "item": "minecraft:stone", "count": 63}},
+        {"id": "connect", "fixture": "connect-and-warm-upgrade-barrel"},
+        {"id": "before-upgrade", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 1702}},
+        {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade"}},
+        {"id": "upgrade-barrel-directly", "action": "player.useHeldItemOnTarget"},
+        {"id": "upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone", "count": 64}},
+        {"id": "inventory-stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "live-barrel-used-new-slots", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 1773}}
+      ]
+    },
+    {
+      "id": "direct-locked-barrel-tier-upgrade-keeps-controller-deposits",
+      "tags": ["controller", "manual-deposit", "barrel", "tier-upgrade", "locked", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+        {"id": "seed", "action": "storage.setBlockSlot", "args": {"item": "minecraft:stone", "count": 7}},
+        {"id": "lock-tool", "action": "fixture.storage.createLockTool"},
+        {"id": "lock-barrel", "action": "player.useHeldItemOnTarget"},
+        {"id": "connect", "fixture": "connect-and-warm-upgrade-barrel"},
+        {"id": "before-upgrade", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 8}},
+        {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade"}},
+        {"id": "upgrade-barrel-directly", "action": "player.useHeldItemOnTarget"},
+        {"id": "upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone", "count": 64}},
+        {"id": "inventory-stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "live-barrel-received-all", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 79}}
+      ]
+    },
+    {
+      "id": "direct-full-locked-limited-barrel-tier-upgrade-uses-new-capacity",
+      "tags": ["controller", "manual-deposit", "limited-barrel", "tier-upgrade", "locked", "capacity", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:limited_barrel_1", "offset": [2,0,-2]}},
+        {"id": "fill-old-slot", "action": "storage.setBlockSlot", "args": {"item": "minecraft:stone", "count": 2047}},
+        {"id": "lock-tool", "action": "fixture.storage.createLockTool"},
+        {"id": "lock-barrel", "action": "player.useHeldItemOnTarget"},
+        {"id": "connect", "fixture": "connect-and-warm-upgrade-barrel"},
+        {"id": "before-upgrade", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 2048}},
+        {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade"}},
+        {"id": "upgrade-barrel-directly", "action": "player.useHeldItemOnTarget"},
+        {"id": "upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone", "count": 64}},
+        {"id": "inventory-stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [3,0,-2]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "live-barrel-used-new-capacity", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 2119}}
+      ]
+    },
+    {
+      "id": "direct-tool-linked-barrel-tier-upgrade-keeps-controller-deposits",
+      "tags": ["controller", "manual-deposit", "barrel", "tier-upgrade", "linked", "item-conservation"],
+      "timeoutTicks": 600,
+      "steps": [
+        {"id": "survival", "action": "fixture.player.setGameMode", "args": {"mode": "survival"}},
+        {"id": "barrel", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:barrel", "offset": [2,0,-2]}},
+        {"id": "seed", "action": "storage.setBlockSlot", "args": {"item": "minecraft:stone", "count": 7}},
+        {"id": "remote-controller", "action": "fixture.block.set", "args": {"block": "sophisticatedstorage:controller", "offset": [0,0,-4]}},
+        {"id": "link-tool", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:storage_tool"}},
+        {"id": "select-controller", "action": "player.useHeldItemOnTarget", "args": {"offset": [0,0,-4]}},
+        {"id": "link-barrel", "action": "player.useHeldItemOnTarget"},
+        {"id": "warm-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone"}},
+        {"id": "deposit-before-upgrade", "action": "player.useHeldItemOnTarget", "args": {"offset": [0,0,-4]}},
+        {"id": "deposited-before-upgrade", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "before-upgrade", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 8}},
+        {"id": "upgrade-item", "action": "player.createMainHandItem", "args": {"item": "sophisticatedstorage:basic_to_iron_tier_upgrade"}},
+        {"id": "upgrade-barrel-directly", "action": "player.useHeldItemOnTarget"},
+        {"id": "upgrade-applied", "action": "assert.inventoryCount", "args": {"target": "player", "item": "sophisticatedstorage:basic_to_iron_tier_upgrade", "count": 0, "client": true}},
+        {"id": "held-stone", "action": "player.createMainHandItem", "args": {"item": "minecraft:stone", "count": 64}},
+        {"id": "inventory-stone", "action": "player.setInventorySlot", "args": {"slot": 1, "item": "minecraft:stone", "count": 7}},
+        {"id": "first-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [0,0,-4]}},
+        {"id": "second-controller-click", "action": "player.useHeldItemOnTarget", "args": {"offset": [0,0,-4]}},
+        {"id": "player-deposited-all", "action": "assert.inventoryCount", "args": {"target": "player", "item": "minecraft:stone", "count": 0, "client": true}},
+        {"id": "live-barrel-received-all", "action": "assert.inventoryCount", "args": {"target": "storage", "offset": [2,0,-2], "item": "minecraft:stone", "count": 79}}
       ]
     }
   ]
