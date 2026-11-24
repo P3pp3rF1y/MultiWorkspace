@@ -362,6 +362,7 @@ class SharedJvmContractTest {
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
+			backpack-cooking:normal-smelting-wet-sponge-retains-water-bucket,auto-smelting-wet-sponge-retains-water-bucket-prepare,auto-smelting-wet-sponge-water-bucket-restart
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
@@ -462,8 +463,8 @@ class SharedJvmContractTest {
 		Map<String, List<String>> expectedSuiteTests = suiteTests(CANONICAL_SUITE_TESTS);
 		JsonObject actions = catalog.getAsJsonObject("actions");
 
-		assertEquals(34, suites.size());
-		assertEquals(219, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(35, suites.size());
+		assertEquals(222, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(expectedSuiteTests.keySet().stream().toList(),
 				catalog.getAsJsonArray("suites").asList().stream().map(element -> element.getAsString()).toList());
 		assertEquals(expectedSuiteTests, suiteTests(catalog.getAsJsonObject("suiteTests")));
