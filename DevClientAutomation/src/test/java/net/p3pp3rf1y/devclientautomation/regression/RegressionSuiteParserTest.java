@@ -53,16 +53,16 @@ class RegressionSuiteParserTest {
 			assertTrue(stream != null);
 			JsonArray index = JsonParser.parseString(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonArray();
 			List<String> indexedPaths = index.asList().stream().map(entry -> entry.getAsString()).toList();
-			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-filters.json", "backpack-restock.json", "backpack-pickup.json",
-					"backpack-jukebox-death.json", "reliquary-resurrection.json", "inventory-interactions-keybind.json", "inventory-interactions-layout.json",
-					"item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json", "storage-tanks.json",
-					"storage-compression.json", "storage-break-drop-limit.json", "vanilla-double-chest-upgrade.json", "moving-linked-storage.json",
-					"tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json", "controller-manual-deposit.json",
-					"linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json", "linked-storage-sorting.json",
-					"linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
+			assertEquals(List.of("backpack-menu.json", "backpack-crafting.json", "backpack-cooking.json", "backpack-filters.json", "backpack-restock.json",
+					"backpack-pickup.json", "backpack-jukebox-death.json", "reliquary-resurrection.json", "inventory-interactions-keybind.json",
+					"inventory-interactions-layout.json", "item-entity-action-conformance.json", "backpack-create-disassembly.json", "storage-menu.json",
+					"storage-tanks.json", "storage-compression.json", "storage-break-drop-limit.json", "vanilla-double-chest-upgrade.json",
+					"moving-linked-storage.json", "tier-upgrade-recipes.json", "controller-link.json", "controller-deposit.json",
+					"controller-manual-deposit.json", "linked-storage-action-conformance.json", "linked-storage-resources.json", "linked-storage-menu.json",
+					"linked-storage-sorting.json", "linked-storage-controller-lifecycle.json", "linked-storage-restart.json", "linked-storage-inception.json",
 					"linked-storage-fluid-lock.json", "linked-storage-interoperability.json", "linked-storage-mob-catcher.json", "linked-storage-settings.json",
 					"jei-recipe-transfer.json"), indexedPaths);
-			assertEquals(33, indexedPaths.size());
+			assertEquals(34, indexedPaths.size());
 			assertEquals(indexedPaths.size(), new HashSet<>(indexedPaths).size());
 			Path resourceDirectory = Path.of("src", "main", "resources", "devclientautomation", "regressions");
 			try (var resources = Files.list(resourceDirectory)) {
@@ -70,7 +70,7 @@ class RegressionSuiteParserTest {
 						.sorted().toList();
 				Set<String> expectedJson = new HashSet<>(indexedPaths);
 				expectedJson.add("index.json");
-				assertEquals(34, physicalJson.size());
+				assertEquals(35, physicalJson.size());
 				assertEquals(expectedJson, new HashSet<>(physicalJson));
 			}
 			int testCount = 0;
@@ -97,6 +97,12 @@ class RegressionSuiteParserTest {
 										"linked-held-backpack-menu-receives-slot-delta", "tank-upgrade-bucket-processing-is-atomic-and-persistent"),
 								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
 					}
+					if (indexedPath.equals("backpack-cooking.json")) {
+						assertEquals(
+								List.of("normal-smelting-wet-sponge-retains-water-bucket", "auto-smelting-wet-sponge-retains-water-bucket-prepare",
+										"auto-smelting-wet-sponge-water-bucket-restart"),
+								suite.getAsJsonArray("tests").asList().stream().map(test -> test.getAsJsonObject().get("id").getAsString()).toList());
+					}
 					if (indexedPath.equals("inventory-interactions-keybind.json")) {
 						assertEquals(
 								List.of("vanilla-transfer-to-storage-filtered", "vanilla-transfer-to-storage-all", "vanilla-transfer-to-player-filtered",
@@ -116,7 +122,7 @@ class RegressionSuiteParserTest {
 					}
 				}
 			}
-			assertEquals(224, testCount);
+			assertEquals(227, testCount);
 			assertEquals(24, fixtureCount);
 		}
 	}
