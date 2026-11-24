@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SelectedResourceBindingTest {
 	private static final String ROOT = "/devclientautomation/regressions/";
 	private static final String[] SELECTED = ("""
-			backpack-create-disassembly backpack-menu controller-link controller-manual-deposit linked-storage-action-conformance
+			backpack-cooking backpack-create-disassembly backpack-menu controller-link controller-manual-deposit linked-storage-action-conformance
 			linked-storage-controller-lifecycle linked-storage-fluid-lock linked-storage-inception
 			linked-storage-interoperability linked-storage-menu linked-storage-mob-catcher
 			linked-storage-resources linked-storage-restart linked-storage-settings moving-linked-storage reliquary-resurrection storage-menu storage-tanks
@@ -38,7 +38,7 @@ class SelectedResourceBindingTest {
 						"backpack-crafting.json", "storage-break-drop-limit.json", "jei-recipe-transfer.json", "storage-compression.json"),
 				entries.stream().filter(entry -> Arrays.stream(SELECTED).noneMatch(id -> entry.equals(id + ".json")))
 						.collect(java.util.stream.Collectors.toSet()));
-		assertEquals(33, entries.size());
+		assertEquals(34, entries.size());
 		assertEquals(18, JsonParser.parseString(resource("backpack-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(2, JsonParser.parseString(resource("storage-menu.json")).getAsJsonObject().getAsJsonArray("tests").size());
 	}
@@ -84,7 +84,7 @@ class SelectedResourceBindingTest {
 				assertEquals(json.getAsJsonArray("tests").size(), suite.tests().size(), id);
 			}
 		}
-		assertEquals(18, SELECTED.length);
+		assertEquals(19, SELECTED.length);
 		assertEquals(35, JsonParser.parseString(resource("storage-tanks.json")).getAsJsonObject().getAsJsonArray("tests").size());
 		assertEquals(cases, selectedCases.size());
 		assertTrue(cases >= 60);

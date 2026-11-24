@@ -186,6 +186,7 @@ class SharedJvmContractTest {
 	private static final String CANONICAL_SUITE_TESTS = """
 			backpack-menu:gold-to-diamond-to-netherite-uses-real-workstations,iron-to-gold-to-diamond-uses-real-crafting-table,vanilla-workstation-actions-execute-with-valid-fixture,vanilla-workstation-actions-reject-invalid-context,vanilla-workstation-actions-cleanup-closes-screen,vanilla-workstation-harness-cleanup-restores-baseline,held-backpack-tank-battery-swap-preserves-slot-layout,held-backpack-memory-tank-shrink-restore,backpack-actions-execute-with-valid-fixture,placed-backpack-opens-synchronized-menu,held-backpack-opens-synchronized-item-menu,placed-backpack-menu-click-and-quick-move-stay-synchronized,linked-held-backpack-opens-with-enchanted-book,linked-placed-backpack-opens-with-enchanted-book,linked-held-backpack-quick-move-stays-synchronized,linked-placed-backpack-quick-move-stays-synchronized,linked-held-backpack-menu-receives-slot-delta,tank-upgrade-bucket-processing-is-atomic-and-persistent
 			backpack-crafting:shapeless-recipe-insertion-replacement-and-removal,shaped-recipe-completion-repeated-take-and-reopen,shift-craft-refills-grid-and-exhausts-storage,recipe-remainder-replaced-by-next-recipe,upgrade-slot-actions-reject-invalid-context-and-time-out,crafting-cleanup-restores-player-baseline
+			backpack-cooking:normal-smelting-wet-sponge-retains-water-bucket,auto-smelting-wet-sponge-retains-water-bucket-prepare,auto-smelting-wet-sponge-water-bucket-restart
 			backpack-filters:basic-filter-input-allow-diamond-block-redstone,advanced-filter-input-allow-diamond-block-redstone,basic-filter-output-block-redstone-allow-diamond,advanced-filter-output-block-redstone-allow-diamond
 			backpack-restock:basic-restock-allow-diamond,advanced-restock-allow-diamond,basic-restock-block-redstone,advanced-restock-block-redstone,basic-restock-empty-barrel,advanced-restock-empty-barrel
 			backpack-pickup:basic-pickup-allows-diamond,basic-pickup-blocks-redstone,basic-pickup-full-backpack-falls-back-to-player,advanced-pickup-allows-diamond,advanced-pickup-blocks-redstone,advanced-pickup-full-backpack-falls-back-to-player
@@ -324,8 +325,8 @@ class SharedJvmContractTest {
 		var suites = RegressionCoordinator.loadSuites();
 		var catalog = JsonParser.parseString(RegressionEndpoints.catalogJson(new RegressionActionRegistry().all(), suites)).getAsJsonObject();
 		var actions = catalog.getAsJsonObject("actions");
-		assertEquals(33, suites.size());
-		assertEquals(224, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
+		assertEquals(34, suites.size());
+		assertEquals(227, suites.values().stream().mapToInt(suite -> suite.tests().size()).sum());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonArray("suites").asList().stream().map(e -> e.getAsString()).toList());
 		assertEquals(suites.keySet().stream().toList(), catalog.getAsJsonObject("suiteTests").keySet().stream().toList());
 		assertEquals(List.of(CANONICAL_ACTION_ORDER.strip().split("\\s+")), actions.keySet().stream().toList());
